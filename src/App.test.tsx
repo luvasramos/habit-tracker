@@ -99,8 +99,15 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
-    expect(screen.getByLabelText('1 completed day across all habits')).toBeInTheDocument();
-    expect(screen.getByLabelText('Gym, 1 completed day')).toBeInTheDocument();
+    expect(screen.getByLabelText(/1 completion day and \d+ inactive days/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Gym, 1 completion')).toBeInTheDocument();
+    expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Year' }));
+    expect(screen.getByLabelText('Yearly habit comparison')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Gym' }));
+    expect(screen.getByText('No habits selected.')).toBeInTheDocument();
   });
 
   it('shows a statistics empty state when there is no data', async () => {
