@@ -50,7 +50,7 @@ export const YearView = ({ habit, anchorDate, checkIns, onToggle }: YearViewProp
       <div className="year-scroll">
         <div
           className="year-grid"
-          style={{ gridTemplateColumns: `40px repeat(${columns.length}, 16px)` }}
+          style={{ gridTemplateColumns: `40px repeat(${columns.length}, 44px)` }}
         >
           <div aria-hidden="true" />
           {monthLabels.map((month) => (

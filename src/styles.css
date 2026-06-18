@@ -18,6 +18,9 @@
   --task-offwhite: #f1f0ea;
   --inactive: #272727;
   --radius: 8px;
+  --space-page: clamp(12px, 2.5vw, 24px);
+  --space-shell: clamp(14px, 2.4vw, 22px);
+  --control-size: 44px;
   --focus: 0 0 0 3px rgba(214, 214, 214, 0.2);
   font-family:
     "Funnel Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -38,6 +41,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
+  overflow-x: hidden;
 }
 
 button,
@@ -61,16 +65,18 @@ input:focus-visible {
 
 .app {
   min-height: 100vh;
-  padding: 24px;
+  padding: var(--space-page);
+  overflow-x: clip;
 }
 
 .shell {
   width: min(100%, 1120px);
   margin: 0 auto;
-  padding: 20px;
+  padding: var(--space-shell);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  overflow-x: clip;
 }
 
 .app-header,
@@ -91,6 +97,7 @@ input:focus-visible {
 
 .app-header {
   justify-content: space-between;
+  flex-wrap: wrap;
   margin-bottom: 18px;
 }
 
@@ -161,6 +168,7 @@ h2 {
 
 .button {
   justify-content: center;
+  min-height: var(--control-size);
   padding: 0 14px;
   white-space: nowrap;
 }
@@ -190,15 +198,21 @@ h2 {
 .icon-button {
   display: grid;
   place-items: center;
-  width: 38px;
+  width: var(--control-size);
+  min-height: var(--control-size);
   padding: 0;
 }
 
 .primary-nav {
+  display: flex;
+  flex: 1 1 260px;
+  flex-wrap: wrap;
   min-width: 0;
 }
 
 .nav-button {
+  flex: 0 1 auto;
+  min-height: var(--control-size);
   padding: 0 12px;
 }
 
@@ -220,19 +234,22 @@ h2 {
 
 .habit-tabs {
   justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
   margin-bottom: 16px;
   min-width: 0;
 }
 
 .habit-tabs__scroller {
+  flex: 1 1 260px;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .habit-tab {
+  min-height: var(--control-size);
   max-width: 220px;
   overflow: hidden;
   padding: 0 12px;
@@ -248,12 +265,14 @@ h2 {
 
 .calendar-controls {
   justify-content: space-between;
+  align-items: flex-start;
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
 
 .segmented {
   display: inline-flex;
+  flex: 0 1 auto;
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--border);
@@ -262,17 +281,22 @@ h2 {
 }
 
 .segmented__button {
-  min-height: 32px;
+  min-height: var(--control-size);
   padding: 0 12px;
   border-color: transparent;
 }
 
 .period-controls {
+  flex: 1 1 320px;
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
 .period-label {
-  min-width: 18ch;
+  min-width: min(18ch, 100%);
+  min-height: var(--control-size);
+  display: grid;
+  place-items: center;
   text-align: center;
 }
 
@@ -356,7 +380,7 @@ h2 {
 
 .year-grid {
   display: grid;
-  grid-template-rows: 18px repeat(7, 16px);
+  grid-template-rows: 18px repeat(7, 44px);
   gap: 4px;
   width: max-content;
   align-items: center;
@@ -388,16 +412,16 @@ h2 {
 
 .year-column {
   display: grid;
-  grid-template-rows: repeat(7, 16px);
+  grid-template-rows: repeat(7, 44px);
   gap: 4px;
   grid-row: 2 / span 7;
 }
 
 .date-button--compact,
 .year-empty-cell {
-  width: 16px;
-  height: 16px;
-  min-height: 16px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
   padding: 0;
   border-radius: 4px;
 }
@@ -437,16 +461,15 @@ h2 {
 
 .filter-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
 .filter-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 34px;
+  min-height: var(--control-size);
   max-width: 220px;
   padding: 0 11px;
   border: 1px solid var(--border);
@@ -523,7 +546,7 @@ h2 {
 
 .stats-view {
   display: grid;
-  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr);
   gap: 24px;
   align-items: center;
   padding-top: 4px;
@@ -592,7 +615,7 @@ h2 {
   display: grid;
   grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto;
   justify-content: space-between;
-  min-height: 42px;
+  min-height: var(--control-size);
   padding: 0 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -689,6 +712,8 @@ h2 {
   gap: 8px;
   max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   padding-bottom: 8px;
 }
 
@@ -827,7 +852,35 @@ h2 {
   }
 
   .primary-nav {
+    flex: 1 1 100%;
     flex-wrap: wrap;
+  }
+
+  .nav-button {
+    flex: 1 1 128px;
+    justify-content: center;
+  }
+
+  .app-header > .button {
+    flex: 1 1 100%;
+  }
+
+  .habit-tabs {
+    align-items: stretch;
+  }
+
+  .habit-tabs__scroller {
+    flex: 1 1 100%;
+  }
+
+  .habit-tab {
+    flex: 1 1 132px;
+    justify-content: center;
+    max-width: none;
+  }
+
+  .habit-tabs > .button {
+    flex: 1 1 100%;
   }
 
   .calendar-controls,
@@ -872,16 +925,89 @@ h2 {
     align-items: stretch;
   }
 
+  .filter-pill {
+    flex: 1 1 132px;
+    justify-content: center;
+    max-width: none;
+  }
+
   .stats-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stats-view {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .donut {
+    width: min(210px, 70vw);
+  }
+
+  .stat-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    padding-block: 10px;
+  }
+
+  .stat-row__bar {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
   }
 
   .heatmap-row {
-    grid-template-columns: 84px max-content;
+    grid-template-columns: 96px max-content;
+  }
+
+  .comparison-legend {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .app {
+    padding: 10px;
+  }
+
+  .shell {
+    padding: 12px;
+  }
+
+  .segmented {
+    gap: 3px;
+    padding: 3px;
+  }
+
+  .segmented__button,
+  .button,
+  .nav-button {
+    padding-inline: 10px;
+  }
+
+  .month-grid {
+    gap: 3px;
+  }
+
+  .weekday-heading {
+    font-size: 0.68rem;
+  }
+
+  .date-button {
+    min-height: 52px;
+    padding: 4px;
+  }
+
+  .date-button strong {
+    font-size: 1.1rem;
+  }
+
+  .metric {
+    padding: 10px;
+  }
+
+  .metric strong {
+    font-size: 1.2rem;
   }
 }
 
