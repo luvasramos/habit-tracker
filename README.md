@@ -40,4 +40,4 @@ npm run build
 
 The repository includes `.github/workflows/deploy.yml` for GitHub Pages. In the repository settings, set Pages to deploy from GitHub Actions. The workflow runs lint, tests, type checking, and the production build, then publishes `dist`.
 
-The Vite base path uses `/habit-grid/` when `GITHUB_PAGES=true`; rename the base path in `vite.config.ts` if the GitHub repository name is different.
+The Vite base path uses `/habit-tracker/` when `GITHUB_PAGES=true` so project-page assets resolve correctly for `luvasramos/habit-tracker`.
