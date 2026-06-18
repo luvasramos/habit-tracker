@@ -3,24 +3,28 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
 import { isFutureDay, monthBounds } from '../utils/dates';
+import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
 type MonthViewProps = {
   habit: Habit;
+  habits: Habit[];
   anchorDate: Date;
   checkIns: Record<LocalDateKey, true>;
+  allCheckIns: Record<string, Record<LocalDateKey, true>>;
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
 const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const MonthView = ({ habit, anchorDate, checkIns, onToggle }: MonthViewProps) => {
+export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: MonthViewProps) => {
   const cells = useMemo(() => getMonthCells(anchorDate), [anchorDate]);
   const enabledKeys = cells
     .filter((cell) => cell.inPeriod && !isFutureDay(cell.date))
     .map((cell) => cell.key);
   const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
   const { start, end } = monthBounds(anchorDate);
+  const habitColor = getHabitColorVar(habit.id, habits);
   const count = Object.keys(checkIns).filter((key) => {
     const cell = cells.find((item) => item.key === key);
     return cell?.inPeriod;
@@ -64,6 +68,14 @@ export const MonthView = ({ habit, anchorDate, checkIns, onToggle }: MonthViewPr
               dateKey={cell.key}
               habitName={habit.name}
               completed={Boolean(checkIns[cell.key])}
+              habitColor={habitColor}
+              completions={getDateCompletions(cell.key, habits, allCheckIns).map(
+                ({ habit: completedHabit, color }) => ({
+                  id: completedHabit.id,
+                  name: completedHabit.name,
+                  color,
+                }),
+              )}
               tabIndex={cell.key === focusedKey ? 0 : -1}
               onClick={() => onToggle(cell.key)}
               onKeyDown={(event) => {

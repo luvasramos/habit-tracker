@@ -111,24 +111,30 @@ export const App = () => {
             {selectedHabit && view === 'week' ? (
               <WeekView
                 habit={selectedHabit}
+                habits={state.habits}
                 anchorDate={anchorDate}
                 checkIns={selectedCheckIns}
+                allCheckIns={state.checkIns}
                 onToggle={handleToggle}
               />
             ) : null}
             {selectedHabit && view === 'month' ? (
               <MonthView
                 habit={selectedHabit}
+                habits={state.habits}
                 anchorDate={anchorDate}
                 checkIns={selectedCheckIns}
+                allCheckIns={state.checkIns}
                 onToggle={handleToggle}
               />
             ) : null}
             {selectedHabit && view === 'year' ? (
               <YearView
                 habit={selectedHabit}
+                habits={state.habits}
                 anchorDate={anchorDate}
                 checkIns={selectedCheckIns}
+                allCheckIns={state.checkIns}
                 onToggle={handleToggle}
               />
             ) : null}

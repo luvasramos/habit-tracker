@@ -78,6 +78,7 @@ describe('Habit Grid app', () => {
     expect(checkInButton).toBeDefined();
     await user.click(checkInButton!);
     expect(checkInButton).toHaveAttribute('aria-pressed', 'true');
+    expect(document.querySelector('.completion-dot')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Month' }));
     expect(screen.getByText(/1 completed days in/)).toBeInTheDocument();
@@ -102,12 +103,16 @@ describe('Habit Grid app', () => {
     expect(screen.getByLabelText(/1 completion day and \d+ inactive days/)).toBeInTheDocument();
     expect(screen.getByLabelText('Gym, 1 completion')).toBeInTheDocument();
     expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'No activity' })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByRole('button', { name: 'Year' }));
-    expect(screen.getByLabelText('Yearly habit comparison')).toBeInTheDocument();
+    expect(screen.getByLabelText('Yearly activity overview')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Gym' }));
-    expect(screen.getByText('No habits selected.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'No activity' }));
+    expect(screen.getByText('No data selected.')).toBeInTheDocument();
   });
 
   it('shows a statistics empty state when there is no data', async () => {

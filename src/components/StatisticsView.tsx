@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { Habit, LocalDateKey, ViewMode } from '../state/types';
 import { getWeekDays } from '../utils/calendar';
 import {
@@ -12,8 +12,8 @@ import {
   toLocalDateKey,
   yearBounds,
 } from '../utils/dates';
+import { getHabitColorVar } from '../utils/habitColors';
 import { Icon } from './Icon';
-import type { CSSProperties } from 'react';
 
 type StatisticsViewProps = {
   habits: Habit[];
@@ -26,9 +26,10 @@ type HabitStat = {
   count: number;
   percent: number;
   color: string;
+  kind: 'habit' | 'inactive';
 };
 
-const accentNames = ['blue', 'forest', 'lavender', 'sage', 'acid', 'offwhite'] as const;
+const noActivityId = '__no_activity__';
 const donutRadius = 38;
 const donutCircumference = 2 * Math.PI * donutRadius;
 const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
@@ -54,6 +55,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>(() =>
     habits.map((habit) => habit.id),
   );
+  const [showNoActivity, setShowNoActivity] = useState(true);
 
   useEffect(() => {
     setSelectedHabitIds((current) => {
@@ -70,28 +72,41 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   const rangeKeys = useMemo(() => measurableDays.map(toLocalDateKey), [measurableDays]);
   const comparisonKeys = useMemo(() => rangeDays.map(toLocalDateKey), [rangeDays]);
 
-  const habitStats: HabitStat[] = selectedHabits.map((habit, index) => {
+  const habitStats: HabitStat[] = selectedHabits.map((habit) => {
     const count = rangeKeys.filter((key) => checkIns[habit.id]?.[key]).length;
     return {
       id: habit.id,
       name: habit.name,
       count,
       percent: 0,
-      color: `var(--task-${accentNames[index % accentNames.length]})`,
+      color: getHabitColorVar(habit.id, habits),
+      kind: 'habit',
     };
   });
   const totalCompletions = habitStats.reduce((sum, stat) => sum + stat.count, 0);
+  const activeDays = rangeKeys.filter((key) =>
+    selectedHabits.some((habit) => checkIns[habit.id]?.[key]),
+  ).length;
+  const inactiveDays =
+    selectedHabits.length === 0 ? rangeKeys.length : Math.max(rangeKeys.length - activeDays, 0);
+  const completionPercent = rangeKeys.length > 0 ? Math.round((activeDays / rangeKeys.length) * 100) : 0;
+  const inactiveStat: HabitStat = {
+    id: noActivityId,
+    name: 'No activity',
+    count: inactiveDays,
+    percent: rangeKeys.length > 0 ? inactiveDays / rangeKeys.length : 0,
+    color: 'var(--inactive)',
+    kind: 'inactive',
+  };
   const stats = habitStats.map((stat) => ({
     ...stat,
     percent: totalCompletions > 0 ? stat.count / totalCompletions : 0,
   }));
-  const activeDays = rangeKeys.filter((key) =>
-    selectedHabits.some((habit) => checkIns[habit.id]?.[key]),
-  ).length;
-  const inactiveDays = selectedHabits.length === 0 ? rangeKeys.length : rangeKeys.length - activeDays;
-  const completionPercent = rangeKeys.length > 0 ? Math.round((activeDays / rangeKeys.length) * 100) : 0;
-  const hasCompletions = totalCompletions > 0;
-  const noHabitsSelected = habits.length > 0 && selectedHabits.length === 0;
+  const displayStats = showNoActivity ? [...stats, inactiveStat] : stats;
+  const distributionTotal =
+    stats.reduce((sum, stat) => sum + stat.count, 0) + (showNoActivity ? inactiveDays : 0);
+  const hasVisibleSegments = displayStats.some((stat) => stat.count > 0);
+  const nothingSelected = selectedHabits.length === 0 && !showNoActivity;
   const activityLabel = `${pluralize(activeDays, 'completion day')} and ${pluralize(
     inactiveDays,
     'inactive day',
@@ -105,6 +120,14 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
         : [...current, habitId],
     );
   };
+
+  const getSelectedCompletions = (dateKey: LocalDateKey) =>
+    selectedHabits
+      .filter((habit) => checkIns[habit.id]?.[dateKey])
+      .map((habit) => ({
+        habit,
+        color: getHabitColorVar(habit.id, habits),
+      }));
 
   if (habits.length === 0) {
     return (
@@ -159,27 +182,37 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
         </div>
       </div>
 
-      <div className="filter-row" aria-label="Habit filters">
-        {habits.map((habit, index) => (
+      <div className="filter-row" aria-label="Statistics filters">
+        {habits.map((habit) => (
           <button
             key={habit.id}
             className="filter-pill"
             type="button"
             aria-pressed={selectedHabitIds.includes(habit.id)}
             onClick={() => toggleHabit(habit.id)}
-            style={{ '--habit-color': `var(--task-${accentNames[index % accentNames.length]})` } as CSSProperties}
+            style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
           >
             <span className="filter-pill__dot" />
             {habit.name}
           </button>
         ))}
+        <button
+          className="filter-pill filter-pill--inactive"
+          type="button"
+          aria-pressed={showNoActivity}
+          onClick={() => setShowNoActivity((value) => !value)}
+          style={{ '--habit-color': 'var(--inactive)' } as CSSProperties}
+        >
+          <span className="filter-pill__dot" />
+          No activity
+        </button>
       </div>
 
-      {noHabitsSelected ? (
+      {nothingSelected ? (
         <div className="stats-empty stats-empty--compact">
           <Icon name="habits" className="stats-empty__icon" />
-          <p>No habits selected.</p>
-          <p className="muted">Select at least one habit to compare activity.</p>
+          <p>No data selected.</p>
+          <p className="muted">Select a habit or no activity to compare the range.</p>
         </div>
       ) : (
         <>
@@ -188,10 +221,12 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
               <span>Completion days</span>
               <strong>{activeDays}</strong>
             </div>
-            <div className="metric">
-              <span>No activity</span>
-              <strong>{inactiveDays}</strong>
-            </div>
+            {showNoActivity ? (
+              <div className="metric metric--inactive">
+                <span>No activity</span>
+                <strong>{inactiveDays}</strong>
+              </div>
+            ) : null}
             <div className="metric">
               <span>Completion rate</span>
               <strong>{completionPercent}%</strong>
@@ -211,26 +246,29 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                 aria-label={activityLabel}
               >
                 <circle className="donut__track" cx="60" cy="60" r={donutRadius} />
-                {stats
+                {displayStats
                   .filter((stat) => stat.count > 0)
                   .map((stat) => {
+                    const segment = distributionTotal > 0 ? stat.count / distributionTotal : 0;
                     const offset = runningOffset;
-                    runningOffset -= stat.percent * donutCircumference;
+                    runningOffset -= segment * donutCircumference;
                     return (
                       <circle
                         key={stat.id}
-                        className="donut__slice"
+                        className={`donut__slice${stat.kind === 'inactive' ? ' donut__slice--inactive' : ''}`}
                         cx="60"
                         cy="60"
                         r={donutRadius}
                         pathLength={donutCircumference}
-                        strokeDasharray={`${stat.percent * donutCircumference} ${donutCircumference}`}
+                        strokeDasharray={`${segment * donutCircumference} ${donutCircumference}`}
                         strokeDashoffset={offset}
                         style={{ stroke: stat.color }}
                       />
                     );
                   })}
-                {!hasCompletions ? <circle className="donut__inactive" cx="60" cy="60" r={donutRadius} /> : null}
+                {!hasVisibleSegments ? (
+                  <circle className="donut__inactive" cx="60" cy="60" r={donutRadius} />
+                ) : null}
               </svg>
               <div className="donut-total">
                 <strong>{activeDays}</strong>
@@ -239,82 +277,88 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
             </div>
 
             <div className="stat-list">
-              {stats.map((stat) => (
-                <div
-                  className="stat-row"
-                  key={stat.id}
-                  aria-label={`${stat.name}, ${pluralize(stat.count, 'completion')}`}
-                  style={{ '--habit-color': stat.color } as CSSProperties}
-                >
-                  <span className="stat-row__name">
-                    <span className="legend-dot" />
-                    {stat.name}
-                  </span>
-                  <span className="stat-row__bar" aria-hidden="true">
-                    <span style={{ width: `${stat.percent * 100}%` }} />
-                  </span>
-                  <span className="stat-row__count">{stat.count}</span>
-                </div>
-              ))}
-              <div className="stat-row stat-row--inactive" aria-label={`No activity, ${inactiveDays} days`}>
-                <span className="stat-row__name">
-                  <span className="legend-dot legend-dot--inactive" />
-                  No activity
-                </span>
-                <span className="stat-row__bar" aria-hidden="true">
-                  <span style={{ width: `${rangeKeys.length > 0 ? (inactiveDays / rangeKeys.length) * 100 : 0}%` }} />
-                </span>
-                <span className="stat-row__count">{inactiveDays}</span>
-              </div>
+              {displayStats.map((stat) => {
+                const barPercent =
+                  stat.kind === 'inactive'
+                    ? stat.percent * 100
+                    : totalCompletions > 0
+                      ? stat.percent * 100
+                      : 0;
+                const label =
+                  stat.kind === 'inactive'
+                    ? `${stat.name}, ${pluralize(stat.count, 'day')}`
+                    : `${stat.name}, ${pluralize(stat.count, 'completion')}`;
+                return (
+                  <div
+                    className={`stat-row${stat.kind === 'inactive' ? ' stat-row--inactive' : ''}`}
+                    key={stat.id}
+                    aria-label={label}
+                    style={{ '--habit-color': stat.color } as CSSProperties}
+                  >
+                    <span className="stat-row__name">
+                      <span className="legend-dot" />
+                      {stat.name}
+                    </span>
+                    <span className="stat-row__bar" aria-hidden="true">
+                      <span style={{ width: `${barPercent}%` }} />
+                    </span>
+                    <span className="stat-row__count">{stat.count}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           {range === 'year' ? (
             <div className="comparison-section">
               <div className="comparison-legend" aria-label="Legend">
-                {stats.map((stat) => (
-                  <span key={stat.id} style={{ '--habit-color': stat.color } as CSSProperties}>
+                {displayStats.map((stat) => (
+                  <span
+                    key={stat.id}
+                    style={{ '--habit-color': stat.color } as CSSProperties}
+                  >
                     <span className="legend-dot" />
                     {stat.name}
                   </span>
                 ))}
-                <span>
-                  <span className="legend-dot legend-dot--inactive" />
-                  No activity
-                </span>
               </div>
-              <div className="habit-heatmap" aria-label="Yearly habit comparison">
-                {stats.map((stat) => (
-                  <div className="heatmap-row" key={stat.id}>
-                    <span className="heatmap-row__label">{stat.name}</span>
-                    <div
-                      className="heatmap-row__cells"
-                      style={
-                        {
-                          '--habit-color': stat.color,
-                          gridTemplateColumns: `repeat(${comparisonKeys.length}, 10px)`,
-                        } as CSSProperties
-                      }
+              <div className="year-overview" aria-label="Yearly activity overview">
+                {comparisonKeys.map((key) => {
+                  const date = fromLocalDateKey(key);
+                  const future = isFutureDay(date);
+                  const completions = getSelectedCompletions(key);
+                  const inactive = !future && completions.length === 0;
+                  const visibleInactive = inactive && showNoActivity;
+                  const visibleCompletions = completions.slice(0, 4);
+                  const title = `${format(date, 'MMM d')}: ${
+                    future
+                      ? 'future'
+                      : completions.length > 0
+                        ? completions.map(({ habit }) => habit.name).join(', ')
+                        : 'no activity'
+                  }`;
+
+                  return (
+                    <span
+                      className={`year-overview-cell${visibleInactive ? ' is-inactive' : ''}${future ? ' is-future' : ''}`}
+                      key={key}
+                      title={title}
+                      aria-label={title}
                     >
-                      {comparisonKeys.map((key) => {
-                        const completed = Boolean(checkIns[stat.id]?.[key]);
-                        const future = isFutureDay(fromLocalDateKey(key));
-                        return (
-                          <span
-                            key={key}
-                            className={`heatmap-cell${completed ? ' is-active' : ''}${future ? ' is-future' : ''}`}
-                            title={`${stat.name}, ${format(fromLocalDateKey(key), 'MMM d')}: ${
-                              future ? 'future' : completed ? 'completed' : 'no activity'
-                            }`}
-                            aria-label={`${stat.name}, ${key}, ${
-                              future ? 'future' : completed ? 'completed' : 'no activity'
-                            }`}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                      {visibleCompletions.length > 0 ? (
+                        <span className="year-overview-cell__dots" aria-hidden="true">
+                          {visibleCompletions.map(({ habit, color }) => (
+                            <span
+                              className="year-overview-cell__dot"
+                              key={habit.id}
+                              style={{ '--dot-color': color } as CSSProperties}
+                            />
+                          ))}
+                        </span>
+                      ) : null}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           ) : null}

@@ -3,16 +3,19 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Habit, LocalDateKey } from '../state/types';
 import { getYearColumns, getYearMonthLabels } from '../utils/calendar';
 import { isFutureDay } from '../utils/dates';
+import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
 type YearViewProps = {
   habit: Habit;
+  habits: Habit[];
   anchorDate: Date;
   checkIns: Record<LocalDateKey, true>;
+  allCheckIns: Record<string, Record<LocalDateKey, true>>;
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
-export const YearView = ({ habit, anchorDate, checkIns, onToggle }: YearViewProps) => {
+export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: YearViewProps) => {
   const columns = useMemo(() => getYearColumns(anchorDate), [anchorDate]);
   const monthLabels = useMemo(() => getYearMonthLabels(anchorDate), [anchorDate]);
   const cells = columns.flat();
@@ -21,6 +24,7 @@ export const YearView = ({ habit, anchorDate, checkIns, onToggle }: YearViewProp
     .map((cell) => cell.key);
   const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
   const year = anchorDate.getFullYear();
+  const habitColor = getHabitColorVar(habit.id, habits);
   const count = Object.keys(checkIns).filter((key) => key.startsWith(`${year}-`)).length;
 
   useEffect(() => {
@@ -79,6 +83,14 @@ export const YearView = ({ habit, anchorDate, checkIns, onToggle }: YearViewProp
                     dateKey={cell.key}
                     habitName={habit.name}
                     completed={Boolean(checkIns[cell.key])}
+                    habitColor={habitColor}
+                    completions={getDateCompletions(cell.key, habits, allCheckIns).map(
+                      ({ habit: completedHabit, color }) => ({
+                        id: completedHabit.id,
+                        name: completedHabit.name,
+                        color,
+                      }),
+                    )}
                     compact
                     tabIndex={cell.key === focusedKey ? 0 : -1}
                     onClick={() => onToggle(cell.key)}
