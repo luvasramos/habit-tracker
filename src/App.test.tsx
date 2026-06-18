@@ -82,4 +82,33 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Month' }));
     expect(screen.getByText(/1 completed days in/)).toBeInTheDocument();
   });
+
+  it('shows statistics counts for completed habits', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Gym');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const checkInButton = screen
+      .getAllByRole('button', { name: /Gym, .*not completed/ })
+      .find((button) => !button.hasAttribute('disabled'));
+    expect(checkInButton).toBeDefined();
+    await user.click(checkInButton!);
+
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+
+    expect(screen.getByLabelText('1 completed day across all habits')).toBeInTheDocument();
+    expect(screen.getByLabelText('Gym, 1 completed day')).toBeInTheDocument();
+  });
+
+  it('shows a statistics empty state when there is no data', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+
+    expect(screen.getByText('No completed days yet.')).toBeInTheDocument();
+  });
 });

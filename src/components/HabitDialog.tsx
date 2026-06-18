@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react';
 import { normalizeHabitName } from '../state/habitReducer';
+import { Icon } from './Icon';
 
 type HabitDialogProps = {
   mode: 'add' | 'edit';
@@ -115,6 +116,7 @@ export const HabitDialog = ({
                 }
               }}
             >
+              <Icon name="delete" />
               {confirmDelete ? 'Confirm delete' : 'Delete habit'}
             </button>
             {confirmDelete ? (

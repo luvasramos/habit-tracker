@@ -1,5 +1,6 @@
 import type { LocalDateKey } from '../state/types';
 import { fullDateLabel, isFutureDay, isSameLocalDay } from '../utils/dates';
+import { Icon } from './Icon';
 
 type DateButtonProps = {
   date: Date;
@@ -44,7 +45,7 @@ export const DateButton = ({
       onKeyDown={onKeyDown}
     >
       {children}
-      {completed ? <span className="check-mark" aria-hidden="true">✓</span> : null}
+      {completed ? <Icon name="check" className="check-mark" /> : null}
     </button>
   );
 };

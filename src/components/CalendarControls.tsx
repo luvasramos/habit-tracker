@@ -1,4 +1,5 @@
 import type { ViewMode } from '../state/types';
+import { Icon } from './Icon';
 
 type CalendarControlsProps = {
   view: ViewMode;
@@ -36,13 +37,13 @@ export const CalendarControls = ({
 
     <div className="period-controls">
       <button className="icon-button" type="button" aria-label="Previous period" onClick={onPrevious}>
-        ‹
+        <Icon name="previous" />
       </button>
       <h2 className="period-label" aria-live="polite">
         {label}
       </h2>
       <button className="icon-button" type="button" aria-label="Next period" onClick={onNext}>
-        ›
+        <Icon name="next" />
       </button>
       <button className="button button--quiet" type="button" onClick={onToday}>
         Today

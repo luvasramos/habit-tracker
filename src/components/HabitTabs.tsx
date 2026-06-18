@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import type { Habit } from '../state/types';
+import { Icon } from './Icon';
 
 type HabitTabsProps = {
   habits: Habit[];
@@ -32,11 +33,13 @@ export const HabitTabs = ({
             aria-selected={habit.id === selectedHabitId}
             onClick={() => onSelect(habit.id)}
           >
+            <Icon name="habits" />
             {habit.name}
           </button>
         ))}
       </div>
       <button ref={editButtonRef} className="button button--quiet" type="button" onClick={onEdit}>
+        <Icon name="edit" />
         Edit habit
       </button>
     </section>

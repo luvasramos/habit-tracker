@@ -3,6 +3,8 @@ import { CalendarControls } from './components/CalendarControls';
 import { HabitDialog } from './components/HabitDialog';
 import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
+import { Icon } from './components/Icon';
+import { StatisticsView } from './components/StatisticsView';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
 import { useHabits } from './state/HabitProvider';
@@ -20,6 +22,7 @@ export const App = () => {
     isDuplicateName,
   } = useHabits();
   const [view, setView] = useState<ViewMode>('week');
+  const [page, setPage] = useState<'calendar' | 'statistics'>('calendar');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -41,11 +44,25 @@ export const App = () => {
     <div className="app">
       <main className="shell">
         <header className="app-header">
-          <div>
-            <h1>Habit Grid</h1>
-            {state.habits.length === 0 ? (
-              <p className="muted">Track completed days for one habit at a time.</p>
-            ) : null}
+          <div className="primary-nav" aria-label="Primary">
+            <button
+              type="button"
+              className="nav-button"
+              aria-pressed={page === 'calendar'}
+              onClick={() => setPage('calendar')}
+            >
+              <Icon name="calendar" />
+              Calendar
+            </button>
+            <button
+              type="button"
+              className="nav-button"
+              aria-pressed={page === 'statistics'}
+              onClick={() => setPage('statistics')}
+            >
+              <Icon name="stats" />
+              Statistics
+            </button>
           </div>
           <button
             ref={addButtonRef}
@@ -53,11 +70,14 @@ export const App = () => {
             type="button"
             onClick={() => setAddOpen(true)}
           >
+            <Icon name="add" />
             Add habit
           </button>
         </header>
 
-        {state.habits.length === 0 ? (
+        {page === 'statistics' ? (
+          <StatisticsView habits={state.habits} checkIns={state.checkIns} />
+        ) : state.habits.length === 0 ? (
           <section className="empty-state">
             <p>Add a habit to start marking completed days.</p>
             <button
@@ -65,6 +85,7 @@ export const App = () => {
               type="button"
               onClick={() => setAddOpen(true)}
             >
+              <Icon name="add" />
               Add habit
             </button>
           </section>
