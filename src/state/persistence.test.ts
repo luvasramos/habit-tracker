@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState } from './habitReducer';
+import { createLocalStorageHabitStore } from '../data/habitStore';
 import { loadState, saveState, STORAGE_KEY } from './persistence';
 
 const makeStorage = () => {
@@ -51,5 +52,16 @@ describe('persistence', () => {
     saveState(state, storage);
 
     expect(JSON.parse(storage.getItem(STORAGE_KEY) ?? '')).toEqual(state);
+  });
+
+  it('exposes localStorage through the habit store abstraction', () => {
+    const storage = makeStorage();
+    const store = createLocalStorageHabitStore(storage);
+    const state = emptyState();
+
+    store.save(state);
+
+    expect(store.load()).toEqual(state);
+    expect(storage.getItem(STORAGE_KEY)).toBeTruthy();
   });
 });

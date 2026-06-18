@@ -7,8 +7,8 @@ import {
   useReducer,
   type ReactNode,
 } from 'react';
+import { habitStore, type HabitStore } from '../data/habitStore';
 import { habitReducer, hasDuplicateHabitName } from './habitReducer';
-import { loadState, saveState } from './persistence';
 import type { HabitState, LocalDateKey } from './types';
 
 type HabitContextValue = {
@@ -23,12 +23,18 @@ type HabitContextValue = {
 
 const HabitContext = createContext<HabitContextValue | null>(null);
 
-export const HabitProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(habitReducer, undefined, () => loadState());
+export const HabitProvider = ({
+  children,
+  store = habitStore,
+}: {
+  children: ReactNode;
+  store?: HabitStore;
+}) => {
+  const [state, dispatch] = useReducer(habitReducer, undefined, () => store.load());
 
   useEffect(() => {
-    saveState(state);
-  }, [state]);
+    store.save(state);
+  }, [state, store]);
 
   const value = useMemo<HabitContextValue>(
     () => ({
