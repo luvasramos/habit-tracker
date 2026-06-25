@@ -1808,20 +1808,17 @@ h2 {
   font-size: 0.9rem;
 }
 
-.swatch-grid,
-.icon-choice-grid {
+.selector-grid {
   display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
-.swatch-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.swatch-button,
-.icon-choice,
-.emoji-choice {
-  min-height: var(--control-size);
+.selector-card {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 58px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-2);
@@ -1833,50 +1830,51 @@ h2 {
     color 120ms ease;
 }
 
-.swatch-button:hover,
-.icon-choice:hover,
-.emoji-choice:hover {
+.selector-card:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
 }
 
-.swatch-button:active,
-.icon-choice:active,
-.emoji-choice:active {
+.selector-card:active {
   transform: translateY(1px) scale(0.99);
 }
 
+.selector-card[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 58%, var(--border));
+  background: color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 10%, var(--surface-2));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 28%, transparent);
+}
+
+.selector-card[aria-pressed='true']::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 9px;
+  width: 5px;
+  height: 9px;
+  border-right: 1.5px solid var(--soft);
+  border-bottom: 1.5px solid var(--soft);
+  transform: rotate(42deg);
+}
+
+.selector-card--empty {
+  pointer-events: none;
+  border-color: transparent;
+  background: transparent;
+}
+
 .swatch-button {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
-  min-height: 58px;
-  padding: 9px;
-  text-align: left;
+  --habit-color: var(--swatch-color);
+  padding: 0;
 }
 
 .swatch-button__mark {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   background: var(--swatch-color);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--swatch-color) 48%, var(--surface));
-}
-
-.swatch-button__name {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.05;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.swatch-button[aria-pressed='true'] {
-  border-color: color-mix(in srgb, var(--swatch-color) 64%, var(--border));
-  background: color-mix(in srgb, var(--swatch-color) 11%, var(--surface-2));
 }
 
 .swatch-button[aria-pressed='true'] .swatch-button__mark {
@@ -1885,24 +1883,58 @@ h2 {
     0 0 0 4px color-mix(in srgb, var(--swatch-color) 14%, transparent);
 }
 
-.swatch-button[aria-pressed='true'] .swatch-button__name {
-  color: var(--soft);
-}
-
-.swatch-button--custom .swatch-button__mark {
-  border: 1px dashed color-mix(in srgb, var(--swatch-color) 70%, var(--soft));
-  background: color-mix(in srgb, var(--swatch-color) 36%, var(--surface-3));
-}
-
 .custom-color {
   display: grid;
   gap: 8px;
-  width: min(100%, 320px);
+  width: min(100%, 360px);
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.custom-color-toggle,
+.custom-color-current {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: var(--control-size);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.custom-color-toggle:hover,
+.custom-color-current:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.custom-color-toggle[aria-pressed='true'],
+.custom-color-current {
+  border-color: color-mix(in srgb, var(--swatch-color) 44%, var(--border));
+  background: color-mix(in srgb, var(--swatch-color) 8%, var(--surface-2));
+  color: var(--soft);
+}
+
+.custom-color-toggle[aria-pressed='true']::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-left: 2px;
+  border-right: 1.5px solid var(--soft);
+  border-bottom: 1.5px solid var(--soft);
+  transform: rotate(42deg);
 }
 
 .custom-color__swatch {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 999px;
   background: var(--swatch-color);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--swatch-color) 45%, var(--surface));
@@ -1925,7 +1957,25 @@ h2 {
 
 .custom-color__fields {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
   gap: 8px;
+}
+
+.native-color-field input {
+  width: var(--control-size);
+  height: var(--control-size);
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.custom-color__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .segmented--compact {
@@ -1937,18 +1987,8 @@ h2 {
   gap: 8px;
 }
 
-.icon-choice-grid,
-.emoji-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 8px;
-}
-
 .icon-choice,
 .emoji-choice {
-  display: grid;
-  place-items: center;
-  min-height: var(--control-size);
   padding: 0;
 }
 
@@ -1957,20 +1997,8 @@ h2 {
   height: 19px;
 }
 
-.icon-choice[aria-pressed='true'] {
-  border-color: var(--soft);
-  color: var(--text);
-  background: var(--surface-3);
-}
-
 .emoji-choice {
   font-size: 1.12rem;
-}
-
-.emoji-choice[aria-pressed='true'] {
-  border-color: var(--soft);
-  color: var(--text);
-  background: var(--surface-3);
 }
 
 .emoji-field {
@@ -1980,6 +2008,20 @@ h2 {
 .emoji-field input {
   text-align: center;
   font-size: 1.2rem;
+}
+
+.selector-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.selector-pagination__button {
+  width: var(--control-size);
+  min-height: var(--control-size);
 }
 
 .form-error {
@@ -2201,18 +2243,6 @@ h2 {
     height: 4px;
   }
 
-  .swatch-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .icon-choice-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .emoji-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .floating-nav {
     width: min(calc(100vw - 22px), 420px);
     min-height: 74px;
@@ -2340,11 +2370,12 @@ h2 {
     padding: 14px;
   }
 
-  .swatch-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .selector-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .custom-color__fields {
+    grid-template-columns: 1fr;
     max-width: none;
   }
 

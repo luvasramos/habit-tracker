@@ -56,6 +56,83 @@ describe('Habit Grid app', () => {
     expect(screen.getByText('A habit with this name already exists.')).toBeInTheDocument();
   });
 
+  it('applies and normalizes a custom habit color', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Reading');
+    await user.click(screen.getByRole('button', { name: 'Custom color' }));
+
+    expect(screen.getByLabelText('Custom color panel')).toBeInTheDocument();
+    await user.clear(screen.getByLabelText('Hex'));
+    await user.type(screen.getByLabelText('Hex'), 'nope');
+
+    expect(screen.getByText('Use a valid 3- or 6-digit hex color.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
+
+    await user.clear(screen.getByLabelText('Hex'));
+    await user.type(screen.getByLabelText('Hex'), '#AbC');
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
+    expect(screen.queryByLabelText('Custom color panel')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Current custom color #aabbcc' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].color).toBe('#aabbcc');
+    await finishDailyCheckIn(user);
+  });
+
+  it('cancels custom color changes without changing the selected color', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Reading');
+    await user.click(screen.getByRole('button', { name: 'Custom color' }));
+    const customColorPanel = screen.getByLabelText('Custom color panel');
+    await user.clear(screen.getByLabelText('Hex'));
+    await user.type(screen.getByLabelText('Hex'), '#123456');
+    await user.click(within(customColorPanel).getByRole('button', { name: 'Cancel' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].color).toBe('terracotta');
+    await finishDailyCheckIn(user);
+  });
+
+  it('loads an existing custom color while editing a habit', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Reading',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: '#112233',
+            icon: { type: 'svg', name: 'book' },
+            trackingMode: 'completion',
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+
+    expect(screen.getByRole('button', { name: 'Current custom color #112233' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Custom color' }));
+    expect(screen.getByLabelText('Hex')).toHaveValue('#112233');
+  });
+
   it('renames and deletes a habit with confirmation', async () => {
     const user = userEvent.setup();
     renderApp();

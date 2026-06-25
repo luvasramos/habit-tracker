@@ -163,6 +163,13 @@ const popularEmojiOptions = emojiOptions.filter(({ emoji }) =>
 const matchesSearch = (query: string, values: string[]) =>
   values.some((value) => value.toLocaleLowerCase().includes(query));
 
+const selectorPageSize = 6;
+
+const pageCountFor = (total: number) => Math.max(1, Math.ceil(total / selectorPageSize));
+
+const pageItems = <T,>(items: T[], page: number) =>
+  items.slice((page - 1) * selectorPageSize, page * selectorPageSize);
+
 type PendingMigration =
   | {
       type: 'enable-duration';
@@ -219,6 +226,44 @@ const parseYearlyGoal = (value: string) => {
   return hours > 0 ? hours * 60 : null;
 };
 
+type SelectorPaginationProps = {
+  page: number;
+  pageCount: number;
+  label: string;
+  onPageChange: (page: number) => void;
+};
+
+const SelectorPagination = ({
+  page,
+  pageCount,
+  label,
+  onPageChange,
+}: SelectorPaginationProps) => (
+  <div className="selector-pagination" aria-label={`${label} pages`}>
+    <button
+      className="icon-button selector-pagination__button"
+      type="button"
+      aria-label={`Previous ${label} page`}
+      disabled={page <= 1}
+      onClick={() => onPageChange(Math.max(1, page - 1))}
+    >
+      <Icon name="previous" />
+    </button>
+    <span aria-live="polite">
+      {page} / {pageCount}
+    </span>
+    <button
+      className="icon-button selector-pagination__button"
+      type="button"
+      aria-label={`Next ${label} page`}
+      disabled={page >= pageCount}
+      onClick={() => onPageChange(Math.min(pageCount, page + 1))}
+    >
+      <Icon name="next" />
+    </button>
+  </div>
+);
+
 export const HabitDialog = ({
   mode,
   initialName = '',
@@ -242,11 +287,16 @@ export const HabitDialog = ({
   const [svgIcon, setSvgIcon] = useState<HabitIconName>('custom');
   const [emoji, setEmoji] = useState('');
   const [customColor, setCustomColor] = useState('#7c8792');
+  const [customDraftColor, setCustomDraftColor] = useState('#7c8792');
+  const [customColorOpen, setCustomColorOpen] = useState(false);
   const [colorMode, setColorMode] = useState<'preset' | 'custom'>(() =>
     initialHabit?.color && !isPresetHabitColor(initialHabit.color) ? 'custom' : 'preset',
   );
+  const [colorPage, setColorPage] = useState(1);
   const [iconSearch, setIconSearch] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
+  const [iconPage, setIconPage] = useState(1);
+  const [emojiPage, setEmojiPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [trackingMode, setTrackingMode] = useState<HabitTrackingMode>('completion');
   const [defaultSessionInput, setDefaultSessionInput] = useState('');
@@ -258,6 +308,8 @@ export const HabitDialog = ({
   const yearlyGoalErrorId = useId();
   const titleId = useId();
   const descriptionId = useId();
+  const customColorPanelRef = useRef<HTMLDivElement>(null);
+  const customColorButtonRef = useRef<HTMLButtonElement>(null);
   const trimmed = normalizeHabitName(name);
   const error =
     name.length > 40
@@ -268,8 +320,9 @@ export const HabitDialog = ({
           ? duplicateMessage
           : '';
   const normalizedCustomColor = normalizeHexColor(customColor);
+  const normalizedCustomDraftColor = normalizeHexColor(customDraftColor);
   const colorError =
-    colorMode === 'custom' && !normalizedCustomColor
+    customColorOpen && !normalizedCustomDraftColor
       ? 'Use a valid 3- or 6-digit hex color.'
       : '';
   const defaultDurationMinutes =
@@ -319,6 +372,72 @@ export const HabitDialog = ({
       )
     : emojiOptions;
   const visibleEmojis = filteredEmojis.length > 0 ? filteredEmojis : popularEmojiOptions;
+  const colorPageCount = pageCountFor(habitColorOptions.length);
+  const iconPageCount = pageCountFor(visibleIcons.length);
+  const emojiPageCount = pageCountFor(visibleEmojis.length);
+  const visibleColors = pageItems(habitColorOptions, colorPage);
+  const pagedIcons = pageItems(visibleIcons, iconPage);
+  const pagedEmojis = pageItems(visibleEmojis, emojiPage);
+
+  useEffect(() => {
+    setIconPage(1);
+  }, [iconSearch]);
+
+  useEffect(() => {
+    setEmojiPage(1);
+  }, [emojiSearch]);
+
+  useEffect(() => {
+    if (iconMode === 'svg') {
+      setIconPage(1);
+    } else {
+      setEmojiPage(1);
+    }
+  }, [iconMode]);
+
+  useEffect(() => {
+    setColorPage((page) => Math.min(page, colorPageCount));
+  }, [colorPageCount]);
+
+  useEffect(() => {
+    setIconPage((page) => Math.min(page, iconPageCount));
+  }, [iconPageCount]);
+
+  useEffect(() => {
+    setEmojiPage((page) => Math.min(page, emojiPageCount));
+  }, [emojiPageCount]);
+
+  useEffect(() => {
+    if (!customColorOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        customColorPanelRef.current?.contains(target) ||
+        customColorButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setCustomColorOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setCustomColorOpen(false);
+        customColorButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [customColorOpen]);
+
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) {
@@ -334,11 +453,16 @@ export const HabitDialog = ({
       setColor(initialColor);
       setColorMode(isPresetHabitColor(initialColor) ? 'preset' : 'custom');
       setCustomColor(isPresetHabitColor(initialColor) ? '#7c8792' : initialColor);
+      setCustomDraftColor(isPresetHabitColor(initialColor) ? '#7c8792' : initialColor);
+      setCustomColorOpen(false);
+      setColorPage(1);
       setIconMode(initialIcon.type);
       setSvgIcon(initialIcon.type === 'svg' ? initialIcon.name : 'custom');
       setEmoji(initialIcon.type === 'emoji' ? initialIcon.value : '');
       setIconSearch('');
       setEmojiSearch('');
+      setIconPage(1);
+      setEmojiPage(1);
       setConfirmDelete(false);
       setTrackingMode(initialHabit?.trackingMode ?? 'completion');
       setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
@@ -616,11 +740,11 @@ export const HabitDialog = ({
 
           <div className="appearance-group">
             <span className="appearance-label">Color</span>
-            <div className="swatch-grid">
-              {habitColorOptions.map((option) => (
+            <div className="selector-grid swatch-grid">
+              {visibleColors.map((option) => (
                 <button
                   key={option.name}
-                  className="swatch-button"
+                  className="selector-card swatch-button"
                   type="button"
                   aria-label={`Use ${option.label}`}
                   aria-pressed={colorMode === 'preset' && color === option.name}
@@ -628,52 +752,119 @@ export const HabitDialog = ({
                   onClick={() => {
                     setColor(option.name);
                     setColorMode('preset');
+                    setCustomColorOpen(false);
                   }}
                 >
                   <span className="swatch-button__mark" />
-                  <span className="swatch-button__name">{option.label}</span>
                 </button>
               ))}
-              <button
-                className="swatch-button swatch-button--custom"
-                type="button"
-                aria-label="Use custom color"
-                aria-pressed={colorMode === 'custom'}
-                style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
-                onClick={() => setColorMode('custom')}
-              >
-                <span className="swatch-button__mark" />
-                <span className="swatch-button__name">Custom</span>
-              </button>
+              {Array.from({ length: selectorPageSize - visibleColors.length }).map((_, index) => (
+                <span className="selector-card selector-card--empty" key={`color-empty-${index}`} />
+              ))}
             </div>
-            {colorMode === 'custom' ? (
-              <div className="custom-color">
+            <SelectorPagination
+              page={colorPage}
+              pageCount={colorPageCount}
+              label="color"
+              onPageChange={setColorPage}
+            />
+            <button
+              ref={customColorButtonRef}
+              className="custom-color-toggle"
+              type="button"
+              aria-label="Custom color"
+              aria-expanded={customColorOpen}
+              aria-pressed={colorMode === 'custom'}
+              style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+              onClick={() => {
+                setCustomDraftColor(normalizedCustomColor ?? customColor);
+                setCustomColorOpen((open) => !open);
+              }}
+            >
+              <span className="custom-color__swatch" />
+              Custom color
+            </button>
+            {customColorOpen ? (
+              <div className="custom-color" ref={customColorPanelRef} aria-label="Custom color panel">
                 <div
                   className="custom-color__preview"
-                  style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+                  style={{ '--swatch-color': normalizedCustomDraftColor ?? '#7c8792' } as CSSProperties}
                   aria-hidden="true"
                 >
                   <span className="custom-color__swatch" />
-                  <span>{normalizedCustomColor ?? 'Preview'}</span>
+                  <span>{normalizedCustomDraftColor ?? 'Preview'}</span>
                 </div>
                 <div className="custom-color__fields">
                   <label className="field field--compact">
                     <span>Hex</span>
                     <input
-                      value={customColor}
+                      value={customDraftColor}
                       aria-invalid={Boolean(colorError)}
                       aria-describedby={colorError ? colorErrorId : undefined}
                       placeholder="#7c8792"
-                      onChange={(event) => setCustomColor(event.target.value)}
+                      onChange={(event) => setCustomDraftColor(event.target.value)}
+                    />
+                  </label>
+                  <label className="native-color-field">
+                    <span className="sr-only">Color picker</span>
+                    <input
+                      type="color"
+                      value={normalizedCustomDraftColor ?? '#7c8792'}
+                      onChange={(event) => setCustomDraftColor(event.target.value)}
                     />
                   </label>
                 </div>
+                {colorError ? (
+                  <p className="form-error" id={colorErrorId}>
+                    {colorError}
+                  </p>
+                ) : null}
+                <div className="custom-color__actions">
+                  <button
+                    className="button button--quiet"
+                    type="button"
+                    onClick={() => {
+                      setCustomDraftColor(customColor);
+                      setCustomColorOpen(false);
+                    }}
+                  >
+                    <Icon name="close" />
+                    Cancel
+                  </button>
+                  <button
+                    className="button button--primary"
+                    type="button"
+                    disabled={!normalizedCustomDraftColor}
+                    onClick={() => {
+                      if (!normalizedCustomDraftColor) {
+                        return;
+                      }
+                      setCustomColor(normalizedCustomDraftColor);
+                      setColor(normalizedCustomDraftColor);
+                      setColorMode('custom');
+                      setCustomColorOpen(false);
+                    }}
+                  >
+                    <Icon name="check" />
+                    Apply
+                  </button>
+                </div>
               </div>
             ) : null}
-            {colorError ? (
-              <p className="form-error" id={colorErrorId}>
-                {colorError}
-              </p>
+            {colorMode === 'custom' && !customColorOpen ? (
+              <button
+                className="custom-color-current"
+                type="button"
+                aria-label={`Current custom color ${normalizedCustomColor ?? customColor}`}
+                style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+                onClick={() => {
+                  setCustomDraftColor(normalizedCustomColor ?? customColor);
+                  setCustomColorOpen(true);
+                }}
+              >
+                <span className="custom-color__swatch" />
+                <span>{normalizedCustomColor ?? customColor}</span>
+              </button>
             ) : null}
           </div>
 
@@ -711,11 +902,11 @@ export const HabitDialog = ({
                 {filteredIcons.length === 0 ? (
                   <p className="muted search-fallback">No exact match. Try one of these.</p>
                 ) : null}
-                <div className="icon-choice-grid">
-                  {visibleIcons.map((option) => (
+                <div className="selector-grid icon-choice-grid">
+                  {pagedIcons.map((option) => (
                     <button
                       key={option.name}
-                      className="icon-choice"
+                      className="selector-card icon-choice"
                       type="button"
                       aria-label={option.label}
                       title={option.label}
@@ -728,7 +919,16 @@ export const HabitDialog = ({
                       />
                     </button>
                   ))}
+                  {Array.from({ length: selectorPageSize - pagedIcons.length }).map((_, index) => (
+                    <span className="selector-card selector-card--empty" key={`icon-empty-${index}`} />
+                  ))}
                 </div>
+                <SelectorPagination
+                  page={iconPage}
+                  pageCount={iconPageCount}
+                  label="icon"
+                  onPageChange={setIconPage}
+                />
               </>
             ) : (
               <div className="emoji-picker">
@@ -743,20 +943,30 @@ export const HabitDialog = ({
                 {filteredEmojis.length === 0 ? (
                   <p className="muted search-fallback">No exact match. Try one of these.</p>
                 ) : null}
-                <div className="emoji-grid">
-                  {visibleEmojis.map((option) => (
+                <div className="selector-grid emoji-grid">
+                  {pagedEmojis.map((option) => (
                     <button
                       key={option.label}
-                      className="emoji-choice"
+                      className="selector-card emoji-choice"
                       type="button"
                       aria-label={option.label}
+                      title={option.label}
                       aria-pressed={emoji === option.emoji}
                       onClick={() => setEmoji(option.emoji)}
                     >
                       <span>{option.emoji}</span>
                     </button>
                   ))}
+                  {Array.from({ length: selectorPageSize - pagedEmojis.length }).map((_, index) => (
+                    <span className="selector-card selector-card--empty" key={`emoji-empty-${index}`} />
+                  ))}
                 </div>
+                <SelectorPagination
+                  page={emojiPage}
+                  pageCount={emojiPageCount}
+                  label="emoji"
+                  onPageChange={setEmojiPage}
+                />
                 <label className="field emoji-field">
                   <span>Selected emoji</span>
                   <input
