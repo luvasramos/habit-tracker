@@ -6,6 +6,7 @@ import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
 import { Icon } from './components/Icon';
 import { StatisticsView } from './components/StatisticsView';
+import { StreakPill } from './components/StreakPill';
 import { TimeEditDialog } from './components/TimeEditDialog';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
@@ -26,13 +27,12 @@ import { calculateActivityStreak } from './utils/streak';
 
 type FloatingNavigationProps = {
   page: 'calendar' | 'statistics';
+  streak: number;
   remainingCount: number;
   reminderOpen: boolean;
   onPageChange: (page: 'calendar' | 'statistics') => void;
-  onAddHabit: () => void;
   onToggleReminder: () => void;
   reminderButtonRef: RefObject<HTMLButtonElement | null>;
-  addButtonRef: RefObject<HTMLButtonElement | null>;
 };
 
 type TodayRemainingPopoverProps = {
@@ -45,15 +45,15 @@ type TodayRemainingPopoverProps = {
 
 const FloatingNavigation = ({
   page,
+  streak,
   remainingCount,
   reminderOpen,
   onPageChange,
-  onAddHabit,
   onToggleReminder,
   reminderButtonRef,
-  addButtonRef,
 }: FloatingNavigationProps) => (
   <nav className="floating-nav" aria-label="Primary">
+    <StreakPill streak={streak} />
     <button
       type="button"
       className="floating-nav__item"
@@ -73,16 +73,6 @@ const FloatingNavigation = ({
     >
       <Icon name="stats" />
       <span>Statistics</span>
-    </button>
-    <button
-      ref={addButtonRef}
-      type="button"
-      className="floating-nav__add"
-      aria-label="Add habit"
-      onClick={onAddHabit}
-    >
-      <Icon name="add" />
-      <span>Add habit</span>
     </button>
     <button
       ref={reminderButtonRef}
@@ -277,71 +267,76 @@ export const App = () => {
               setDailyCheckInOpen(false);
             }}
           />
-        ) : page === 'statistics' ? (
-          <StatisticsView habits={state.habits} checkIns={state.checkIns} />
-        ) : state.habits.length === 0 ? (
-          <section className="empty-state">
-            <span className="empty-state__icon" aria-hidden="true">
-              <Icon name="habits" />
-            </span>
-            <div className="empty-state__copy">
-              <h2>No habits yet</h2>
-              <p>Add one small routine to begin.</p>
-            </div>
-          </section>
         ) : (
           <>
             <HabitTabs
               habits={state.habits}
               selectedHabitId={state.selectedHabitId}
-              streak={activityStreak}
               onSelect={selectHabit}
               onEdit={() => setEditOpen(true)}
+              onAdd={() => setAddOpen(true)}
               editButtonRef={editButtonRef}
+              addButtonRef={addButtonRef}
             />
 
-            <CalendarControls
-              view={view}
-              label={label}
-              onViewChange={setView}
-              onPrevious={() => setAnchorDate((date) => movePeriod(view, date, -1))}
-              onNext={() => setAnchorDate((date) => movePeriod(view, date, 1))}
-              onToday={() => setAnchorDate(new Date())}
-            />
+            {page === 'statistics' ? (
+              <StatisticsView habits={state.habits} checkIns={state.checkIns} />
+            ) : state.habits.length === 0 ? (
+              <section className="empty-state">
+                <span className="empty-state__icon" aria-hidden="true">
+                  <Icon name="habits" />
+                </span>
+                <div className="empty-state__copy">
+                  <h2>No habits yet</h2>
+                  <p>Add one small routine to begin.</p>
+                </div>
+              </section>
+            ) : (
+              <>
+                <CalendarControls
+                  view={view}
+                  label={label}
+                  onViewChange={setView}
+                  onPrevious={() => setAnchorDate((date) => movePeriod(view, date, -1))}
+                  onNext={() => setAnchorDate((date) => movePeriod(view, date, 1))}
+                  onToday={() => setAnchorDate(new Date())}
+                />
 
-            {selectedHabit && view === 'week' ? (
-              <WeekView
-                habit={selectedHabit}
-                habits={state.habits}
-                anchorDate={anchorDate}
-                checkIns={selectedCheckIns}
-                allCheckIns={state.checkIns}
-                onToggle={handleToggle}
-                onEditTime={openTimeEdit}
-              />
-            ) : null}
-            {selectedHabit && view === 'month' ? (
-              <MonthView
-                habit={selectedHabit}
-                habits={state.habits}
-                anchorDate={anchorDate}
-                checkIns={selectedCheckIns}
-                allCheckIns={state.checkIns}
-                onToggle={handleToggle}
-                onEditTime={openTimeEdit}
-              />
-            ) : null}
-            {selectedHabit && view === 'year' ? (
-              <YearView
-                habit={selectedHabit}
-                habits={state.habits}
-                anchorDate={anchorDate}
-                checkIns={selectedCheckIns}
-                allCheckIns={state.checkIns}
-                onToggle={handleToggle}
-                onEditTime={openTimeEdit}
-              />
-            ) : null}
+                {selectedHabit && view === 'week' ? (
+                  <WeekView
+                    habit={selectedHabit}
+                    habits={state.habits}
+                    anchorDate={anchorDate}
+                    checkIns={selectedCheckIns}
+                    allCheckIns={state.checkIns}
+                    onToggle={handleToggle}
+                    onEditTime={openTimeEdit}
+                  />
+                ) : null}
+                {selectedHabit && view === 'month' ? (
+                  <MonthView
+                    habit={selectedHabit}
+                    habits={state.habits}
+                    anchorDate={anchorDate}
+                    checkIns={selectedCheckIns}
+                    allCheckIns={state.checkIns}
+                    onToggle={handleToggle}
+                    onEditTime={openTimeEdit}
+                  />
+                ) : null}
+                {selectedHabit && view === 'year' ? (
+                  <YearView
+                    habit={selectedHabit}
+                    habits={state.habits}
+                    anchorDate={anchorDate}
+                    checkIns={selectedCheckIns}
+                    allCheckIns={state.checkIns}
+                    onToggle={handleToggle}
+                    onEditTime={openTimeEdit}
+                  />
+                ) : null}
+              </>
+            )}
           </>
         )}
       </main>
@@ -356,13 +351,12 @@ export const App = () => {
 
       <FloatingNavigation
         page={page}
+        streak={activityStreak}
         remainingCount={remainingTodayHabits.length}
         reminderOpen={reminderOpen}
         onPageChange={setPage}
         onToggleReminder={() => setReminderOpen((open) => !open)}
-        onAddHabit={() => setAddOpen(true)}
         reminderButtonRef={reminderButtonRef}
-        addButtonRef={addButtonRef}
       />
 
       <HabitDialog

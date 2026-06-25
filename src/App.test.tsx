@@ -30,7 +30,10 @@ describe('Habit Grid app', () => {
     const user = userEvent.setup();
     renderApp();
 
-    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    expect(screen.getByRole('heading', { name: 'Habits' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Primary' })).not.toHaveTextContent('Add habit');
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 

@@ -141,7 +141,7 @@ input:focus-visible {
 .floating-nav,
 .floating-nav__reminder,
 .floating-nav__item,
-.floating-nav__add {
+.streak-pill {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -197,8 +197,7 @@ h2 {
 .habit-tab,
 .date-button,
 .floating-nav__reminder,
-.floating-nav__item,
-.floating-nav__add {
+.floating-nav__item {
   min-height: 38px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -219,8 +218,7 @@ h2 {
 .habit-tab:hover,
 .date-button:hover,
 .floating-nav__reminder:hover,
-.floating-nav__item:hover,
-.floating-nav__add:hover {
+.floating-nav__item:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
 }
@@ -238,8 +236,7 @@ h2 {
 .habit-tab:active,
 .date-button:active,
 .floating-nav__reminder:active,
-.floating-nav__item:active,
-.floating-nav__add:active {
+.floating-nav__item:active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -312,13 +309,18 @@ h2 {
 }
 
 .floating-nav__reminder,
-.floating-nav__item,
-.floating-nav__add {
+.floating-nav__item {
   justify-content: center;
   min-height: 58px;
   padding: 0 16px;
   border-radius: 999px;
   white-space: nowrap;
+}
+
+.floating-nav .streak-pill {
+  flex: 0.74 1 0;
+  min-height: 58px;
+  padding: 0 14px;
 }
 
 .floating-nav__reminder {
@@ -374,33 +376,6 @@ h2 {
 .floating-nav__item[aria-current='page']:hover {
   border-color: color-mix(in srgb, var(--soft) 76%, var(--border-strong));
   background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
-}
-
-.floating-nav__add {
-  flex: 1.15 1 0;
-  border-color: var(--soft);
-  background: color-mix(in srgb, var(--soft) 88%, var(--surface-2));
-  color: #000000;
-  min-width: 0;
-}
-
-.floating-nav__add:hover,
-.floating-nav__add:focus-visible {
-  border-color: color-mix(in srgb, var(--soft) 36%, var(--border-strong));
-  background: #000000;
-  color: var(--text);
-}
-
-.floating-nav__add:active {
-  border-color: var(--border-strong);
-  background: #000000;
-  color: #f1f1f1;
-}
-
-.floating-nav__add .icon {
-  width: 20px;
-  height: 20px;
-  opacity: 1;
 }
 
 .today-popover {
@@ -726,11 +701,24 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
-.habit-tabs__heading h2 {
-  font-size: clamp(1.5rem, 4vw, 2.3rem);
+.habit-tabs__heading h1 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #f1f1f1;
+  font-size: clamp(1.65rem, 4.2vw, 2.45rem);
   line-height: 1;
+}
+
+.habit-tabs__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .habit-tabs__edit {
@@ -738,6 +726,17 @@ h2 {
   width: 52px;
   min-height: 52px;
   border-radius: 50%;
+}
+
+.habit-tabs__add {
+  min-height: 52px;
+  gap: 8px;
+  padding-inline: 14px;
+}
+
+.habit-tabs__add .icon {
+  color: #000000;
+  opacity: 1;
 }
 
 @media (hover: hover) {
@@ -2284,7 +2283,7 @@ h2 {
 
   .floating-nav__reminder,
   .floating-nav__item,
-  .floating-nav__add {
+  .floating-nav .streak-pill {
     min-height: 60px;
     padding: 0 7px;
   }
@@ -2296,10 +2295,6 @@ h2 {
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
-  }
-
-  .floating-nav__add {
-    flex: 1.55 1 0;
   }
 
   .floating-nav__reminder {

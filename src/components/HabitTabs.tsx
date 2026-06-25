@@ -2,29 +2,26 @@ import type { CSSProperties, KeyboardEvent, RefObject } from 'react';
 import type { Habit } from '../state/types';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
-import { StreakPill } from './StreakPill';
 
 type HabitTabsProps = {
   habits: Habit[];
   selectedHabitId: string | null;
-  streak: number;
   onSelect: (habitId: string) => void;
   onEdit: () => void;
+  onAdd: () => void;
   editButtonRef?: RefObject<HTMLButtonElement | null>;
+  addButtonRef?: RefObject<HTMLButtonElement | null>;
 };
 
 export const HabitTabs = ({
   habits,
   selectedHabitId,
-  streak,
   onSelect,
   onEdit,
+  onAdd,
   editButtonRef,
+  addButtonRef,
 }: HabitTabsProps) => {
-  if (habits.length === 0) {
-    return null;
-  }
-
   const moveTabFocus = (event: KeyboardEvent<HTMLDivElement>, habitId: string) => {
     const currentIndex = habits.findIndex((habit) => habit.id === habitId);
     const moves: Record<string, number> = {
@@ -55,49 +52,64 @@ export const HabitTabs = ({
   return (
     <section className="habit-tabs" aria-label="Habits">
       <div className="habit-tabs__heading">
-        <StreakPill streak={streak} />
-        <button
-          ref={editButtonRef}
-          className="icon-button habit-tabs__edit"
-          type="button"
-          aria-label="Edit habit"
-          data-tooltip="Edit habit"
-          title="Edit habit"
-          onClick={onEdit}
-        >
-          <Icon name="edit" />
-        </button>
-      </div>
-      <div
-        className="habit-tabs__scroller"
-        role="tablist"
-        aria-label="Habit list"
-        onKeyDown={(event) => {
-          const target = event.target as HTMLElement;
-          const habitId = target.closest<HTMLButtonElement>('[data-habit-tab]')?.dataset.habitTab;
-          if (habitId) {
-            moveTabFocus(event, habitId);
-          }
-        }}
-      >
-        {habits.map((habit) => (
+        <h1>Habits</h1>
+        <div className="habit-tabs__actions">
           <button
-            key={habit.id}
-            className="habit-tab"
+            ref={editButtonRef}
+            className="icon-button habit-tabs__edit"
             type="button"
-            role="tab"
-            aria-selected={habit.id === selectedHabitId}
-            tabIndex={habit.id === selectedHabitId ? 0 : -1}
-            data-habit-tab={habit.id}
-            style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
-            onClick={() => onSelect(habit.id)}
+            aria-label="Edit habit"
+            data-tooltip="Edit habit"
+            title="Edit habit"
+            disabled={habits.length === 0}
+            onClick={onEdit}
           >
-            <span className="habit-tab__color" />
-            <HabitIconView habit={habit} />
-            {habit.name}
+            <Icon name="edit" />
           </button>
-        ))}
+          <button
+            ref={addButtonRef}
+            className="button button--primary habit-tabs__add"
+            type="button"
+            aria-label="Add habit"
+            onClick={onAdd}
+          >
+            <Icon name="add" />
+            <span>Add habit</span>
+          </button>
+        </div>
       </div>
+      {habits.length > 0 ? (
+        <div
+          className="habit-tabs__scroller"
+          role="tablist"
+          aria-label="Habit list"
+          onKeyDown={(event) => {
+            const target = event.target as HTMLElement;
+            const habitId = target.closest<HTMLButtonElement>('[data-habit-tab]')?.dataset.habitTab;
+            if (habitId) {
+              moveTabFocus(event, habitId);
+            }
+          }}
+        >
+          {habits.map((habit) => (
+            <button
+              key={habit.id}
+              className="habit-tab"
+              type="button"
+              role="tab"
+              aria-selected={habit.id === selectedHabitId}
+              tabIndex={habit.id === selectedHabitId ? 0 : -1}
+              data-habit-tab={habit.id}
+              style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
+              onClick={() => onSelect(habit.id)}
+            >
+              <span className="habit-tab__color" />
+              <HabitIconView habit={habit} />
+              {habit.name}
+            </button>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 };
