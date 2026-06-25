@@ -22,6 +22,7 @@ type StatisticsViewProps = {
   habits: Habit[];
   checkIns: CheckInsByHabit;
   selectedHabitId: string | null;
+  onEditHabit?: (habitId: string) => void;
 };
 
 type HabitStat = {
@@ -45,7 +46,12 @@ const metricDescriptions = {
   timeLogged: 'Known duration recorded in the selected period.',
 };
 
-export const StatisticsView = ({ habits, checkIns, selectedHabitId }: StatisticsViewProps) => {
+export const StatisticsView = ({
+  habits,
+  checkIns,
+  selectedHabitId,
+  onEditHabit,
+}: StatisticsViewProps) => {
   const [range, setRange] = useState<ViewMode>('week');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [selectedStatsId, setSelectedStatsId] = useState<string>(() =>
@@ -74,6 +80,7 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
   const selectedHabits = selectedHabit ? [selectedHabit] : habits;
   const selectedColor = selectedHabit ? getHabitColorVar(selectedHabit.id, habits) : 'var(--soft)';
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
+  const yearDays = useMemo(() => getRangeDays('year', anchorDate), [anchorDate]);
   const comparisonMonths = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
     [anchorDate],
@@ -116,11 +123,17 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
   const selectedDurationSummary = selectedHabit
     ? durationGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
     : null;
+  const selectedYearDurationSummary =
+    selectedHabit?.trackingMode === 'duration'
+      ? calculateHabitStatistics(
+          selectedHabit,
+          checkIns[selectedHabit.id],
+          yearDays,
+          today,
+        ).durationSummary
+      : null;
   const selectedHasYearlyGoal = Boolean(
-    selectedDurationSummary && selectedDurationSummary.goalMinutes > 0,
-  );
-  const selectedHasTimeWithoutGoal = Boolean(
-    selectedHabit?.trackingMode === 'duration' && selectedDurationSummary && !selectedHasYearlyGoal,
+    selectedYearDurationSummary && selectedYearDurationSummary.goalMinutes > 0,
   );
   const summaryMetrics = selectedHabit
     ? [
@@ -135,15 +148,6 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
           description: metricDescriptions.daysMissed,
           className: 'metric--inactive',
         },
-        ...(selectedHasTimeWithoutGoal
-          ? [
-              {
-                label: 'Time logged',
-                value: formatMinutes(totalDurationMinutes),
-                description: metricDescriptions.timeLogged,
-              },
-            ]
-          : []),
       ]
     : [
         {
@@ -164,8 +168,15 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
         },
       ];
   const visibleDurationGoalStats = selectedHabit
-    ? selectedHasYearlyGoal
-      ? durationGoalStats
+    ? selectedHabit.trackingMode === 'duration' && selectedDurationSummary && selectedYearDurationSummary
+      ? [
+          {
+            habit: selectedHabit,
+            color: selectedColor,
+            periodSummary: selectedDurationSummary,
+            yearSummary: selectedYearDurationSummary,
+          },
+        ]
       : []
     : [];
 
@@ -312,7 +323,8 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
           ))}
         </div>
 
-        {selectedHasTimeWithoutGoal &&
+        {selectedHabit?.trackingMode === 'duration' &&
+        !selectedHasYearlyGoal &&
         selectedDurationSummary &&
         selectedDurationSummary.unknownDurationDays > 0 ? (
           <p className="stats-note">
@@ -322,88 +334,119 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
         ) : null}
 
           {visibleDurationGoalStats.length > 0 ? (
-            <section className="time-goals" aria-label="Time goals">
-              <div className="time-goals__header">
-                <h2>Time goals</h2>
-                <p className="muted">
-                  Known logged time for selected duration habits.
-                </p>
-              </div>
-              <div className="time-goal-list">
-                {visibleDurationGoalStats.map(({ habit, color, summary }) => {
-                  const hasGoal = summary.goalMinutes > 0;
-                  const progressPercent = Math.round(summary.progressPercent * 100);
-                  const visualPercent = Math.round(summary.visualProgressPercent * 100);
-                  const averageLabel =
-                    summary.averageMinutesPerLoggedDay > 0
-                      ? formatMinutes(summary.averageMinutesPerLoggedDay)
-                      : '0m';
-                  const defaultSessionLabel =
-                    habit.defaultDurationMinutes && habit.defaultDurationMinutes > 0
-                      ? formatMinutes(habit.defaultDurationMinutes)
+            <section
+              className="time-goals"
+              aria-label={selectedHasYearlyGoal ? 'Time goal' : 'Time summary'}
+            >
+              {visibleDurationGoalStats.map(({ habit, color, periodSummary, yearSummary }) => {
+                const progressPercent = Math.round(yearSummary.progressPercent * 100);
+                const visualPercent = Math.round(yearSummary.visualProgressPercent * 100);
+                const year = anchorDate.getFullYear();
+                const periodContributionLabel =
+                  range === 'week'
+                    ? 'This week'
+                    : range === 'month'
+                      ? 'This month'
                       : null;
+                const defaultSessionLabel =
+                  habit.defaultDurationMinutes && habit.defaultDurationMinutes > 0
+                    ? formatMinutes(habit.defaultDurationMinutes)
+                    : null;
 
+                if (yearSummary.goalMinutes === 0) {
                   return (
                     <article
-                      className="time-goal-row"
+                      className="time-goal-card time-goal-card--simple"
                       key={habit.id}
                       style={{ '--habit-color': color } as CSSProperties}
                     >
-                      {!selectedHabit ? (
-                        <div className="time-goal-row__title">
-                          <span className="filter-pill__dot" />
-                          <HabitIconView habit={habit} />
-                          <h3>{habit.name}</h3>
+                      <div className="time-goal-card__title">
+                        <span className="filter-pill__dot" />
+                        <HabitIconView habit={habit} />
+                        <div>
+                          <h2>{habit.name}</h2>
+                          <p>{year} time</p>
                         </div>
-                      ) : null}
-                      <div className="time-goal-row__main">
-                        <span>
-                          {formatMinutes(summary.loggedMinutes)}
-                          {hasGoal ? ` / ${formatMinutes(summary.goalMinutes)}` : ' logged'}
-                        </span>
-                        {hasGoal && range === 'year' ? (
-                          <span>{progressPercent}% complete</span>
-                        ) : null}
                       </div>
-                      {hasGoal && range === 'year' ? (
-                        <span
-                          className="time-goal-row__bar"
-                          aria-label={`${progressPercent}% complete`}
-                        >
-                          <span style={{ width: `${visualPercent}%` }} />
-                        </span>
-                      ) : null}
-                      <div className="time-goal-row__meta">
-                        <span>{pluralize(summary.completedDays, 'completed day')}</span>
-                        <span>{averageLabel} average logged day</span>
-                        {defaultSessionLabel ? (
-                          <span>{defaultSessionLabel} default session</span>
-                        ) : null}
-                        {hasGoal && range === 'year' ? (
-                          <>
-                            <span>
-                              {summary.goalReached
-                                ? 'Goal reached'
-                                : `${formatMinutes(summary.remainingMinutes)} remaining`}
-                            </span>
-                            <span>
-                              {summary.goalReached
-                                ? '0 sessions remaining'
-                                : `${summary.remainingSessions} sessions remaining`}
-                            </span>
-                          </>
-                        ) : null}
-                      </div>
-                      {summary.unknownDurationDays > 0 ? (
-                        <p className="time-goal-row__note">
-                          {pluralize(summary.unknownDurationDays, 'completed day')}{' '}
-                          {summary.unknownDurationDays === 1 ? 'has' : 'have'} no time logged
+                      <p className="time-goal-card__summary">
+                        {formatMinutes(yearSummary.loggedMinutes)} logged in {year}
+                      </p>
+                      {periodContributionLabel ? (
+                        <p className="time-goal-card__subtle">
+                          {periodContributionLabel}: {formatMinutes(periodSummary.loggedMinutes)}
                         </p>
                       ) : null}
+                      {onEditHabit ? (
+                        <button
+                          className="button button--quiet time-goal-card__action"
+                          type="button"
+                          onClick={() => onEditHabit(habit.id)}
+                        >
+                          Add yearly goal
+                        </button>
+                      ) : (
+                        <span className="time-goal-card__subtle">Add yearly goal</span>
+                      )}
                     </article>
                   );
-                })}
-              </div>
+                }
+
+                return (
+                  <article
+                    className="time-goal-card"
+                    key={habit.id}
+                    style={{ '--habit-color': color } as CSSProperties}
+                  >
+                    <div className="time-goal-card__title">
+                      <span className="filter-pill__dot" />
+                      <HabitIconView habit={habit} />
+                      <div>
+                        <h2>{habit.name}</h2>
+                        <p>{year} time goal</p>
+                      </div>
+                    </div>
+                    {periodContributionLabel ? (
+                      <p className="time-goal-card__subtle">
+                        {periodContributionLabel}: {formatMinutes(periodSummary.loggedMinutes)}
+                      </p>
+                    ) : null}
+                    <span className="time-goal-card__label">Year total</span>
+                    <div className="time-goal-card__main">
+                      <strong>
+                        {formatMinutes(yearSummary.loggedMinutes)} / {formatMinutes(yearSummary.goalMinutes)}
+                      </strong>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <span
+                      className="time-goal-card__bar"
+                      role="progressbar"
+                      aria-label={`${progressPercent}% of yearly goal`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={visualPercent}
+                      aria-valuetext={`${progressPercent}% complete`}
+                    >
+                      <span style={{ width: `${visualPercent}%` }} />
+                    </span>
+                    <div className="time-goal-card__remaining">
+                      {yearSummary.goalReached
+                        ? 'Goal reached'
+                        : `${formatMinutes(yearSummary.remainingMinutes)} remaining`}
+                    </div>
+                    {defaultSessionLabel ? (
+                      <p className="time-goal-card__subtle">
+                        Approximately {yearSummary.remainingSessions} sessions at {defaultSessionLabel} each
+                      </p>
+                    ) : null}
+                    {yearSummary.unknownDurationDays > 0 ? (
+                      <p className="time-goal-row__note">
+                        {pluralize(yearSummary.unknownDurationDays, 'completed day')}{' '}
+                        {yearSummary.unknownDurationDays === 1 ? 'has' : 'have'} no time recorded
+                      </p>
+                    ) : null}
+                  </article>
+                );
+              })}
             </section>
           ) : null}
 

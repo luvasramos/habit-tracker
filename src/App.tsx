@@ -414,6 +414,9 @@ export const App = () => {
                 habits={state.habits}
                 checkIns={state.checkIns}
                 selectedHabitId={state.selectedHabitId}
+                onEditHabit={(habitId) => {
+                  navigateToHash(`#/habits/${encodeURIComponent(habitId)}/edit`);
+                }}
               />
             ) : state.habits.length === 0 ? (
               <section className="empty-state">
