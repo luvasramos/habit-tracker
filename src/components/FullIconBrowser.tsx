@@ -9,13 +9,13 @@ type IconSearchResult = {
   total?: number;
 };
 
-type FullIconBrowserProps = {
+type IconPickerProps = {
   selectedIconId: string;
   previewColor: string;
   fallbackHabit: Pick<Habit, 'color'>;
+  suggestedIconIds: string[];
   onSelect: (iconId: `tabler:${string}`) => void;
   onSelectLocal: (iconName: HabitIconName) => void;
-  onBack: () => void;
 };
 
 const popularTablerIcons = [
@@ -33,7 +33,17 @@ const popularTablerIcons = [
   'tabler:heart',
 ] as const;
 
-const resultPageSize = 48;
+const resultPageSize = 12;
+
+const iconCategories = [
+  { label: 'Suggested', query: '' },
+  { label: 'Health', query: 'health' },
+  { label: 'Fitness', query: 'fitness' },
+  { label: 'Learning', query: 'study' },
+  { label: 'Work', query: 'work' },
+  { label: 'Finance', query: 'finance' },
+  { label: 'Travel', query: 'travel' },
+] as const;
 
 const tablerAliasResults: Record<string, string[]> = {
   gym: ['tabler:barbell', 'tabler:run', 'tabler:stretching', 'tabler:heartbeat'],
@@ -47,17 +57,17 @@ const tablerAliasResults: Record<string, string[]> = {
 const normalizeIconName = (icon: string): `tabler:${string}` =>
   (icon.startsWith('tabler:') ? icon : `tabler:${icon}`) as `tabler:${string}`;
 
-export const FullIconBrowser = ({
+export const IconPicker = ({
   selectedIconId,
   previewColor,
   fallbackHabit,
+  suggestedIconIds,
   onSelect,
   onSelectLocal,
-  onBack,
-}: FullIconBrowserProps) => {
+}: IconPickerProps) => {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [icons, setIcons] = useState<string[]>(popularTablerIcons as unknown as string[]);
+  const [icons, setIcons] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
 
@@ -71,7 +81,7 @@ export const FullIconBrowser = ({
     const aliases = tablerAliasResults[debouncedQuery] ?? [];
 
     if (!debouncedQuery) {
-      setIcons(popularTablerIcons as unknown as string[]);
+      setIcons([]);
       setStatus('ready');
       setPage(1);
       return undefined;
@@ -112,37 +122,51 @@ export const FullIconBrowser = ({
     };
   }, [debouncedQuery]);
 
-  const visibleIcons = useMemo(() => icons.slice((page - 1) * resultPageSize, page * resultPageSize), [icons, page]);
-  const pageCount = Math.max(1, Math.ceil(icons.length / resultPageSize));
+  const suggestedIcons = useMemo(() => {
+    const merged = [...suggestedIconIds, ...popularTablerIcons];
+    return Array.from(new Set(merged)).slice(0, 6);
+  }, [suggestedIconIds]);
+  const displayedIcons = debouncedQuery ? icons : suggestedIcons;
+  const visibleIcons = useMemo(
+    () => displayedIcons.slice((page - 1) * resultPageSize, page * resultPageSize),
+    [displayedIcons, page],
+  );
+  const pageCount = Math.max(1, Math.ceil(displayedIcons.length / resultPageSize));
   const fallbackIcons = habitIconOptions.slice(0, 12);
+  const hasSearch = debouncedQuery.length > 0;
+  const activeCategory = iconCategories.find((category) => category.query === query.trim().toLocaleLowerCase());
 
   return (
-    <section className="catalog-browser" aria-label="Browse all icons">
-      <div className="catalog-browser__header">
-        <div>
-          <h2>Browse all icons</h2>
-          <p className="muted">Search the Tabler outline icon collection.</p>
-        </div>
-        <button className="button" type="button" onClick={onBack}>
-          <Icon name="previous" />
-          Back to editor
-        </button>
-      </div>
-      <label className="field catalog-browser__search">
+    <section className="icon-picker" aria-label="Icon picker">
+      <label className="field icon-picker__search">
         <span>Search icons</span>
         <input value={query} placeholder="star, japan, study, gym" onChange={(event) => setQuery(event.target.value)} />
       </label>
+      <div className="icon-picker__categories" aria-label="Icon categories">
+        {iconCategories.map((category) => (
+          <button
+            className="icon-picker__category"
+            key={category.label}
+            type="button"
+            aria-pressed={activeCategory?.label === category.label || (!query.trim() && category.label === 'Suggested')}
+            onClick={() => setQuery(category.query)}
+          >
+            {category.label}
+          </button>
+        ))}
+      </div>
+      <p className="icon-picker__label">{hasSearch ? 'Search results' : 'Suggested icons'}</p>
       {status === 'loading' ? <p className="muted">Loading icons...</p> : null}
       {status === 'error' ? (
-        <div className="catalog-browser__notice">
-          <p className="muted">Icon search failed. Try again, or use the built-in fallback icons.</p>
+        <div className="icon-picker__notice">
+          <p className="muted">Icon search failed. Showing built-in icons.</p>
           <button className="button" type="button" onClick={() => setDebouncedQuery(query.trim().toLocaleLowerCase())}>
             Retry
           </button>
         </div>
       ) : null}
       {visibleIcons.length > 0 ? (
-        <div className="catalog-grid catalog-grid--icons">
+        <div className="selector-grid icon-choice-grid">
           {visibleIcons.map((iconId) => (
             <button
               className="selector-card icon-choice"
@@ -151,15 +175,25 @@ export const FullIconBrowser = ({
               aria-label={iconId.replace('tabler:', '').split('-').join(' ')}
               aria-pressed={selectedIconId === iconId}
               style={{ '--habit-color': previewColor } as CSSProperties}
-              onClick={() => onSelect(normalizeIconName(iconId))}
+              onClick={() => {
+                if (iconId.startsWith('tabler:')) {
+                  onSelect(normalizeIconName(iconId));
+                } else {
+                  onSelectLocal(iconId as HabitIconName);
+                }
+              }}
             >
-              <IconifyIcon icon={iconId} width="1.2em" height="1.2em" />
+              {iconId.startsWith('tabler:') ? (
+                <IconifyIcon icon={iconId} width="1.2em" height="1.2em" />
+              ) : (
+                <HabitIconView habit={{ ...fallbackHabit, icon: { type: 'svg', name: iconId as HabitIconName } }} />
+              )}
             </button>
           ))}
         </div>
       ) : null}
       {status === 'error' || visibleIcons.length === 0 ? (
-        <div className="catalog-grid catalog-grid--icons" aria-label="Built-in fallback icons">
+        <div className="selector-grid icon-choice-grid" aria-label="Built-in fallback icons">
           {fallbackIcons.map((option) => (
             <button
               className="selector-card icon-choice"

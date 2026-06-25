@@ -2580,9 +2580,54 @@ h2 {
   gap: 8px;
 }
 
-.compact-catalog {
+.icon-picker {
   display: grid;
   gap: 8px;
+}
+
+.icon-picker__search {
+  max-width: 360px;
+}
+
+.icon-picker__categories {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.icon-picker__category {
+  min-height: 34px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.icon-picker__category:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+  color: var(--soft);
+}
+
+.icon-picker__category[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--soft) 46%, var(--border));
+  color: var(--text);
+}
+
+.icon-picker__label {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.icon-picker__notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .browse-all-button {

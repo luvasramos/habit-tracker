@@ -106,7 +106,7 @@ describe('Habit Grid app', () => {
     await finishDailyCheckIn(user);
   });
 
-  it('opens Browse all icons lazily and selects an Iconify icon', async () => {
+  it('searches icons inline and selects an Iconify icon', async () => {
     const user = userEvent.setup();
     vi.spyOn(window, 'fetch').mockResolvedValue({
       ok: true,
@@ -115,15 +115,13 @@ describe('Habit Grid app', () => {
     renderApp();
 
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
-    expect(screen.queryByLabelText('Browse all icons')).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Name'), 'Icons');
-    await user.click(screen.getByRole('button', { name: 'Browse all icons' }));
-
-    expect(await screen.findByRole('heading', { name: 'Browse all icons' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Icon picker')).toBeInTheDocument();
+    expect(screen.getByText('Suggested icons')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Search icons'), 'star');
     await waitFor(() => expect(window.fetch).toHaveBeenCalled());
+    expect(screen.getByText('Search results')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'star' }));
-    expect(screen.queryByLabelText('Browse all icons')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
@@ -138,10 +136,9 @@ describe('Habit Grid app', () => {
     renderApp();
 
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
-    await user.click(screen.getByRole('button', { name: 'Browse all icons' }));
-    await user.type(await screen.findByLabelText('Search icons'), 'unknown');
+    await user.type(screen.getByLabelText('Search icons'), 'unknown');
 
-    expect(await screen.findByText('Icon search failed. Try again, or use the built-in fallback icons.')).toBeInTheDocument();
+    expect(await screen.findByText('Icon search failed. Showing built-in icons.')).toBeInTheDocument();
     expect(screen.getByLabelText('Built-in fallback icons')).toBeInTheDocument();
   });
 

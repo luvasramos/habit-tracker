@@ -42,10 +42,8 @@ import {
 } from '../utils/duration';
 import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
+import { IconPicker } from './FullIconBrowser';
 
-const FullIconBrowser = lazy(() =>
-  import('./FullIconBrowser').then((module) => ({ default: module.FullIconBrowser })),
-);
 const FullEmojiBrowser = lazy(() =>
   import('./FullEmojiBrowser').then((module) => ({ default: module.FullEmojiBrowser })),
 );
@@ -320,7 +318,7 @@ export const HabitEditorPage = ({
   const [iconMode, setIconMode] = useState<'svg' | 'emoji'>('svg');
   const [svgIcon, setSvgIcon] = useState<IconChoice>('custom');
   const [emoji, setEmoji] = useState('');
-  const [browseMode, setBrowseMode] = useState<'icons' | 'emoji' | null>(null);
+  const [browseMode, setBrowseMode] = useState<'emoji' | null>(null);
   const [recentIcons, setRecentIcons] = useState<string[]>(() => readRecentList(recentIconStorageKey));
   const [recentEmoji, setRecentEmoji] = useState<string[]>(() => readRecentList(recentEmojiStorageKey));
   const [customColor, setCustomColor] = useState('#7C8792');
@@ -853,40 +851,14 @@ export const HabitEditorPage = ({
             </div>
 
             {iconMode === 'svg' ? (
-              <div className="compact-catalog">
-                <div className="selector-grid icon-choice-grid">
-                  {defaultIconChoices.map((choice) => {
-                    const localOption = habitIconOptions.find((option) => option.name === choice);
-                    const label = isIconifyChoice(choice)
-                      ? choice.replace('tabler:', '').split('-').join(' ')
-                      : localOption?.label ?? choice;
-                    const icon =
-                      isIconifyChoice(choice)
-                        ? { type: 'iconify' as const, id: choice }
-                        : { type: 'svg' as const, name: choice };
-                    return (
-                      <button
-                        key={choice}
-                        className="selector-card icon-choice"
-                        type="button"
-                        aria-label={label}
-                        title={label}
-                        aria-pressed={svgIcon === choice}
-                        style={{ '--habit-color': previewColor } as CSSProperties}
-                        onClick={() => selectIconChoice(choice)}
-                      >
-                        <HabitIconView habit={{ color: previewHabit.color, icon }} />
-                      </button>
-                    );
-                  })}
-                  {Array.from({ length: selectorPageSize - defaultIconChoices.length }).map((_, index) => (
-                    <span className="selector-card selector-card--empty" key={`icon-empty-${index}`} />
-                  ))}
-                </div>
-                <button className="button button--quiet browse-all-button" type="button" onClick={() => setBrowseMode('icons')}>
-                  Browse all icons
-                </button>
-              </div>
+              <IconPicker
+                selectedIconId={svgIcon}
+                previewColor={previewColor}
+                fallbackHabit={{ color: previewHabit.color }}
+                suggestedIconIds={defaultIconChoices}
+                onSelect={selectIconChoice}
+                onSelectLocal={selectIconChoice}
+              />
             ) : (
               <div className="emoji-picker">
                 <div className="selector-grid emoji-grid">
@@ -926,30 +898,13 @@ export const HabitEditorPage = ({
           ) : null}
 
           {browseMode ? (
-            <Suspense fallback={<p className="muted">Loading {browseMode === 'icons' ? 'icon' : 'emoji'} browser...</p>}>
-              {browseMode === 'icons' ? (
-                <FullIconBrowser
-                  selectedIconId={svgIcon}
-                  previewColor={previewColor}
-                  fallbackHabit={{ color: previewHabit.color }}
-                  onSelect={(iconId) => {
-                    selectIconChoice(iconId);
-                    setBrowseMode(null);
-                  }}
-                  onSelectLocal={(iconName) => {
-                    selectIconChoice(iconName);
-                    setBrowseMode(null);
-                  }}
-                  onBack={() => setBrowseMode(null)}
-                />
-              ) : (
-                <FullEmojiBrowser
-                  selectedEmoji={emoji}
-                  suggestions={emojiOptions}
-                  onSelect={selectEmojiChoice}
-                  onBack={() => setBrowseMode(null)}
-                />
-              )}
+            <Suspense fallback={<p className="muted">Loading emoji browser...</p>}>
+              <FullEmojiBrowser
+                selectedEmoji={emoji}
+                suggestions={emojiOptions}
+                onSelect={selectEmojiChoice}
+                onBack={() => setBrowseMode(null)}
+              />
             </Suspense>
           ) : null}
         </section>
