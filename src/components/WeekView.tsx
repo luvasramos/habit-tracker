@@ -38,8 +38,8 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
             )}
             onClick={() => onToggle(day.key)}
           >
-            <span>{format(day.date, 'EEE')}</span>
-            <strong>{format(day.date, 'd')}</strong>
+            <span className="week-day-label">{format(day.date, 'EEE')}</span>
+            <span className="week-day-number">{format(day.date, 'd')}</span>
           </DateButton>
         ))}
       </div>

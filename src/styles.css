@@ -484,27 +484,38 @@ h2 {
 
 .calendar-section {
   display: grid;
-  gap: 14px;
+  gap: 12px;
 }
 
-.week-grid {
+.week-grid,
+.month-grid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
 }
 
 .date-button {
   position: relative;
   display: grid;
   place-items: center;
+  align-content: center;
+  gap: 3px;
   min-width: 0;
-  min-height: 72px;
-  padding: 8px;
+  min-height: var(--control-size);
+  padding: 6px;
   color: var(--text);
+  font-size: 0.9rem;
 }
 
-.date-button strong {
-  font-size: 1.35rem;
+.week-day-label {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.week-day-number {
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1;
 }
 
 .date-button.is-complete {
@@ -556,18 +567,13 @@ h2 {
   opacity: 0.9;
 }
 
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-}
-
 .weekday-heading {
   color: var(--muted);
   font-size: 0.78rem;
   text-align: center;
 }
 
+.week-grid .date-button,
 .month-grid .date-button,
 .date-placeholder {
   aspect-ratio: 1;
@@ -1162,14 +1168,7 @@ h2 {
     font-size: 1rem;
   }
 
-  .week-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .week-grid .date-button:last-child {
-    grid-column: 1 / -1;
-  }
-
+  .week-grid,
   .month-grid {
     gap: 4px;
   }
@@ -1177,6 +1176,11 @@ h2 {
   .date-button {
     min-height: 58px;
     padding: 6px;
+  }
+
+  .week-grid .date-button,
+  .month-grid .date-button {
+    min-height: 0;
   }
 
   .daily-checkin {
@@ -1258,6 +1262,7 @@ h2 {
     padding-inline: 10px;
   }
 
+  .week-grid,
   .month-grid {
     gap: 3px;
   }
@@ -1271,8 +1276,17 @@ h2 {
     padding: 4px;
   }
 
-  .date-button strong {
-    font-size: 1.1rem;
+  .week-grid .date-button,
+  .month-grid .date-button {
+    min-height: 0;
+  }
+
+  .week-day-label {
+    font-size: 0.66rem;
+  }
+
+  .week-day-number {
+    font-size: 0.92rem;
   }
 
   .daily-checkin__topline,
