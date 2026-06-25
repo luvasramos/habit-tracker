@@ -275,7 +275,7 @@ describe('Habit Grid app', () => {
     saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
     renderApp();
 
-    await user.click(screen.getByRole('button', { name: 'Today remaining: 1' }));
+    await user.click(screen.getByRole('button', { name: '1 habits remaining today' }));
     await user.click(screen.getByRole('button', { name: 'Mark Study Japanese complete today' }));
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
@@ -283,7 +283,7 @@ describe('Habit Grid app', () => {
       completed: true,
       durationMinutes: 45,
     });
-    expect(screen.getByRole('button', { name: 'Today remaining: 0' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '0 habits remaining today' })).toBeInTheDocument();
   });
 
   it('returns to the habit editor when historical time migration is cancelled', async () => {

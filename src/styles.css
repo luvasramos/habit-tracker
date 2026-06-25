@@ -139,6 +139,7 @@ input:focus-visible {
 .habit-tab,
 .stat-row,
 .floating-nav,
+.floating-nav__pages,
 .floating-nav__reminder,
 .floating-nav__item,
 .streak-pill {
@@ -197,7 +198,8 @@ h2 {
 .habit-tab,
 .date-button,
 .floating-nav__reminder,
-.floating-nav__item {
+.floating-nav__item,
+.floating-nav__indicator {
   min-height: 38px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -323,6 +325,33 @@ h2 {
   padding: 0 14px;
 }
 
+.floating-nav__pages {
+  position: relative;
+  flex: 1.9 1 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  min-width: 0;
+}
+
+.floating-nav__indicator {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 0;
+  width: calc(50% - 2.5px);
+  min-height: 58px;
+  border-color: color-mix(in srgb, var(--soft) 72%, var(--border-strong));
+  background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft) 14%, transparent);
+  pointer-events: none;
+  transform: translateX(0);
+  transition: transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.floating-nav__pages[data-active-page='statistics'] .floating-nav__indicator {
+  transform: translateX(calc(100% + 5px));
+}
+
 .floating-nav__reminder {
   flex: 0.72 1 0;
   border-color: #f15523;
@@ -331,21 +360,16 @@ h2 {
   box-shadow: 0 0 0 1px color-mix(in srgb, #f15523 36%, transparent);
 }
 
+.floating-nav__reminder:hover,
+.floating-nav__reminder:focus-visible {
+  border-color: color-mix(in srgb, #f15523 76%, #f1f1f1);
+  background: #f15523;
+  color: #f1f1f1;
+}
+
 .floating-nav__reminder .icon {
   color: #f1f1f1;
   opacity: 1;
-}
-
-.floating-nav__reminder.is-complete {
-  border-color: color-mix(in srgb, var(--border) 72%, transparent);
-  background: color-mix(in srgb, var(--surface-3) 42%, var(--surface-2));
-  color: var(--muted);
-  box-shadow: none;
-}
-
-.floating-nav__reminder.is-complete .icon {
-  color: currentColor;
-  opacity: 0.78;
 }
 
 .floating-nav__reminder[aria-expanded='true'] {
@@ -355,34 +379,37 @@ h2 {
 }
 
 .floating-nav__item {
-  flex: 0.95 1 0;
+  position: relative;
+  z-index: 1;
   border-color: color-mix(in srgb, var(--border) 72%, transparent);
   background: color-mix(in srgb, var(--surface-3) 42%, var(--surface-2));
   color: var(--muted);
 }
 
 .floating-nav__item:hover {
-  border-color: var(--border);
-  background: color-mix(in srgb, var(--surface-3) 58%, transparent);
+  border-color: color-mix(in srgb, var(--border-strong) 62%, transparent);
+  background: color-mix(in srgb, var(--surface-3) 58%, var(--surface-2));
+  color: var(--soft);
 }
 
 .floating-nav__item[aria-current='page'] {
-  border-color: color-mix(in srgb, var(--soft) 72%, var(--border-strong));
-  background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
-  color: var(--soft);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft) 14%, transparent);
+  border-color: transparent;
+  background: transparent;
+  color: #f1f1f1;
+  box-shadow: none;
 }
 
 .floating-nav__item[aria-current='page']:hover {
-  border-color: color-mix(in srgb, var(--soft) 76%, var(--border-strong));
-  background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
+  border-color: transparent;
+  background: transparent;
+  color: #f1f1f1;
 }
 
 .today-popover {
   position: fixed;
   left: 50%;
   bottom: calc(max(18px, env(safe-area-inset-bottom)) + 86px);
-  z-index: 19;
+  z-index: 90;
   display: grid;
   gap: 10px;
   width: min(calc(100vw - 28px), 420px);
@@ -394,7 +421,13 @@ h2 {
   background: color-mix(in srgb, var(--surface) 96%, #1a1a1a);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
   transform: translateX(-50%);
-  animation: today-popover-in 140ms ease both;
+  transform-origin: bottom center;
+  animation: today-popover-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.today-popover.is-closing {
+  pointer-events: none;
+  animation: today-popover-out 160ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .today-popover__header,
@@ -732,6 +765,7 @@ h2 {
   min-height: 52px;
   gap: 8px;
   padding-inline: 14px;
+  border-radius: 999px;
 }
 
 .habit-tabs__add .icon {
@@ -2112,11 +2146,22 @@ h2 {
 @keyframes today-popover-in {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateX(-50%) translateY(6px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes today-popover-out {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.98);
   }
 }
 
@@ -2283,6 +2328,7 @@ h2 {
 
   .floating-nav__reminder,
   .floating-nav__item,
+  .floating-nav__indicator,
   .floating-nav .streak-pill {
     min-height: 60px;
     padding: 0 7px;
@@ -2301,6 +2347,18 @@ h2 {
     flex: 0.78 1 0;
   }
 
+  .floating-nav__pages {
+    gap: 4px;
+  }
+
+  .floating-nav__indicator {
+    width: calc(50% - 2px);
+  }
+
+  .floating-nav__pages[data-active-page='statistics'] .floating-nav__indicator {
+    transform: translateX(calc(100% + 4px));
+  }
+
   .today-popover {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 88px);
   }
@@ -2313,6 +2371,30 @@ h2 {
 
   .shell {
     padding: 12px;
+  }
+
+  .habit-tabs__actions {
+    gap: 6px;
+  }
+
+  .habit-tabs__edit {
+    width: 48px;
+    min-height: 48px;
+  }
+
+  .habit-tabs__add {
+    width: 48px;
+    min-height: 48px;
+    padding-inline: 0;
+  }
+
+  .habit-tabs__add span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
   }
 
   .segmented {
@@ -2431,5 +2513,24 @@ h2 {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .floating-nav__indicator {
+    transition: none !important;
+  }
+
+  .today-popover,
+  .today-popover.is-closing {
+    animation-name: today-popover-fade !important;
+    transform: translateX(-50%) !important;
+  }
+}
+
+@keyframes today-popover-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
