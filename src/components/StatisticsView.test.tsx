@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CheckInsByHabit, Habit } from '../state/types';
+import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
 import { StatisticsView } from './StatisticsView';
 
 const makeHabit = (overrides: Partial<Habit> = {}): Habit => ({
@@ -21,6 +22,8 @@ const renderStats = ({
   allCheckIns,
   selectedHabitId,
   onEditHabit = vi.fn(),
+  onSetCheckIn,
+  onEditTime,
 }: {
   habit?: Habit;
   habits?: Habit[];
@@ -28,6 +31,13 @@ const renderStats = ({
   allCheckIns?: CheckInsByHabit;
   selectedHabitId?: string | null;
   onEditHabit?: (habitId: string) => void;
+  onSetCheckIn?: (
+    habitId: string,
+    dateKey: LocalDateKey,
+    completed: boolean,
+    durationMinutes?: number,
+  ) => void;
+  onEditTime?: (habitId: string, dateKey: LocalDateKey) => void;
 } = {}) =>
   render(
     <StatisticsView
@@ -35,6 +45,8 @@ const renderStats = ({
       checkIns={allCheckIns ?? { [habit.id]: checkIns }}
       selectedHabitId={selectedHabitId ?? habit.id}
       onEditHabit={onEditHabit}
+      onSetCheckIn={onSetCheckIn}
+      onEditTime={onEditTime}
     />,
   );
 
@@ -224,7 +236,125 @@ describe('StatisticsView time goal card', () => {
     expect(activeDay.querySelectorAll('.stats-date-cell__dot')).toHaveLength(2);
 
     fireEvent.click(activeDay);
-    expect(screen.getByLabelText('Selected date details')).toHaveTextContent('Japanese, 1h');
-    expect(screen.getByLabelText('Selected date details')).toHaveTextContent('Gym');
+    expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Japanese');
+    expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('1h');
+    expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Gym');
+  });
+
+  it('opens and closes date details while restoring focus to the date cell', () => {
+    renderStats();
+
+    const missedDay = screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ });
+    fireEvent.click(missedDay);
+    expect(screen.getByRole('dialog', { name: 'June 23, 2026' })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+    vi.advanceTimersByTime(0);
+
+    expect(screen.queryByRole('dialog', { name: 'June 23, 2026' })).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(missedDay);
+  });
+
+  it('closes date details when clicking outside', () => {
+    renderStats();
+
+    fireEvent.click(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ }));
+    expect(screen.getByRole('dialog', { name: 'June 23, 2026' })).toBeInTheDocument();
+
+    fireEvent.pointerDown(document.body);
+
+    expect(screen.queryByRole('dialog', { name: 'June 23, 2026' })).not.toBeInTheDocument();
+  });
+
+  it('marks an individual habit complete and incomplete with immediate recalculation', () => {
+    const habit = makeHabit({ yearlyGoalMinutes: 180 });
+
+    const StatefulStats = () => {
+      const [checkIns, setCheckIns] = useState<CheckInsByHabit>({
+        [habit.id]: { '2026-06-25': { completed: true, durationMinutes: 60 } },
+      });
+
+      return (
+        <StatisticsView
+          habits={[habit]}
+          checkIns={checkIns}
+          selectedHabitId={habit.id}
+          onSetCheckIn={(habitId, dateKey, completed) => {
+            setCheckIns((current) => {
+              const habitCheckIns = current[habitId] ?? {};
+              const nextHabitCheckIns = { ...habitCheckIns };
+              if (completed) {
+                nextHabitCheckIns[dateKey] = { completed: true, durationMinutes: 60 };
+              } else {
+                delete nextHabitCheckIns[dateKey];
+              }
+              return { ...current, [habitId]: nextHabitCheckIns };
+            });
+          }}
+        />
+      );
+    };
+
+    render(<StatefulStats />);
+
+    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('1');
+    const missedDay = screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ });
+    fireEvent.click(missedDay);
+    fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
+
+    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('2');
+    expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese completed, 1h logged/ })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark incomplete' }));
+    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('1');
+    expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ })).toBeInTheDocument();
+  });
+
+  it('offers Edit time for known and unknown duration completions', () => {
+    const onEditTime = vi.fn();
+    renderStats({
+      checkIns: {
+        '2026-06-24': true,
+        '2026-06-25': { completed: true, durationMinutes: 60 },
+      },
+      onEditTime,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Wednesday, June 24, 2026, Japanese completed, no time recorded/ }));
+    expect(screen.getByRole('dialog', { name: 'June 24, 2026' })).toHaveTextContent('No time recorded');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit time' }));
+    expect(onEditTime).toHaveBeenCalledWith('habit-1', '2026-06-24');
+  });
+
+  it('lets All habits date details update individual rows', () => {
+    const habits = [
+      makeHabit({ id: 'habit-1', name: 'Japanese', yearlyGoalMinutes: 180 }),
+      makeHabit({
+        id: 'habit-2',
+        name: 'Gym',
+        color: 'green',
+        icon: { type: 'svg', name: 'fitness' },
+        trackingMode: 'completion',
+      }),
+    ];
+    const onSetCheckIn = vi.fn();
+    renderStats({
+      habits,
+      selectedHabitId: null,
+      allCheckIns: {
+        'habit-1': { '2026-06-25': { completed: true, durationMinutes: 60 } },
+        'habit-2': {},
+      },
+      onSetCheckIn,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    fireEvent.click(screen.getByRole('button', { name: /Thursday, June 25, 2026, active: Japanese, 1h/ }));
+    const details = screen.getByRole('dialog', { name: 'June 25, 2026' });
+    expect(details).toHaveTextContent('Japanese');
+    expect(details).toHaveTextContent('Gym');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
+    expect(onSetCheckIn).toHaveBeenCalledWith('habit-2', '2026-06-25', true);
   });
 });

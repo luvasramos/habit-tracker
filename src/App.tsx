@@ -323,6 +323,10 @@ export const App = () => {
     setTimeEditTarget({ habitId: selectedHabit.id, dateKey });
   };
 
+  const openTimeEditForHabit = (habitId: string, dateKey: LocalDateKey) => {
+    setTimeEditTarget({ habitId, dateKey });
+  };
+
   const closeEditor = () => {
     if (window.location.hash) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
@@ -417,6 +421,8 @@ export const App = () => {
                 onEditHabit={(habitId) => {
                   navigateToHash(`#/habits/${encodeURIComponent(habitId)}/edit`);
                 }}
+                onSetCheckIn={setCheckIn}
+                onEditTime={openTimeEditForHabit}
               />
             ) : state.habits.length === 0 ? (
               <section className="empty-state">

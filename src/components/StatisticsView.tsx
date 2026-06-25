@@ -1,10 +1,11 @@
 import { format } from 'date-fns';
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { CheckInsByHabit, Habit, LocalDateKey, ViewMode } from '../state/types';
 import { getMonthCells, getWeekDays } from '../utils/calendar';
 import {
   movePeriod,
   periodLabel,
+  fromLocalDateKey,
   toLocalDateKey,
 } from '../utils/dates';
 import { formatMinutes } from '../utils/duration';
@@ -22,6 +23,13 @@ type StatisticsViewProps = {
   checkIns: CheckInsByHabit;
   selectedHabitId: string | null;
   onEditHabit?: (habitId: string) => void;
+  onSetCheckIn?: (
+    habitId: string,
+    dateKey: LocalDateKey,
+    completed: boolean,
+    durationMinutes?: number,
+  ) => void;
+  onEditTime?: (habitId: string, dateKey: LocalDateKey) => void;
 };
 
 type HabitStat = {
@@ -67,6 +75,8 @@ type StatisticsCalendarProps = {
   selectedColor: string;
   showNoActivity: boolean;
   today: Date;
+  onSetCheckIn?: StatisticsViewProps['onSetCheckIn'];
+  onEditTime?: StatisticsViewProps['onEditTime'];
 };
 
 const StatisticsDateCell = ({
@@ -84,7 +94,7 @@ const StatisticsDateCell = ({
   showNoActivity: boolean;
   size: 'week' | 'month' | 'year';
   outside?: boolean;
-  onSelect: (model: StatisticsDateModel) => void;
+  onSelect: (model: StatisticsDateModel, trigger: HTMLButtonElement) => void;
 }) => {
   const visibleDots = selectedHabit ? [] : model.completions.slice(0, size === 'year' ? 0 : 4);
   const hiddenCount = selectedHabit ? 0 : Math.max(model.completions.length - visibleDots.length, 0);
@@ -100,7 +110,7 @@ const StatisticsDateCell = ({
       title={getStatisticsDateLabel(model, selectedHabit)}
       data-date-key={model.dateKey}
       style={{ '--habit-color': selectedHabit ? selectedColor : 'var(--soft)' } as CSSProperties}
-      onClick={() => onSelect(model)}
+      onClick={(event) => onSelect(model, event.currentTarget)}
     >
       {size === 'week' ? (
         <>
@@ -138,39 +148,146 @@ const StatisticsDateCell = ({
 const StatisticsDateDetails = ({
   model,
   selectedHabit,
+  habits,
+  checkIns,
+  today,
+  onSetCheckIn,
+  onEditTime,
+  onClose,
 }: {
   model: StatisticsDateModel;
   selectedHabit: Habit | null;
-}) => (
-  <aside className="stats-date-details" aria-label="Selected date details">
-    <div>
-      <h3>{format(model.date, 'MMMM d, yyyy')}</h3>
-      <p>{getStatisticsDateLabel(model, selectedHabit)}</p>
-    </div>
-    {selectedHabit ? (
-      <div className="stats-date-details__list">
-        <span>{model.isCompleted ? 'Completed' : model.isUnavailable ? 'Unavailable' : 'Not completed'}</span>
-        {model.durationMinutes !== undefined ? <span>{formatMinutes(model.durationMinutes)} logged</span> : null}
-        {model.unknownDuration ? <span>No time recorded</span> : null}
+  habits: Habit[];
+  checkIns: CheckInsByHabit;
+  today: Date;
+  onSetCheckIn?: StatisticsViewProps['onSetCheckIn'];
+  onEditTime?: StatisticsViewProps['onEditTime'];
+  onClose: () => void;
+}) => {
+  const title = format(model.date, 'MMMM d, yyyy');
+  const canEdit = (Boolean(onSetCheckIn) || Boolean(onEditTime)) && !model.isFuture;
+  const canChangeCompletion = Boolean(onSetCheckIn) && !model.isFuture;
+
+  return (
+    <section
+      className="stats-date-details"
+      role="dialog"
+      aria-modal="false"
+      aria-label={title}
+      tabIndex={-1}
+    >
+      <div className="stats-date-details__header">
+        <div>
+          <h3>{title}</h3>
+          <p>{getStatisticsDateLabel(model, selectedHabit)}</p>
+        </div>
+        <button className="icon-button" type="button" aria-label="Close date details" onClick={onClose}>
+          <Icon name="close" />
+        </button>
       </div>
-    ) : model.completions.length > 0 ? (
-      <div className="stats-date-details__list">
-        {model.completions.map((completion) => (
-          <span key={completion.id} style={{ '--habit-color': completion.color } as CSSProperties}>
-            <span className="filter-pill__dot" aria-hidden="true" />
-            {completion.name}
-            {completion.durationMinutes !== undefined ? `, ${formatMinutes(completion.durationMinutes)}` : ''}
-            {completion.unknownDuration ? ', no time recorded' : ''}
-          </span>
-        ))}
-      </div>
-    ) : (
-      <div className="stats-date-details__list">
-        <span>{model.isUnavailable ? 'Unavailable' : 'No activity'}</span>
-      </div>
-    )}
-  </aside>
-);
+      {selectedHabit ? (
+        <div className="stats-date-details__body">
+          <div className="stats-date-details__identity" style={{ '--habit-color': getHabitColorVar(selectedHabit.id, habits) } as CSSProperties}>
+            <span className="filter-pill__dot" />
+            <HabitIconView habit={selectedHabit} />
+            <span>{selectedHabit.name}</span>
+          </div>
+          <div className="stats-date-details__list">
+            <span>{model.isCompleted ? 'Completed' : model.isUnavailable ? 'Unavailable' : 'Missed'}</span>
+            {model.durationMinutes !== undefined ? <span>{formatMinutes(model.durationMinutes)} logged</span> : null}
+            {model.unknownDuration ? <span>No time recorded</span> : null}
+          </div>
+          {canEdit && !model.isUnavailable ? (
+            <div className="stats-date-details__actions">
+              {canChangeCompletion && model.isCompleted ? (
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => onSetCheckIn?.(selectedHabit.id, model.dateKey, false)}
+                >
+                  Mark incomplete
+                </button>
+              ) : null}
+              {canChangeCompletion && !model.isCompleted ? (
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => onSetCheckIn?.(selectedHabit.id, model.dateKey, true)}
+                >
+                  Mark complete
+                </button>
+              ) : null}
+              {selectedHabit.trackingMode === 'duration' && model.isCompleted && onEditTime ? (
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => onEditTime(selectedHabit.id, model.dateKey)}
+                >
+                  <Icon name="edit" />
+                  Edit time
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div className="stats-date-details__habit-list">
+          {habits.map((habit) => {
+            const habitModel = getStatisticsDateState({
+              date: model.date,
+              habits,
+              checkIns,
+              selectedHabit: habit,
+              today,
+            });
+            const durationMinutes = habitModel.durationMinutes;
+            const canChangeHabit = canChangeCompletion && !habitModel.isUnavailable;
+
+            return (
+              <div
+                className="stats-date-details__habit-row"
+                key={habit.id}
+                style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
+              >
+                <span className="stats-date-details__identity">
+                  <span className="filter-pill__dot" />
+                  <HabitIconView habit={habit} />
+                  <span>{habit.name}</span>
+                </span>
+                <span className="stats-date-details__status">
+                  {habitModel.isCompleted ? 'Completed' : habitModel.isUnavailable ? 'Unavailable' : 'Incomplete'}
+                  {durationMinutes !== undefined ? `, ${formatMinutes(durationMinutes)}` : ''}
+                  {habitModel.unknownDuration ? ', no time recorded' : ''}
+                </span>
+                {canChangeHabit ? (
+                  <span className="stats-date-details__row-actions">
+                    <button
+                      className="button button--quiet"
+                      type="button"
+                      onClick={() => onSetCheckIn?.(habit.id, model.dateKey, !habitModel.isCompleted)}
+                    >
+                      {habitModel.isCompleted ? 'Mark incomplete' : 'Mark complete'}
+                    </button>
+                    {habit.trackingMode === 'duration' && habitModel.isCompleted && onEditTime ? (
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`Edit time for ${habit.name}`}
+                        onClick={() => onEditTime(habit.id, model.dateKey)}
+                      >
+                        <Icon name="edit" />
+                      </button>
+                    ) : null}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+};
 
 const StatisticsCalendar = ({
   range,
@@ -181,12 +298,17 @@ const StatisticsCalendar = ({
   selectedColor,
   showNoActivity,
   today,
+  onSetCheckIn,
+  onEditTime,
 }: StatisticsCalendarProps) => {
   const months = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
     [anchorDate],
   );
   const [selectedDateKey, setSelectedDateKey] = useState<LocalDateKey>(() => toLocalDateKey(today));
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const getModel = (date: Date) =>
     getStatisticsDateState({
       date,
@@ -196,13 +318,62 @@ const StatisticsCalendar = ({
       today,
     });
   const selectedModel = getStatisticsDateState({
-    date: selectedDateKey ? new Date(Number(selectedDateKey.slice(0, 4)), Number(selectedDateKey.slice(5, 7)) - 1, Number(selectedDateKey.slice(8, 10))) : today,
+    date: selectedDateKey ? fromLocalDateKey(selectedDateKey) : today,
     habits,
     checkIns,
     selectedHabit,
     today,
   });
-  const selectModel = (model: StatisticsDateModel) => setSelectedDateKey(model.dateKey);
+  const closeDetails = () => {
+    setDetailsOpen(false);
+    window.setTimeout(() => triggerRef.current?.focus(), 0);
+  };
+  const selectModel = (model: StatisticsDateModel, trigger: HTMLButtonElement) => {
+    triggerRef.current = trigger;
+    setSelectedDateKey(model.dateKey);
+    setDetailsOpen(true);
+  };
+
+  useEffect(() => {
+    if (!detailsOpen) {
+      return;
+    }
+
+    panelRef.current?.focus();
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (panelRef.current?.contains(target) || triggerRef.current?.contains(target)) {
+        return;
+      }
+      closeDetails();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeDetails();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [detailsOpen]);
+
+  const details = detailsOpen ? (
+    <div className="stats-date-details-wrap" ref={panelRef} tabIndex={-1}>
+      <StatisticsDateDetails
+        model={selectedModel}
+        selectedHabit={selectedHabit}
+        habits={habits}
+        checkIns={checkIns}
+        today={today}
+        onSetCheckIn={onSetCheckIn}
+        onEditTime={onEditTime}
+        onClose={closeDetails}
+      />
+    </div>
+  ) : null;
 
   if (range === 'week') {
     return (
@@ -220,7 +391,7 @@ const StatisticsCalendar = ({
             />
           ))}
         </div>
-        <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+        {details}
       </section>
     );
   }
@@ -249,7 +420,7 @@ const StatisticsCalendar = ({
             ))}
           </div>
         </div>
-        <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+        {details}
       </section>
     );
   }
@@ -287,7 +458,7 @@ const StatisticsCalendar = ({
           </section>
         ))}
       </div>
-      <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+      {details}
     </section>
   );
 };
@@ -297,6 +468,8 @@ export const StatisticsView = ({
   checkIns,
   selectedHabitId,
   onEditHabit,
+  onSetCheckIn,
+  onEditTime,
 }: StatisticsViewProps) => {
   const [range, setRange] = useState<ViewMode>('week');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
@@ -689,6 +862,8 @@ export const StatisticsView = ({
             selectedColor={selectedColor}
             showNoActivity={showNoActivity}
             today={today}
+            onSetCheckIn={onSetCheckIn}
+            onEditTime={onEditTime}
           />
         </>
     </section>
