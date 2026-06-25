@@ -115,7 +115,7 @@ export const MonthView = ({
                 }
               }}
             >
-              <span>{format(cell.date, 'd')}</span>
+              <span className="month-day-number">{format(cell.date, 'd')}</span>
             </DateButton>
           ) : (
             <div className="date-placeholder" key={cell.key} aria-hidden="true" />

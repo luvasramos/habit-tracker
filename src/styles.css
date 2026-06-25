@@ -1,15 +1,16 @@
 :root {
   color-scheme: dark;
-  --bg: #080808;
-  --surface: #111111;
-  --surface-2: #181818;
+  --bg: #000000;
+  --surface: #0b0b0b;
+  --surface-2: #151515;
   --surface-3: #202020;
-  --border: #2a2a2a;
-  --border-strong: #3a3a3a;
-  --text: #eeeeee;
-  --muted: #9a9a9a;
-  --soft: #c7c7c7;
+  --border: #2d2d2d;
+  --border-strong: #464646;
+  --text: #f1f1f1;
+  --muted: #9b9b9b;
+  --soft: #d0d0d0;
   --danger: #d0d0d0;
+  --attention: #f15523;
   --habit-terracotta: #b86556;
   --habit-orange: #c17a45;
   --habit-yellow: #b89a42;
@@ -85,7 +86,7 @@ input:focus-visible {
 .app {
   min-height: 100vh;
   padding: var(--space-page) var(--space-page)
-    calc(112px + var(--space-page) + env(safe-area-inset-bottom));
+    calc(136px + var(--space-page) + env(safe-area-inset-bottom));
   overflow-x: clip;
 }
 
@@ -123,7 +124,7 @@ input:focus-visible {
   padding: clamp(18px, 3vw, 34px);
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--surface) 96%, #1a1a1a);
+  background: color-mix(in srgb, var(--surface) 96%, #202020);
   box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
   overflow-x: clip;
 }
@@ -249,21 +250,21 @@ h2 {
 }
 
 .button.button--primary:not(:disabled) {
-  background: #eeeeee;
-  border-color: #eeeeee;
-  color: #050505;
+  background: #f1f1f1;
+  border-color: #f1f1f1;
+  color: #000000;
   font-weight: 500;
 }
 
 .button.button--primary:not(:disabled):hover {
-  background: #f0f0f0;
-  border-color: #f0f0f0;
-  color: #050505;
+  background: #f1f1f1;
+  border-color: #f1f1f1;
+  color: #000000;
 }
 
 .button.button--primary:not(:disabled):active {
   background: #d8d8d8;
-  color: #050505;
+  color: #000000;
 }
 
 .button.button--primary:disabled {
@@ -294,18 +295,19 @@ h2 {
   position: fixed;
   left: 50%;
   bottom: max(18px, env(safe-area-inset-bottom));
-  z-index: 20;
-  width: min(calc(100vw - 28px), 560px);
+  z-index: 80;
+  width: min(calc(100vw - 24px), 600px);
   min-height: 72px;
   justify-content: center;
   gap: 6px;
   padding: 6px;
   border: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  background: color-mix(in srgb, var(--surface-2) 94%, transparent);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
   transform: translateX(-50%);
   backdrop-filter: blur(18px);
+  overflow: visible;
 }
 
 .floating-nav__reminder,
@@ -320,19 +322,33 @@ h2 {
 
 .floating-nav__reminder {
   flex: 0.72 1 0;
-  border-color: color-mix(in srgb, var(--habit-orange) 32%, var(--border));
-  color: color-mix(in srgb, var(--habit-orange) 66%, var(--soft));
+  border-color: #f15523;
+  background: #f15523;
+  color: #f1f1f1;
+  box-shadow: 0 0 0 1px color-mix(in srgb, #f15523 36%, transparent);
+}
+
+.floating-nav__reminder .icon {
+  color: #f1f1f1;
+  opacity: 1;
 }
 
 .floating-nav__reminder.is-complete {
   border-color: var(--border);
+  background: transparent;
   color: var(--muted);
+  box-shadow: none;
+}
+
+.floating-nav__reminder.is-complete .icon {
+  color: currentColor;
+  opacity: 0.78;
 }
 
 .floating-nav__reminder[aria-expanded='true'] {
-  border-color: var(--border-strong);
-  background: var(--surface-3);
-  color: var(--text);
+  border-color: color-mix(in srgb, #f15523 70%, var(--border-strong));
+  background: #f15523;
+  color: #f1f1f1;
 }
 
 .floating-nav__item {
@@ -362,20 +378,21 @@ h2 {
   flex: 1.15 1 0;
   border-color: var(--soft);
   background: color-mix(in srgb, var(--soft) 88%, var(--surface-2));
-  color: #050505;
+  color: #000000;
+  min-width: 0;
 }
 
 .floating-nav__add:hover,
 .floating-nav__add:focus-visible {
   border-color: color-mix(in srgb, var(--soft) 36%, var(--border-strong));
-  background: #050505;
+  background: #000000;
   color: var(--text);
 }
 
 .floating-nav__add:active {
   border-color: var(--border-strong);
   background: #000000;
-  color: #ffffff;
+  color: #f1f1f1;
 }
 
 .floating-nav__add .icon {
@@ -891,6 +908,12 @@ h2 {
   line-height: 1;
 }
 
+.month-day-number {
+  font-size: clamp(1.25rem, 3.1vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
 .week-duration-label {
   max-width: 100%;
   min-height: 18px;
@@ -965,6 +988,7 @@ h2 {
 .month-grid .date-button {
   border-color: var(--border);
   background: var(--surface-2);
+  gap: 4px;
 }
 
 .month-grid .date-button.is-complete {
@@ -2103,7 +2127,7 @@ h2 {
 
 @media (max-width: 640px) {
   .app {
-    padding: 12px 12px calc(104px + env(safe-area-inset-bottom));
+    padding: 12px 12px calc(126px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -2244,16 +2268,18 @@ h2 {
   }
 
   .floating-nav {
-    width: min(calc(100vw - 22px), 420px);
+    width: min(calc(100vw - 16px), 440px);
     min-height: 74px;
     bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 5px;
+    padding: 5px;
   }
 
   .floating-nav__reminder,
   .floating-nav__item,
   .floating-nav__add {
     min-height: 60px;
-    padding: 0 8px;
+    padding: 0 7px;
   }
 
   .floating-nav__item span {
@@ -2266,11 +2292,11 @@ h2 {
   }
 
   .floating-nav__add {
-    flex: 1.35 1 0;
+    flex: 1.55 1 0;
   }
 
   .floating-nav__reminder {
-    flex: 0.72 1 0;
+    flex: 0.78 1 0;
   }
 
   .today-popover {
@@ -2280,7 +2306,7 @@ h2 {
 
 @media (max-width: 430px) {
   .app {
-    padding: 10px 10px calc(98px + env(safe-area-inset-bottom));
+    padding: 10px 8px calc(122px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -2329,6 +2355,10 @@ h2 {
 
   .week-day-number {
     font-size: 2.45rem;
+  }
+
+  .month-day-number {
+    font-size: clamp(1rem, 7vw, 1.85rem);
   }
 
   .week-duration-label {
