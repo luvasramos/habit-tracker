@@ -38,16 +38,6 @@ const FloatingNavigation = ({
       <span>Calendar</span>
     </button>
     <button
-      ref={addButtonRef}
-      type="button"
-      className="floating-nav__add"
-      aria-label="Add habit"
-      onClick={onAddHabit}
-    >
-      <Icon name="add" />
-      <span>Add habit</span>
-    </button>
-    <button
       type="button"
       className="floating-nav__item"
       aria-label="Statistics"
@@ -56,6 +46,16 @@ const FloatingNavigation = ({
     >
       <Icon name="stats" />
       <span>Statistics</span>
+    </button>
+    <button
+      ref={addButtonRef}
+      type="button"
+      className="floating-nav__add"
+      aria-label="Add habit"
+      onClick={onAddHabit}
+    >
+      <Icon name="add" />
+      <span>Add habit</span>
     </button>
   </nav>
 );

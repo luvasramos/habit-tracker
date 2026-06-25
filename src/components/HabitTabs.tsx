@@ -58,6 +58,8 @@ export const HabitTabs = ({
           className="icon-button habit-tabs__edit"
           type="button"
           aria-label="Edit habit"
+          data-tooltip="Edit habit"
+          title="Edit habit"
           onClick={onEdit}
         >
           <Icon name="edit" />

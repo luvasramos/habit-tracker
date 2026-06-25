@@ -54,14 +54,14 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
       <div className="year-scroll">
         <div
           className="year-grid"
-          style={{ gridTemplateColumns: `40px repeat(${columns.length}, 44px)` }}
+          style={{ gridTemplateColumns: `28px repeat(${columns.length}, 28px)` }}
         >
           <div aria-hidden="true" />
           {monthLabels.map((month) => (
             <div
               className="year-month-label"
               key={`${month.label}-${month.column}`}
-              style={{ gridColumn: `${month.column + 2} / span 4` }}
+              style={{ gridColumn: `${month.column + 2} / span 5` }}
             >
               {month.label}
             </div>
