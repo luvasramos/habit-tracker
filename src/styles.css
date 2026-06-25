@@ -1185,18 +1185,105 @@ h2 {
   animation: surface-in 180ms ease both;
 }
 
-.stats-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+.stats-top {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: grid;
+  gap: 10px;
+  padding: 2px 0 4px;
+  background: color-mix(in srgb, #000000 88%, transparent);
 }
 
-.filter-row {
+.stats-toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto minmax(260px, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-toolbar .segmented {
+  justify-self: center;
+}
+
+.stats-toolbar .period-controls {
+  justify-self: end;
+}
+
+.stats-selector {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.stats-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: var(--control-size);
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--habit-color) 42%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--habit-color) 8%, var(--surface-2));
+  color: var(--soft);
+}
+
+.stats-context h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.98rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-context .habit-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.activity-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: var(--control-size);
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.activity-toggle:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+  color: var(--soft);
+}
+
+.activity-toggle[aria-pressed='true'] {
+  color: var(--text);
+}
+
+.activity-toggle__box {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--soft);
+}
+
+.activity-toggle__box .icon {
+  width: 13px;
+  height: 13px;
 }
 
 .filter-pill {
@@ -1211,6 +1298,7 @@ h2 {
   background: var(--surface-2);
   color: var(--muted);
   white-space: nowrap;
+  flex: 0 0 auto;
   transition:
     transform 120ms ease,
     border-color 120ms ease,
@@ -1230,6 +1318,7 @@ h2 {
 
 .filter-pill[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--habit-color) 55%, var(--border));
+  background: color-mix(in srgb, var(--habit-color) 10%, var(--surface-2));
   color: var(--text);
 }
 
@@ -2356,6 +2445,41 @@ h2 {
   }
 }
 
+@media (max-width: 900px) {
+  .stats-toolbar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .stats-toolbar .activity-toggle,
+  .stats-toolbar .segmented,
+  .stats-toolbar .period-controls {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .stats-toolbar .activity-toggle {
+    justify-content: flex-start;
+  }
+
+  .stats-toolbar .segmented {
+    justify-content: center;
+  }
+
+  .stats-toolbar .period-controls {
+    justify-content: space-between;
+  }
+
+  .stats-selector {
+    flex-wrap: nowrap;
+  }
+
+  .stats-selector .filter-pill {
+    flex: 0 0 auto;
+    max-width: 220px;
+  }
+}
+
 @media (max-width: 640px) {
   .app {
     padding: 12px 12px calc(126px + env(safe-area-inset-bottom));
@@ -2447,13 +2571,47 @@ h2 {
   }
 
   .stats-toolbar {
+    grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .stats-toolbar .segmented,
+  .stats-toolbar .period-controls,
+  .stats-toolbar .activity-toggle {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .stats-toolbar .activity-toggle {
+    justify-content: flex-start;
+  }
+
+  .stats-toolbar .segmented {
+    justify-content: center;
+  }
+
+  .stats-toolbar .period-controls {
+    justify-content: space-between;
+  }
+
+  .stats-selector {
+    flex-wrap: nowrap;
+  }
+
+  .stats-selector .filter-pill {
+    flex: 0 0 auto;
+    max-width: 220px;
   }
 
   .filter-pill {
     flex: 1 1 132px;
     justify-content: center;
     max-width: none;
+  }
+
+  .stats-selector .filter-pill {
+    flex: 0 0 auto;
+    max-width: 220px;
   }
 
   .stats-summary-grid {

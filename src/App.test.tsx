@@ -336,18 +336,17 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
     expect(screen.getByRole('img', { name: /1 active day and \d+ days with no activity/ })).toBeInTheDocument();
-    expect(screen.getByLabelText('Gym, 1 day done')).toBeInTheDocument();
-    expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'No activity' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getAllByText('Days done')).toHaveLength(2);
+    expect(screen.getByLabelText('1 day done')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show no activity' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'No activity' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Year' }));
     expect(screen.getByLabelText('Yearly activity overview')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Gym' }));
-    expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'No activity' }));
-    expect(screen.getByText('No data selected')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Show no activity' }));
+    expect(screen.getByRole('button', { name: 'Show no activity' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('Days missed')).toBeInTheDocument();
   });
 
   it('shows a statistics empty state when there is no data', async () => {
@@ -528,16 +527,22 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
     const timeGoals = screen.getByLabelText('Time goals');
 
-    expect(within(timeGoals).getByText('Study Japanese')).toBeInTheDocument();
-    expect(within(timeGoals).getByText('Piano')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Study Japanese' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(timeGoals).queryByText('Piano')).not.toBeInTheDocument();
     expect(within(timeGoals).queryByText('Gym')).not.toBeInTheDocument();
     expect(within(timeGoals).getByText('1h / 3h')).toBeInTheDocument();
     expect(within(timeGoals).getByText('1 completed day has no time logged')).toBeInTheDocument();
-    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: 'All habits' }));
+    expect(within(timeGoals).getByText('Study Japanese')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('Piano')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Piano' }));
+    expect(screen.getByRole('button', { name: 'Piano' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
     expect(within(timeGoals).queryByText('Piano')).not.toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: 'Study Japanese' }));
     await user.click(screen.getByRole('button', { name: 'Year' }));
     expect(within(timeGoals).getByText('33% complete')).toBeInTheDocument();
     expect(within(timeGoals).getByText('2h remaining')).toBeInTheDocument();

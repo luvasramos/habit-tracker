@@ -410,7 +410,11 @@ export const App = () => {
             />
 
             {page === 'statistics' ? (
-              <StatisticsView habits={state.habits} checkIns={state.checkIns} />
+              <StatisticsView
+                habits={state.habits}
+                checkIns={state.checkIns}
+                selectedHabitId={state.selectedHabitId}
+              />
             ) : state.habits.length === 0 ? (
               <section className="empty-state">
                 <span className="empty-state__icon" aria-hidden="true">

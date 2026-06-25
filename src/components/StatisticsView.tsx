@@ -21,6 +21,7 @@ import { Icon } from './Icon';
 type StatisticsViewProps = {
   habits: Habit[];
   checkIns: CheckInsByHabit;
+  selectedHabitId: string | null;
 };
 
 type HabitStat = {
@@ -30,35 +31,44 @@ type HabitStat = {
   durationMinutes: number;
   percent: number;
   color: string;
-  kind: 'habit' | 'inactive';
   habit?: Habit;
 };
 
-const noActivityId = '__no_activity__';
+const allHabitsId = '__all_habits__';
 const donutRadius = 38;
 const donutCircumference = 2 * Math.PI * donutRadius;
 const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   `${count} ${count === 1 ? singular : plural}`;
 const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
+export const StatisticsView = ({ habits, checkIns, selectedHabitId }: StatisticsViewProps) => {
   const [range, setRange] = useState<ViewMode>('week');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
-  const [selectedHabitIds, setSelectedHabitIds] = useState<string[]>(() =>
-    habits.map((habit) => habit.id),
+  const [selectedStatsId, setSelectedStatsId] = useState<string>(() =>
+    selectedHabitId && habits.some((habit) => habit.id === selectedHabitId)
+      ? selectedHabitId
+      : allHabitsId,
   );
   const [showNoActivity, setShowNoActivity] = useState(true);
 
   useEffect(() => {
-    setSelectedHabitIds((current) => {
-      const habitIds = habits.map((habit) => habit.id);
-      const kept = current.filter((id) => habitIds.includes(id));
-      const additions = habitIds.filter((id) => !current.includes(id));
-      return [...kept, ...additions];
-    });
-  }, [habits]);
+    setSelectedStatsId((current) => {
+      if (current === allHabitsId || habits.some((habit) => habit.id === current)) {
+        return current;
+      }
 
-  const selectedHabits = habits.filter((habit) => selectedHabitIds.includes(habit.id));
+      return selectedHabitId && habits.some((habit) => habit.id === selectedHabitId)
+        ? selectedHabitId
+        : allHabitsId;
+    });
+  }, [habits, selectedHabitId]);
+
+  const selectedHabit =
+    selectedStatsId === allHabitsId
+      ? null
+      : habits.find((habit) => habit.id === selectedStatsId) ?? null;
+  const selectedHabits = selectedHabit ? [selectedHabit] : habits;
+  const selectedColor = selectedHabit ? getHabitColorVar(selectedHabit.id, habits) : 'var(--soft)';
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
   const comparisonMonths = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
@@ -81,7 +91,6 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
       durationMinutes: habitSummary.loggedMinutes,
       percent: 0,
       color: getHabitColorVar(habit.id, habits),
-      kind: 'habit',
       habit,
     };
   });
@@ -104,38 +113,19 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   const inactiveDays = allHabitStats.inactiveDateKeys.length;
   const eligibleDays = allHabitStats.eligibleDateKeys.length;
   const completionPercent = eligibleDays > 0 ? Math.round((activeDays / eligibleDays) * 100) : 0;
-  const inactiveStat: HabitStat = {
-    id: noActivityId,
-    name: 'No activity',
-    count: inactiveDays,
-    durationMinutes: 0,
-    percent: eligibleDays > 0 ? inactiveDays / eligibleDays : 0,
-    color: 'var(--inactive)',
-    kind: 'inactive',
-  };
   const stats = habitStats.map((stat) => ({
     ...stat,
     percent: totalCompletions > 0 ? stat.count / totalCompletions : 0,
   }));
-  const displayStats = showNoActivity ? [...stats, inactiveStat] : stats;
-  const distributionTotal =
-    stats.reduce((sum, stat) => sum + stat.count, 0) + (showNoActivity ? inactiveDays : 0);
+  const displayStats = stats;
+  const distributionTotal = stats.reduce((sum, stat) => sum + stat.count, 0);
   const hasVisibleSegments = displayStats.some((stat) => stat.count > 0);
-  const nothingSelected = selectedHabits.length === 0 && !showNoActivity;
   const activityLabel = `${pluralize(activeDays, 'active day')} and ${pluralize(
     inactiveDays,
     'day with no activity',
     'days with no activity',
   )}`;
   let runningOffset = 0;
-
-  const toggleHabit = (habitId: string) => {
-    setSelectedHabitIds((current) =>
-      current.includes(habitId)
-        ? current.filter((id) => id !== habitId)
-        : [...current, habitId],
-    );
-  };
 
   const getSelectedCompletions = (dateKey: LocalDateKey) =>
     selectedHabits
@@ -165,112 +155,130 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
   return (
     <section className="stats-panel" aria-label="Statistics">
-      <div className="stats-toolbar">
-        <div className="segmented" aria-label="Statistics range">
-          {(['week', 'month', 'year'] as ViewMode[]).map((item) => (
+      <div className="stats-top">
+        <div className="stats-toolbar">
+          <button
+            className="activity-toggle"
+            type="button"
+            aria-pressed={showNoActivity}
+            onClick={() => setShowNoActivity((value) => !value)}
+          >
+            <span className="activity-toggle__box" aria-hidden="true">
+              {showNoActivity ? <Icon name="check" /> : null}
+            </span>
+            Show no activity
+          </button>
+
+          <div className="segmented" aria-label="Statistics range">
+            {(['week', 'month', 'year'] as ViewMode[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                className="segmented__button"
+                aria-pressed={range === item}
+                onClick={() => setRange(item)}
+              >
+                {item[0].toUpperCase() + item.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          <div className="period-controls">
             <button
-              key={item}
+              className="icon-button"
               type="button"
-              className="segmented__button"
-              aria-pressed={range === item}
-              onClick={() => setRange(item)}
+              aria-label="Previous statistics range"
+              onClick={() => setAnchorDate((date) => movePeriod(range, date, -1))}
             >
-              {item[0].toUpperCase() + item.slice(1)}
+              <Icon name="previous" />
+            </button>
+            <h2 className="period-label" aria-live="polite">
+              {periodLabel(range, anchorDate)}
+            </h2>
+            <button
+              className="icon-button"
+              type="button"
+              aria-label="Next statistics range"
+              onClick={() => setAnchorDate((date) => movePeriod(range, date, 1))}
+            >
+              <Icon name="next" />
+            </button>
+            <button className="button button--quiet" type="button" onClick={() => setAnchorDate(new Date())}>
+              Today
+            </button>
+          </div>
+        </div>
+
+        <div className="stats-selector" aria-label="Statistics habit selector">
+          <button
+            className="filter-pill"
+            type="button"
+            aria-pressed={selectedStatsId === allHabitsId}
+            onClick={() => setSelectedStatsId(allHabitsId)}
+            style={{ '--habit-color': 'var(--soft)' } as CSSProperties}
+          >
+            <span className="filter-pill__dot" />
+            All habits
+          </button>
+          {habits.map((habit) => (
+            <button
+              key={habit.id}
+              className="filter-pill"
+              type="button"
+              aria-pressed={selectedStatsId === habit.id}
+              onClick={() => setSelectedStatsId(habit.id)}
+              style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
+            >
+              <span className="filter-pill__dot" />
+              <HabitIconView habit={habit} />
+              {habit.name}
             </button>
           ))}
         </div>
-
-        <div className="period-controls">
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Previous statistics range"
-            onClick={() => setAnchorDate((date) => movePeriod(range, date, -1))}
-          >
-            <Icon name="previous" />
-          </button>
-          <h2 className="period-label" aria-live="polite">
-            {periodLabel(range, anchorDate)}
-          </h2>
-          <button
-            className="icon-button"
-            type="button"
-            aria-label="Next statistics range"
-            onClick={() => setAnchorDate((date) => movePeriod(range, date, 1))}
-          >
-            <Icon name="next" />
-          </button>
-          <button className="button button--quiet" type="button" onClick={() => setAnchorDate(new Date())}>
-            Today
-          </button>
-        </div>
       </div>
 
-      <div className="filter-row" aria-label="Statistics filters">
-        {habits.map((habit) => (
-          <button
-            key={habit.id}
-            className="filter-pill"
-            type="button"
-            aria-pressed={selectedHabitIds.includes(habit.id)}
-            onClick={() => toggleHabit(habit.id)}
-            style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
-          >
+      <div
+        className="stats-context"
+        style={{ '--habit-color': selectedColor } as CSSProperties}
+      >
+        {selectedHabit ? (
+          <>
             <span className="filter-pill__dot" />
-            <HabitIconView habit={habit} />
-            {habit.name}
-          </button>
-        ))}
-        <button
-          className="filter-pill filter-pill--inactive"
-          type="button"
-          aria-pressed={showNoActivity}
-          onClick={() => setShowNoActivity((value) => !value)}
-          style={{ '--habit-color': 'var(--inactive)' } as CSSProperties}
-        >
-          <span className="filter-pill__dot" />
-          No activity
-        </button>
+            <HabitIconView habit={selectedHabit} />
+            <h2>{selectedHabit.name}</h2>
+          </>
+        ) : (
+          <h2>All habits</h2>
+        )}
       </div>
 
-      {nothingSelected ? (
-        <div className="stats-empty stats-empty--compact">
-          <span className="stats-empty__icon" aria-hidden="true">
-            <Icon name="habits" />
-          </span>
-          <div className="stats-empty__copy">
-            <h2>No data selected</h2>
-            <p className="muted">Select a habit or no activity to compare the range.</p>
+      <>
+        <div className="stats-summary-grid">
+          <div className="metric">
+            <span>{selectedHabit ? 'Days done' : 'Active days'}</span>
+            <strong>{activeDays}</strong>
           </div>
-        </div>
-      ) : (
-        <>
-          <div className="stats-summary-grid">
-            <div className="metric">
-              <span>Active days</span>
-              <strong>{activeDays}</strong>
-            </div>
-            {showNoActivity ? (
-              <div className="metric metric--inactive">
-                <span>No activity</span>
-                <strong>{inactiveDays}</strong>
-              </div>
-            ) : null}
-            <div className="metric">
-              <span>Completion rate</span>
-              <strong>{completionPercent}%</strong>
-            </div>
+          <div className="metric metric--inactive">
+            <span>{selectedHabit ? 'Days missed' : 'No activity'}</span>
+            <strong>{inactiveDays}</strong>
+          </div>
+          <div className="metric">
+            <span>Completion rate</span>
+            <strong>{completionPercent}%</strong>
+          </div>
+          {selectedHabit ? null : (
             <div className="metric">
               <span>Habit completions</span>
               <strong>{totalCompletions}</strong>
             </div>
-            {totalDurationMinutes > 0 ? (
-              <div className="metric">
-                <span>Time logged</span>
-                <strong>{formatMinutes(totalDurationMinutes)}</strong>
-              </div>
-            ) : null}
-          </div>
+          )}
+          {totalDurationMinutes > 0 ? (
+            <div className="metric">
+              <span>Time logged</span>
+              <strong>{formatMinutes(totalDurationMinutes)}</strong>
+            </div>
+          ) : null}
+        </div>
 
           <div className="stats-view">
             <div className="donut-wrap">
@@ -290,7 +298,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                     return (
                       <circle
                         key={stat.id}
-                        className={`donut__slice${stat.kind === 'inactive' ? ' donut__slice--inactive' : ''}`}
+                        className="donut__slice"
                         cx="60"
                         cy="60"
                         r={donutRadius}
@@ -313,30 +321,23 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
             <div className="stat-list">
               {displayStats.map((stat) => {
-                const barPercent =
-                  stat.kind === 'inactive'
-                    ? stat.percent * 100
-                    : totalCompletions > 0
-                      ? stat.percent * 100
-                      : 0;
-                const label =
-                  stat.kind === 'inactive'
-                    ? `${stat.name}, ${pluralize(stat.count, 'day')}`
-                    : `${stat.name}, ${pluralize(stat.count, 'day done', 'days done')}`;
+                const barPercent = totalCompletions > 0 ? stat.percent * 100 : 0;
+                const rowName = selectedHabit ? 'Days done' : stat.name;
+                const label = selectedHabit
+                  ? pluralize(stat.count, 'day done', 'days done')
+                  : `${stat.name}, ${pluralize(stat.count, 'day done', 'days done')}`;
                 return (
                   <div
-                    className={`stat-row${stat.kind === 'inactive' ? ' stat-row--inactive' : ''}`}
+                    className="stat-row"
                     key={stat.id}
                     aria-label={label}
                     style={{ '--habit-color': stat.color } as CSSProperties}
                   >
                     <span className="stat-row__name">
-                      {stat.habit ? (
+                      {stat.habit && !selectedHabit ? (
                         <HabitIconView habit={stat.habit} />
-                      ) : (
-                        <span className="legend-dot" />
-                      )}
-                      {stat.name}
+                      ) : null}
+                      {rowName}
                     </span>
                     <span className="stat-row__bar" aria-hidden="true">
                       <span style={{ width: `${barPercent}%` }} />
@@ -379,11 +380,13 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                       key={habit.id}
                       style={{ '--habit-color': color } as CSSProperties}
                     >
-                      <div className="time-goal-row__title">
-                        <span className="filter-pill__dot" />
-                        <HabitIconView habit={habit} />
-                        <h3>{habit.name}</h3>
-                      </div>
+                      {!selectedHabit ? (
+                        <div className="time-goal-row__title">
+                          <span className="filter-pill__dot" />
+                          <HabitIconView habit={habit} />
+                          <h3>{habit.name}</h3>
+                        </div>
+                      ) : null}
                       <div className="time-goal-row__main">
                         <span>
                           {formatMinutes(summary.loggedMinutes)}
@@ -497,7 +500,6 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
             </div>
           ) : null}
         </>
-      )}
     </section>
   );
 };
