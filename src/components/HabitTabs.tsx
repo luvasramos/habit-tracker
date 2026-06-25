@@ -51,6 +51,18 @@ export const HabitTabs = ({
 
   return (
     <section className="habit-tabs" aria-label="Habits">
+      <div className="habit-tabs__heading">
+        <h2>Habits</h2>
+        <button
+          ref={editButtonRef}
+          className="icon-button habit-tabs__edit"
+          type="button"
+          aria-label="Edit habit"
+          onClick={onEdit}
+        >
+          <Icon name="edit" />
+        </button>
+      </div>
       <div
         className="habit-tabs__scroller"
         role="tablist"
@@ -81,10 +93,6 @@ export const HabitTabs = ({
           </button>
         ))}
       </div>
-      <button ref={editButtonRef} className="button button--quiet" type="button" onClick={onEdit}>
-        <Icon name="edit" />
-        Edit habit
-      </button>
     </section>
   );
 };

@@ -78,14 +78,16 @@ input:focus-visible {
 
 .app {
   min-height: 100vh;
-  padding: var(--space-page);
+  padding: var(--space-page) var(--space-page)
+    calc(112px + var(--space-page) + env(safe-area-inset-bottom));
   overflow-x: clip;
 }
 
 .shell {
-  width: min(100%, 1120px);
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: var(--space-shell);
+  min-height: min(760px, calc(100vh - 140px));
+  padding: clamp(18px, 3vw, 34px);
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--surface) 96%, #1a1a1a);
@@ -93,27 +95,20 @@ input:focus-visible {
   overflow-x: clip;
 }
 
-.app-header,
 .habit-tabs,
 .calendar-controls,
 .period-controls,
 .dialog__actions,
-.primary-nav,
-.nav-button,
 .button,
 .segmented__button,
 .habit-tab,
-.stat-row {
+.stat-row,
+.floating-nav,
+.floating-nav__item,
+.floating-nav__add {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.app-header {
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 22px;
 }
 
 h1,
@@ -165,7 +160,8 @@ h2 {
 .segmented__button,
 .habit-tab,
 .date-button,
-.nav-button {
+.floating-nav__item,
+.floating-nav__add {
   min-height: 38px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -185,7 +181,8 @@ h2 {
 .segmented__button:hover,
 .habit-tab:hover,
 .date-button:hover,
-.nav-button:hover {
+.floating-nav__item:hover,
+.floating-nav__add:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
 }
@@ -202,7 +199,8 @@ h2 {
 .segmented__button:active,
 .habit-tab:active,
 .date-button:active,
-.nav-button:active {
+.floating-nav__item:active,
+.floating-nav__add:active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -243,22 +241,55 @@ h2 {
   padding: 0;
 }
 
-.primary-nav {
-  display: flex;
-  flex: 1 1 260px;
-  flex-wrap: wrap;
-  min-width: 0;
+.floating-nav {
+  position: fixed;
+  left: 50%;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 20;
+  width: min(calc(100vw - 28px), 520px);
+  min-height: 72px;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid color-mix(in srgb, var(--border-strong) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 88%, transparent);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  transform: translateX(-50%);
+  backdrop-filter: blur(18px);
 }
 
-.nav-button {
-  flex: 0 1 auto;
-  min-height: var(--control-size);
-  padding: 0 12px;
+.floating-nav__item,
+.floating-nav__add {
+  justify-content: center;
+  min-height: 58px;
+  padding: 0 16px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
-.nav-button[aria-pressed='true'] {
+.floating-nav__item {
+  flex: 1 1 0;
+  color: var(--muted);
+}
+
+.floating-nav__item[aria-current='page'] {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.floating-nav__add {
+  flex: 1.15 1 0;
   border-color: var(--soft);
-  color: var(--soft);
+  background: var(--soft);
+  color: #050505;
+}
+
+.floating-nav__add .icon {
+  width: 20px;
+  height: 20px;
+  opacity: 1;
 }
 
 .empty-state {
@@ -474,15 +505,31 @@ h2 {
 }
 
 .habit-tabs {
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
   min-width: 0;
 }
 
+.habit-tabs__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.habit-tabs__heading h2 {
+  font-size: clamp(1.5rem, 4vw, 2.3rem);
+  line-height: 1;
+}
+
+.habit-tabs__edit {
+  width: 52px;
+  min-height: 52px;
+  border-radius: 50%;
+}
+
 .habit-tabs__scroller {
-  flex: 1 1 260px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -491,9 +538,9 @@ h2 {
 
 .habit-tab {
   min-height: var(--control-size);
-  max-width: 220px;
+  max-width: 260px;
   overflow: hidden;
-  padding: 0 12px;
+  padding: 0 14px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -519,10 +566,9 @@ h2 {
 }
 
 .calendar-controls {
-  justify-content: space-between;
-  align-items: flex-start;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .segmented {
@@ -542,17 +588,23 @@ h2 {
 }
 
 .period-controls {
-  flex: 1 1 320px;
-  justify-content: flex-end;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  min-width: 0;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #0d0d0d;
 }
 
 .period-label {
-  min-width: min(18ch, 100%);
+  min-width: 0;
+  flex: 1;
   min-height: var(--control-size);
   display: grid;
   place-items: center;
   text-align: center;
+  color: var(--muted);
 }
 
 .calendar-section {
@@ -566,6 +618,10 @@ h2 {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 6px;
+}
+
+.week-grid {
+  gap: 8px;
 }
 
 .date-button {
@@ -587,7 +643,7 @@ h2 {
 }
 
 .week-day-number {
-  font-size: 1rem;
+  font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 500;
   line-height: 1;
 }
@@ -657,6 +713,22 @@ h2 {
 .date-placeholder {
   aspect-ratio: 1;
   min-height: 0;
+}
+
+.week-grid .date-button {
+  align-content: center;
+  gap: 8px;
+  padding: 12px;
+}
+
+.week-grid .completion-dots {
+  inset: auto 10px 10px;
+  justify-content: center;
+}
+
+.week-grid .completion-dot {
+  width: 8px;
+  height: 8px;
 }
 
 .date-placeholder {
@@ -1450,48 +1522,26 @@ h2 {
 
 @media (max-width: 640px) {
   .app {
-    padding: 12px;
+    padding: 12px 12px calc(104px + env(safe-area-inset-bottom));
   }
 
   .shell {
-    padding: 14px;
-  }
-
-  .app-header {
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .primary-nav {
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-  }
-
-  .nav-button {
-    flex: 1 1 128px;
-    justify-content: center;
-  }
-
-  .app-header > .button {
-    flex: 1 1 100%;
+    min-height: calc(100vh - 126px);
+    padding: 16px;
   }
 
   .habit-tabs {
-    align-items: stretch;
+    margin-bottom: 18px;
   }
 
   .habit-tabs__scroller {
-    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .habit-tab {
-    flex: 1 1 132px;
     justify-content: center;
     max-width: none;
-  }
-
-  .habit-tabs > .button {
-    flex: 1 1 100%;
   }
 
   .calendar-controls,
@@ -1512,12 +1562,16 @@ h2 {
   .period-label {
     flex: 1;
     min-width: 12ch;
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 
-  .week-grid,
   .month-grid {
     gap: 4px;
+  }
+
+  .week-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .date-button {
@@ -1525,9 +1579,12 @@ h2 {
     padding: 6px;
   }
 
-  .week-grid .date-button,
   .month-grid .date-button {
     min-height: 0;
+  }
+
+  .week-grid .date-button {
+    min-height: 112px;
   }
 
   .daily-checkin {
@@ -1599,11 +1656,36 @@ h2 {
   .emoji-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+
+  .floating-nav {
+    width: min(calc(100vw - 22px), 420px);
+    min-height: 74px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .floating-nav__item,
+  .floating-nav__add {
+    min-height: 60px;
+    padding: 0 10px;
+  }
+
+  .floating-nav__item span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+
+  .floating-nav__add {
+    flex: 1.25 1 0;
+  }
 }
 
 @media (max-width: 430px) {
   .app {
-    padding: 10px;
+    padding: 10px 10px calc(98px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -1616,14 +1698,16 @@ h2 {
   }
 
   .segmented__button,
-  .button,
-  .nav-button {
+  .button {
     padding-inline: 10px;
   }
 
-  .week-grid,
   .month-grid {
     gap: 3px;
+  }
+
+  .week-grid {
+    gap: 5px;
   }
 
   .weekday-heading {
@@ -1635,9 +1719,13 @@ h2 {
     padding: 4px;
   }
 
-  .week-grid .date-button,
   .month-grid .date-button {
     min-height: 0;
+  }
+
+  .week-grid .date-button {
+    min-height: 108px;
+    padding: 10px 6px;
   }
 
   .week-day-label {
@@ -1645,7 +1733,7 @@ h2 {
   }
 
   .week-day-number {
-    font-size: 0.92rem;
+    font-size: 2.45rem;
   }
 
   .daily-checkin__topline,

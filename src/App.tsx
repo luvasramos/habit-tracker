@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { CalendarControls } from './components/CalendarControls';
 import { DailyCheckIn } from './components/DailyCheckIn';
 import { HabitDialog } from './components/HabitDialog';
@@ -12,6 +12,53 @@ import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
 import type { LocalDateKey, ViewMode } from './state/types';
 import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
+
+type FloatingNavigationProps = {
+  page: 'calendar' | 'statistics';
+  onPageChange: (page: 'calendar' | 'statistics') => void;
+  onAddHabit: () => void;
+  addButtonRef: RefObject<HTMLButtonElement | null>;
+};
+
+const FloatingNavigation = ({
+  page,
+  onPageChange,
+  onAddHabit,
+  addButtonRef,
+}: FloatingNavigationProps) => (
+  <nav className="floating-nav" aria-label="Primary">
+    <button
+      type="button"
+      className="floating-nav__item"
+      aria-label="Calendar"
+      aria-current={page === 'calendar' ? 'page' : undefined}
+      onClick={() => onPageChange('calendar')}
+    >
+      <Icon name="calendar" />
+      <span>Calendar</span>
+    </button>
+    <button
+      ref={addButtonRef}
+      type="button"
+      className="floating-nav__add"
+      aria-label="Add habit"
+      onClick={onAddHabit}
+    >
+      <Icon name="add" />
+      <span>Add habit</span>
+    </button>
+    <button
+      type="button"
+      className="floating-nav__item"
+      aria-label="Statistics"
+      aria-current={page === 'statistics' ? 'page' : undefined}
+      onClick={() => onPageChange('statistics')}
+    >
+      <Icon name="stats" />
+      <span>Statistics</span>
+    </button>
+  </nav>
+);
 
 export const App = () => {
   const {
@@ -63,38 +110,6 @@ export const App = () => {
   return (
     <div className="app">
       <main className="shell">
-        <header className="app-header">
-          <div className="primary-nav" aria-label="Primary">
-            <button
-              type="button"
-              className="nav-button"
-              aria-pressed={page === 'calendar'}
-              onClick={() => setPage('calendar')}
-            >
-              <Icon name="calendar" />
-              Calendar
-            </button>
-            <button
-              type="button"
-              className="nav-button"
-              aria-pressed={page === 'statistics'}
-              onClick={() => setPage('statistics')}
-            >
-              <Icon name="stats" />
-              Statistics
-            </button>
-          </div>
-          <button
-            ref={addButtonRef}
-            className="button button--primary"
-            type="button"
-            onClick={() => setAddOpen(true)}
-          >
-            <Icon name="add" />
-            Add habit
-          </button>
-        </header>
-
         {dailyCheckInOpen ? (
           <DailyCheckIn
             habits={state.habits}
@@ -116,14 +131,6 @@ export const App = () => {
               <h2>No habits yet</h2>
               <p>Add one small routine to begin.</p>
             </div>
-            <button
-              className="button button--primary"
-              type="button"
-              onClick={() => setAddOpen(true)}
-            >
-              <Icon name="add" />
-              Add habit
-            </button>
           </section>
         ) : (
           <>
@@ -177,6 +184,13 @@ export const App = () => {
           </>
         )}
       </main>
+
+      <FloatingNavigation
+        page={page}
+        onPageChange={setPage}
+        onAddHabit={() => setAddOpen(true)}
+        addButtonRef={addButtonRef}
+      />
 
       <HabitDialog
         mode="add"
