@@ -1483,6 +1483,33 @@ h2 {
   font-size: 0.82rem;
 }
 
+.tracking-settings {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
+}
+
+.tracking-settings__details {
+  display: grid;
+  gap: 8px;
+}
+
+.tracking-settings__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.tracking-summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
 .appearance-editor {
   display: grid;
   gap: 14px;
@@ -2034,6 +2061,10 @@ h2 {
 
   .custom-color__fields {
     max-width: none;
+  }
+
+  .tracking-settings__fields {
+    grid-template-columns: 1fr;
   }
 }
 

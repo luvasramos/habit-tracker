@@ -142,4 +142,64 @@ describe('habitReducer', () => {
     });
     expect(unknownDuration.checkIns['habit-1']['2026-06-18']).toBe(true);
   });
+
+  it('clears duration settings when a habit changes back to completion only', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: {
+        ...draft('Study Japanese'),
+        trackingMode: 'duration',
+        defaultDurationMinutes: 60,
+        yearlyGoalMinutes: 9000,
+      },
+    });
+    const renamed = habitReducer(added, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: {
+        ...draft('Study Japanese'),
+        trackingMode: 'completion',
+      },
+    });
+
+    expect(renamed.habits[0]).toEqual(
+      expect.objectContaining({
+        trackingMode: 'completion',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+      }),
+    );
+  });
+
+  it('allows clearing an optional yearly goal from a duration habit', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: {
+        ...draft('Study Japanese'),
+        trackingMode: 'duration',
+        defaultDurationMinutes: 60,
+        yearlyGoalMinutes: 9000,
+      },
+    });
+    const updated = habitReducer(added, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: {
+        ...draft('Study Japanese'),
+        trackingMode: 'duration',
+        defaultDurationMinutes: 45,
+        yearlyGoalMinutes: undefined,
+      },
+    });
+
+    expect(updated.habits[0]).toEqual(
+      expect.objectContaining({
+        trackingMode: 'duration',
+        defaultDurationMinutes: 45,
+        yearlyGoalMinutes: undefined,
+      }),
+    );
+  });
 });

@@ -86,20 +86,44 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
 
       return {
         ...state,
-        habits: state.habits.map((habit) =>
-          habit.id === action.habitId
+        habits: state.habits.map((habit) => {
+          if (habit.id !== action.habitId) {
+            return habit;
+          }
+
+          const trackingMode = action.habit.trackingMode ?? habit.trackingMode ?? 'completion';
+          const hasDefaultDuration = Object.prototype.hasOwnProperty.call(
+            action.habit,
+            'defaultDurationMinutes',
+          );
+          const hasYearlyGoal = Object.prototype.hasOwnProperty.call(
+            action.habit,
+            'yearlyGoalMinutes',
+          );
+          const baseHabit = {
+            ...habit,
+            name,
+            color: action.habit.color,
+            icon: action.habit.icon,
+            trackingMode,
+          };
+
+          return trackingMode === 'duration'
             ? {
-                ...habit,
-                name,
-                color: action.habit.color,
-                icon: action.habit.icon,
-                trackingMode: action.habit.trackingMode ?? habit.trackingMode ?? 'completion',
-                defaultDurationMinutes:
-                  action.habit.defaultDurationMinutes ?? habit.defaultDurationMinutes,
-                yearlyGoalMinutes: action.habit.yearlyGoalMinutes ?? habit.yearlyGoalMinutes,
+                ...baseHabit,
+                defaultDurationMinutes: hasDefaultDuration
+                  ? action.habit.defaultDurationMinutes
+                  : habit.defaultDurationMinutes,
+                yearlyGoalMinutes: hasYearlyGoal
+                  ? action.habit.yearlyGoalMinutes
+                  : habit.yearlyGoalMinutes,
               }
-            : habit,
-        ),
+            : {
+                ...baseHabit,
+                defaultDurationMinutes: undefined,
+                yearlyGoalMinutes: undefined,
+              };
+        }),
       };
     }
 

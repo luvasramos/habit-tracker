@@ -1,6 +1,13 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from 'react';
 import { normalizeHabitName } from '../state/habitReducer';
-import type { Habit, HabitColor, HabitDraft, HabitIcon, HabitIconName } from '../state/types';
+import type {
+  Habit,
+  HabitColor,
+  HabitDraft,
+  HabitIcon,
+  HabitIconName,
+  HabitTrackingMode,
+} from '../state/types';
 import {
   defaultHabitColor,
   defaultHabitIcon,
@@ -14,6 +21,7 @@ import {
   normalizeEmojiValue,
   normalizeHabitIcon,
 } from '../utils/habitAppearance';
+import { formatMinutes, isValidDurationMinutes } from '../utils/duration';
 import { Icon } from './Icon';
 
 type HabitDialogProps = {
@@ -145,6 +153,52 @@ const popularEmojiOptions = emojiOptions.filter(({ emoji }) =>
 const matchesSearch = (query: string, values: string[]) =>
   values.some((value) => value.toLocaleLowerCase().includes(query));
 
+const formatSessionInput = (minutes?: number) =>
+  isValidDurationMinutes(minutes) ? formatMinutes(minutes) : '';
+
+const formatGoalInput = (minutes?: number) =>
+  isValidDurationMinutes(minutes) && minutes % 60 === 0 ? String(minutes / 60) : '';
+
+const parseSessionDuration = (value: string) => {
+  const input = value.trim().toLocaleLowerCase();
+  if (!input) {
+    return null;
+  }
+
+  const compact = input.replace(/\s+/g, ' ');
+  const hourMatch = compact.match(/(\d+)\s*h(?:ours?|rs?)?/);
+  const minuteMatch = compact.match(/(\d+)\s*m(?:in(?:ute)?s?)?/);
+  const bareMinutesMatch = compact.match(/^\d+$/);
+
+  if (!hourMatch && !minuteMatch && !bareMinutesMatch) {
+    return null;
+  }
+
+  const hours = hourMatch ? Number(hourMatch[1]) : 0;
+  const minutes = minuteMatch
+    ? Number(minuteMatch[1])
+    : bareMinutesMatch
+      ? Number(compact)
+      : 0;
+  const durationMinutes = hours * 60 + minutes;
+
+  return isValidDurationMinutes(durationMinutes) ? durationMinutes : null;
+};
+
+const parseYearlyGoal = (value: string) => {
+  const input = value.trim().toLocaleLowerCase().replace(/\s*(hours?|hrs?|h)\s*$/, '');
+  if (!input) {
+    return undefined;
+  }
+
+  if (!/^\d+$/.test(input)) {
+    return null;
+  }
+
+  const hours = Number(input);
+  return hours > 0 ? hours * 60 : null;
+};
+
 export const HabitDialog = ({
   mode,
   initialName = '',
@@ -173,8 +227,13 @@ export const HabitDialog = ({
   const [iconSearch, setIconSearch] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [trackingMode, setTrackingMode] = useState<HabitTrackingMode>('completion');
+  const [defaultSessionInput, setDefaultSessionInput] = useState('');
+  const [yearlyGoalInput, setYearlyGoalInput] = useState('');
   const errorId = useId();
   const colorErrorId = useId();
+  const defaultSessionErrorId = useId();
+  const yearlyGoalErrorId = useId();
   const titleId = useId();
   const descriptionId = useId();
   const trimmed = normalizeHabitName(name);
@@ -191,7 +250,28 @@ export const HabitDialog = ({
     colorMode === 'custom' && !normalizedCustomColor
       ? 'Use a valid 3- or 6-digit hex color.'
       : '';
-  const formError = error || colorError;
+  const defaultDurationMinutes =
+    trackingMode === 'duration' ? parseSessionDuration(defaultSessionInput) : undefined;
+  const yearlyGoalMinutes =
+    trackingMode === 'duration' ? parseYearlyGoal(yearlyGoalInput) : undefined;
+  const defaultSessionError =
+    trackingMode === 'duration' && !defaultDurationMinutes
+      ? 'Enter a session longer than zero.'
+      : '';
+  const yearlyGoalError =
+    trackingMode === 'duration' && yearlyGoalMinutes === null
+      ? 'Enter whole hours greater than zero.'
+      : '';
+  const durationSummary =
+    trackingMode === 'duration' && defaultDurationMinutes
+      ? [
+          `${formatMinutes(defaultDurationMinutes)} per completed day`,
+          yearlyGoalMinutes ? `${formatMinutes(yearlyGoalMinutes)} yearly goal` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
+  const formError = error || colorError || defaultSessionError || yearlyGoalError;
 
   const iconQuery = iconSearch.trim().toLocaleLowerCase();
   const emojiQuery = emojiSearch.trim().toLocaleLowerCase();
@@ -231,6 +311,9 @@ export const HabitDialog = ({
       setIconSearch('');
       setEmojiSearch('');
       setConfirmDelete(false);
+      setTrackingMode(initialHabit?.trackingMode ?? 'completion');
+      setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
+      setYearlyGoalInput(formatGoalInput(initialHabit?.yearlyGoalMinutes));
       dialog.showModal();
       window.setTimeout(() => inputRef.current?.focus(), 0);
     } else if (!isOpen && dialog.open) {
@@ -250,6 +333,13 @@ export const HabitDialog = ({
         iconMode === 'emoji'
           ? { type: 'emoji', value: normalizeEmojiValue(emoji) || '•' }
           : { type: 'svg', name: svgIcon },
+      trackingMode,
+      defaultDurationMinutes:
+        trackingMode === 'duration' && defaultDurationMinutes
+          ? defaultDurationMinutes
+          : undefined,
+      yearlyGoalMinutes:
+        trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
     });
     onClose();
   };
@@ -263,6 +353,11 @@ export const HabitDialog = ({
       iconMode === 'emoji'
         ? { type: 'emoji', value: normalizeEmojiValue(emoji) || '•' }
         : { type: 'svg', name: svgIcon },
+    trackingMode,
+    defaultDurationMinutes:
+      trackingMode === 'duration' && defaultDurationMinutes ? defaultDurationMinutes : undefined,
+    yearlyGoalMinutes:
+      trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
   };
   const previewColor = getHabitColorValue(previewHabit);
 
@@ -313,6 +408,67 @@ export const HabitDialog = ({
             {error}
           </p>
         ) : null}
+
+        <section className="tracking-settings" aria-label="Tracking">
+          <span className="appearance-label">Tracking</span>
+          <div className="segmented segmented--compact" aria-label="Tracking mode">
+            <button
+              className="segmented__button"
+              type="button"
+              aria-pressed={trackingMode === 'completion'}
+              onClick={() => setTrackingMode('completion')}
+            >
+              Completion only
+            </button>
+            <button
+              className="segmented__button"
+              type="button"
+              aria-pressed={trackingMode === 'duration'}
+              onClick={() => setTrackingMode('duration')}
+            >
+              Completion + time
+            </button>
+          </div>
+
+          {trackingMode === 'duration' ? (
+            <div className="tracking-settings__details">
+              <div className="tracking-settings__fields">
+                <label className="field field--compact">
+                  <span>Default session</span>
+                  <input
+                    value={defaultSessionInput}
+                    placeholder="1h"
+                    aria-invalid={Boolean(defaultSessionError)}
+                    aria-describedby={defaultSessionError ? defaultSessionErrorId : undefined}
+                    onChange={(event) => setDefaultSessionInput(event.target.value)}
+                  />
+                </label>
+                <label className="field field--compact">
+                  <span>Yearly goal</span>
+                  <input
+                    value={yearlyGoalInput}
+                    placeholder="150 hours"
+                    inputMode="numeric"
+                    aria-invalid={Boolean(yearlyGoalError)}
+                    aria-describedby={yearlyGoalError ? yearlyGoalErrorId : undefined}
+                    onChange={(event) => setYearlyGoalInput(event.target.value)}
+                  />
+                </label>
+              </div>
+              {defaultSessionError ? (
+                <p className="form-error" id={defaultSessionErrorId}>
+                  {defaultSessionError}
+                </p>
+              ) : null}
+              {yearlyGoalError ? (
+                <p className="form-error" id={yearlyGoalErrorId}>
+                  {yearlyGoalError}
+                </p>
+              ) : null}
+              {durationSummary ? <p className="tracking-summary">{durationSummary}</p> : null}
+            </div>
+          ) : null}
+        </section>
 
         <section className="appearance-editor" aria-label="Habit appearance">
           <div className="appearance-preview" style={{ '--habit-color': previewColor } as CSSProperties}>
