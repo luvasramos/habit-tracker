@@ -1,6 +1,4 @@
 import {
-  Suspense,
-  lazy,
   useEffect,
   useId,
   useMemo,
@@ -43,10 +41,7 @@ import {
 import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
 import { IconPicker } from './FullIconBrowser';
-
-const FullEmojiBrowser = lazy(() =>
-  import('./FullEmojiBrowser').then((module) => ({ default: module.FullEmojiBrowser })),
-);
+import { FullEmojiBrowser } from './FullEmojiBrowser';
 
 type HabitEditorPageProps = {
   mode: 'add' | 'edit';
@@ -193,10 +188,6 @@ const emojiOptions: EmojiOption[] = [
   { emoji: '🪙', label: 'Coin', keywords: ['coin', 'money', 'finance', 'saving'] },
 ];
 
-const popularEmojiOptions = emojiOptions.filter(({ emoji }) =>
-  ['⭐', '🔥', '✅', '🏃', '🏋️', '📚', '🎓', '🗣️', '🇯🇵', '💰', '💧', '😴'].includes(emoji),
-);
-
 const selectorPageSize = 6;
 
 const pageCountFor = (total: number) => Math.max(1, Math.ceil(total / selectorPageSize));
@@ -318,7 +309,6 @@ export const HabitEditorPage = ({
   const [iconMode, setIconMode] = useState<'svg' | 'emoji'>('svg');
   const [svgIcon, setSvgIcon] = useState<IconChoice>('custom');
   const [emoji, setEmoji] = useState('');
-  const [browseMode, setBrowseMode] = useState<'emoji' | null>(null);
   const [recentIcons, setRecentIcons] = useState<string[]>(() => readRecentList(recentIconStorageKey));
   const [recentEmoji, setRecentEmoji] = useState<string[]>(() => readRecentList(recentEmojiStorageKey));
   const [customColor, setCustomColor] = useState('#7C8792');
@@ -398,13 +388,6 @@ export const HabitEditorPage = ({
     const popular = suggestedIcons.map((option) => option.name);
     return Array.from(new Set([...recent, ...popular])).slice(0, selectorPageSize);
   }, [recentIcons, suggestedIcons]);
-  const defaultEmojiChoices = useMemo(() => {
-    const recent = recentEmoji
-      .map((item) => emojiOptions.find((option) => option.emoji === item))
-      .filter((option): option is EmojiOption => Boolean(option));
-    return Array.from(new Map([...recent, ...popularEmojiOptions].map((option) => [option.emoji, option])).values()).slice(0, selectorPageSize);
-  }, [recentEmoji]);
-
   useEffect(() => {
     setColorPage((page) => Math.min(page, colorPageCount));
   }, [colorPageCount]);
@@ -430,7 +413,6 @@ export const HabitEditorPage = ({
           : 'custom',
     );
     setEmoji(initialIcon.type === 'emoji' ? initialIcon.value : '');
-    setBrowseMode(null);
     setConfirmDelete(false);
     setTrackingMode(initialHabit?.trackingMode ?? 'completion');
     setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
@@ -517,7 +499,6 @@ export const HabitEditorPage = ({
   const selectEmojiChoice = (value: string) => {
     setEmoji(value);
     setIconMode('emoji');
-    setBrowseMode(null);
     setRecentEmoji(writeRecentList(recentEmojiStorageKey, value));
   };
 
@@ -828,7 +809,6 @@ export const HabitEditorPage = ({
             ) : null}
           </div>
 
-          {!browseMode ? (
           <div className="appearance-group">
             <span className="appearance-label">Icon</span>
             <div className="segmented segmented--compact" aria-label="Icon type">
@@ -860,53 +840,14 @@ export const HabitEditorPage = ({
                 onSelectLocal={selectIconChoice}
               />
             ) : (
-              <div className="emoji-picker">
-                <div className="selector-grid emoji-grid">
-                  {defaultEmojiChoices.map((option) => (
-                    <button
-                      key={option.label}
-                      className="selector-card emoji-choice"
-                      type="button"
-                      aria-label={option.label}
-                      title={option.label}
-                      aria-pressed={emoji === option.emoji}
-                      onClick={() => selectEmojiChoice(option.emoji)}
-                    >
-                      <span>{option.emoji}</span>
-                    </button>
-                  ))}
-                  {Array.from({ length: selectorPageSize - defaultEmojiChoices.length }).map((_, index) => (
-                    <span className="selector-card selector-card--empty" key={`emoji-empty-${index}`} />
-                  ))}
-                </div>
-                <button className="button button--quiet browse-all-button" type="button" onClick={() => setBrowseMode('emoji')}>
-                  Browse all emoji
-                </button>
-                <label className="field emoji-field">
-                  <span>Selected emoji</span>
-                  <input
-                    value={emoji}
-                    inputMode="text"
-                    maxLength={6}
-                    placeholder="✓"
-                    onChange={(event) => setEmoji(event.target.value)}
-                  />
-                </label>
-              </div>
-            )}
-          </div>
-          ) : null}
-
-          {browseMode ? (
-            <Suspense fallback={<p className="muted">Loading emoji browser...</p>}>
               <FullEmojiBrowser
                 selectedEmoji={emoji}
                 suggestions={emojiOptions}
+                recentEmoji={recentEmoji}
                 onSelect={selectEmojiChoice}
-                onBack={() => setBrowseMode(null)}
               />
-            </Suspense>
-          ) : null}
+            )}
+          </div>
         </section>
 
         {mode === 'edit' && onDelete ? (

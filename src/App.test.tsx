@@ -142,7 +142,7 @@ describe('Habit Grid app', () => {
     expect(screen.getByLabelText('Built-in fallback icons')).toBeInTheDocument();
   });
 
-  it('opens Browse all emoji, searches, selects emoji, and caches it', async () => {
+  it('searches emoji inline, selects emoji, and caches it', async () => {
     const user = userEvent.setup();
     renderApp();
 
@@ -150,11 +150,11 @@ describe('Habit Grid app', () => {
     await user.type(screen.getByLabelText('Name'), 'Japan');
     await user.click(screen.getByRole('button', { name: 'Emoji' }));
     expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Browse all emoji' }));
 
-    expect(await screen.findByRole('heading', { name: 'Browse all emoji' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Emoji picker')).toBeInTheDocument();
     await user.type(screen.getByLabelText('Search emoji'), 'japan');
     await user.click(screen.getByRole('button', { name: 'Japan flag' }));
+    expect(screen.getByLabelText('Selected emoji')).toHaveTextContent('🇯🇵');
     expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Save' }));

@@ -1,11 +1,10 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
-import { Icon } from './Icon';
 
 type FullEmojiBrowserProps = {
   selectedEmoji: string;
   suggestions: Array<{ emoji: string; label: string; keywords: string[] }>;
+  recentEmoji: string[];
   onSelect: (emoji: string) => void;
-  onBack: () => void;
 };
 
 type EmojiClickEvent = CustomEvent<{ unicode?: string; emoji?: { unicode?: string; string?: string } }>;
@@ -30,11 +29,12 @@ const canUseNativeEmojiPicker = () => {
 export const FullEmojiBrowser = ({
   selectedEmoji,
   suggestions,
+  recentEmoji,
   onSelect,
-  onBack,
 }: FullEmojiBrowserProps) => {
   const pickerRef = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState('Suggested');
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -79,52 +79,62 @@ export const FullEmojiBrowser = ({
 
   const filteredSuggestions = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
+    const recentOptions = recentEmoji
+      .map((emoji) => suggestions.find((option) => option.emoji === emoji))
+      .filter((option): option is (typeof suggestions)[number] => Boolean(option));
+    const base =
+      category === 'Recent'
+        ? recentOptions
+        : category === 'Suggested'
+          ? suggestions
+          : suggestions.filter((option) =>
+              [option.label, ...option.keywords].some((value) =>
+                value.toLocaleLowerCase().includes(category.toLocaleLowerCase()),
+              ),
+            );
+
     if (!normalized) {
-      return suggestions.slice(0, 36);
+      return base.slice(0, 36);
     }
 
-    return suggestions
+    return base
       .filter((option) =>
         [option.emoji, option.label, ...option.keywords].some((value) =>
           value.toLocaleLowerCase().includes(normalized),
         ),
       )
       .slice(0, 36);
-  }, [query, suggestions]);
+  }, [category, query, recentEmoji, suggestions]);
+
+  const categoryOptions = ['Suggested', 'Recent', 'Language', 'Fitness', 'Study', 'Music', 'Finance', 'Sleep'];
+  const recentOptions = recentEmoji
+    .map((emoji) => suggestions.find((option) => option.emoji === emoji))
+    .filter((option): option is (typeof suggestions)[number] => Boolean(option))
+    .slice(0, 12);
 
   return (
-    <section className="catalog-browser" aria-label="Browse all emoji">
-      <div className="catalog-browser__header">
-        <div>
-          <h2>Browse all emoji</h2>
-          <p className="muted">Search emoji by name, category, or keyword.</p>
+    <section className="emoji-picker" aria-label="Emoji picker">
+      <div className="emoji-picker__preview" aria-label="Selected emoji">
+        <span>{selectedEmoji || '•'}</span>
+        <span>{selectedEmoji ? 'Selected emoji' : 'No emoji selected'}</span>
+      </div>
+      {recentOptions.length > 0 ? (
+        <div className="emoji-picker__recent" aria-label="Recent emoji">
+          {recentOptions.map((option) => (
+            <button
+              className="selector-card emoji-choice"
+              type="button"
+              key={`${option.label}-${option.emoji}`}
+              aria-label={option.label}
+              aria-pressed={selectedEmoji === option.emoji}
+              onClick={() => onSelect(option.emoji)}
+            >
+              <span>{option.emoji}</span>
+            </button>
+          ))}
         </div>
-        <button className="button" type="button" onClick={onBack}>
-          <Icon name="previous" />
-          Back to editor
-        </button>
-      </div>
-      <label className="field catalog-browser__search">
-        <span>Search emoji</span>
-        <input value={query} placeholder="japan, star, study, gym" onChange={(event) => setQuery(event.target.value)} />
-      </label>
-      <div className="catalog-grid catalog-grid--emoji" aria-label="Emoji search results">
-        {filteredSuggestions.map((option) => (
-          <button
-            className="selector-card emoji-choice"
-            type="button"
-            key={`${option.label}-${option.emoji}`}
-            aria-label={option.label}
-            aria-pressed={selectedEmoji === option.emoji}
-            onClick={() => onSelect(option.emoji)}
-          >
-            <span>{option.emoji}</span>
-          </button>
-        ))}
-      </div>
-      {filteredSuggestions.length === 0 ? <p className="muted">No exact match. Try the full picker below.</p> : null}
+      ) : null}
       <div className="emoji-picker-shell">
-        {!loaded ? <p className="muted">Loading emoji picker...</p> : null}
         {loaded
           ? createElement('emoji-picker', {
               ref: (node: HTMLElement | null) => {
@@ -132,7 +142,46 @@ export const FullEmojiBrowser = ({
               },
               class: 'full-emoji-picker',
             })
-          : null}
+          : (
+            <div className="emoji-picker__fallback">
+              <label className="field emoji-picker__search">
+                <span>Search emoji</span>
+                <input
+                  value={query}
+                  placeholder="japan, star, study, gym"
+                  onChange={(event) => setQuery(event.target.value)}
+                />
+              </label>
+              <div className="emoji-picker__categories" aria-label="Emoji categories">
+                {categoryOptions.map((option) => (
+                  <button
+                    className="icon-picker__category"
+                    type="button"
+                    key={option}
+                    aria-pressed={category === option}
+                    onClick={() => setCategory(option)}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+              <div className="selector-grid emoji-grid" aria-label="Emoji search results">
+                {filteredSuggestions.map((option) => (
+                  <button
+                    className="selector-card emoji-choice"
+                    type="button"
+                    key={`${option.label}-${option.emoji}`}
+                    aria-label={option.label}
+                    aria-pressed={selectedEmoji === option.emoji}
+                    onClick={() => onSelect(option.emoji)}
+                  >
+                    <span>{option.emoji}</span>
+                  </button>
+                ))}
+              </div>
+              {filteredSuggestions.length === 0 ? <p className="muted">No exact match.</p> : null}
+            </div>
+          )}
       </div>
     </section>
   );
