@@ -55,18 +55,6 @@ const FloatingNavigation = ({
 }: FloatingNavigationProps) => (
   <nav className="floating-nav" aria-label="Primary">
     <button
-      ref={reminderButtonRef}
-      type="button"
-      className={`floating-nav__reminder${remainingCount === 0 ? ' is-complete' : ''}`}
-      aria-label={`Today remaining: ${remainingCount}`}
-      aria-expanded={reminderOpen}
-      aria-controls="today-remaining-popover"
-      onClick={onToggleReminder}
-    >
-      <Icon name="bell" />
-      <span>{remainingCount}</span>
-    </button>
-    <button
       type="button"
       className="floating-nav__item"
       aria-label="Calendar"
@@ -95,6 +83,18 @@ const FloatingNavigation = ({
     >
       <Icon name="add" />
       <span>Add habit</span>
+    </button>
+    <button
+      ref={reminderButtonRef}
+      type="button"
+      className={`floating-nav__reminder${remainingCount === 0 ? ' is-complete' : ''}`}
+      aria-label={`Today remaining: ${remainingCount}`}
+      aria-expanded={reminderOpen}
+      aria-controls="today-remaining-popover"
+      onClick={onToggleReminder}
+    >
+      <Icon name="bell" />
+      <span>{remainingCount}</span>
     </button>
   </nav>
 );
