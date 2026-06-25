@@ -15,6 +15,7 @@ import {
 import {
   formatMinutes,
   getCheckInDurationMinutes,
+  getDurationHabitSummary,
   isCompletedCheckIn,
 } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
@@ -107,6 +108,13 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     (sum, stat) => sum + stat.durationMinutes,
     0,
   );
+  const durationGoalStats = selectedHabits
+    .filter((habit) => habit.trackingMode === 'duration')
+    .map((habit) => ({
+      habit,
+      color: getHabitColorVar(habit.id, habits),
+      summary: getDurationHabitSummary(habit, checkIns[habit.id], rangeKeys),
+    }));
   const activeDays = rangeKeys.filter((key) =>
     selectedHabits.some((habit) => isCompletedCheckIn(checkIns[habit.id]?.[key])),
   ).length;
@@ -354,6 +362,90 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
               })}
             </div>
           </div>
+
+          {durationGoalStats.length > 0 ? (
+            <section className="time-goals" aria-label="Time goals">
+              <div className="time-goals__header">
+                <h2>Time goals</h2>
+                <p className="muted">
+                  Known logged time for selected duration habits.
+                </p>
+              </div>
+              <div className="time-goal-list">
+                {durationGoalStats.map(({ habit, color, summary }) => {
+                  const hasGoal = summary.goalMinutes > 0;
+                  const progressPercent = Math.round(summary.progressPercent * 100);
+                  const visualPercent = Math.round(summary.visualProgressPercent * 100);
+                  const averageLabel =
+                    summary.averageMinutesPerLoggedDay > 0
+                      ? formatMinutes(summary.averageMinutesPerLoggedDay)
+                      : '0m';
+                  const defaultSessionLabel =
+                    habit.defaultDurationMinutes && habit.defaultDurationMinutes > 0
+                      ? formatMinutes(habit.defaultDurationMinutes)
+                      : null;
+
+                  return (
+                    <article
+                      className="time-goal-row"
+                      key={habit.id}
+                      style={{ '--habit-color': color } as CSSProperties}
+                    >
+                      <div className="time-goal-row__title">
+                        <span className="filter-pill__dot" />
+                        <HabitIconView habit={habit} />
+                        <h3>{habit.name}</h3>
+                      </div>
+                      <div className="time-goal-row__main">
+                        <span>
+                          {formatMinutes(summary.loggedMinutes)}
+                          {hasGoal ? ` / ${formatMinutes(summary.goalMinutes)}` : ' logged'}
+                        </span>
+                        {hasGoal && range === 'year' ? (
+                          <span>{progressPercent}% complete</span>
+                        ) : null}
+                      </div>
+                      {hasGoal && range === 'year' ? (
+                        <span
+                          className="time-goal-row__bar"
+                          aria-label={`${progressPercent}% complete`}
+                        >
+                          <span style={{ width: `${visualPercent}%` }} />
+                        </span>
+                      ) : null}
+                      <div className="time-goal-row__meta">
+                        <span>{pluralize(summary.completedDays, 'completed day')}</span>
+                        <span>{averageLabel} average logged day</span>
+                        {defaultSessionLabel ? (
+                          <span>{defaultSessionLabel} default session</span>
+                        ) : null}
+                        {hasGoal && range === 'year' ? (
+                          <>
+                            <span>
+                              {summary.goalReached
+                                ? 'Goal reached'
+                                : `${formatMinutes(summary.remainingMinutes)} remaining`}
+                            </span>
+                            <span>
+                              {summary.goalReached
+                                ? '0 sessions remaining'
+                                : `${summary.remainingSessions} sessions remaining`}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                      {summary.unknownDurationDays > 0 ? (
+                        <p className="time-goal-row__note">
+                          {pluralize(summary.unknownDurationDays, 'completed day')}{' '}
+                          {summary.unknownDurationDays === 1 ? 'has' : 'have'} no time logged
+                        </p>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
 
           {range === 'year' ? (
             <div className="comparison-section">

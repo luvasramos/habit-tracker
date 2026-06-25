@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
@@ -244,5 +244,83 @@ describe('Habit Grid app', () => {
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
     expect(state.habits[0].trackingMode).toBe('completion');
     expect(state.checkIns['habit-1']['2026-06-20']).toBe(true);
+  });
+
+  it('shows duration goal statistics for selected duration habits', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayKey = toLocalDateKey(yesterday);
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Study Japanese',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'language' },
+            trackingMode: 'duration',
+            defaultDurationMinutes: 60,
+            yearlyGoalMinutes: 180,
+          },
+          {
+            id: 'habit-2',
+            name: 'Piano',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'green',
+            icon: { type: 'svg', name: 'music' },
+            trackingMode: 'duration',
+            defaultDurationMinutes: 30,
+          },
+          {
+            id: 'habit-3',
+            name: 'Gym',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'red',
+            icon: { type: 'svg', name: 'fitness' },
+            trackingMode: 'completion',
+          },
+        ],
+        checkIns: {
+          'habit-1': {
+            [todayKey]: { completed: true, durationMinutes: 60 },
+            [yesterdayKey]: true,
+          },
+          'habit-2': {
+            [todayKey]: { completed: true, durationMinutes: 30 },
+          },
+          'habit-3': {
+            [todayKey]: true,
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    saveDailyCheckInAnswer(todayKey, 'habit-2', 'no');
+    saveDailyCheckInAnswer(todayKey, 'habit-3', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+    const timeGoals = screen.getByLabelText('Time goals');
+
+    expect(within(timeGoals).getByText('Study Japanese')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('Piano')).toBeInTheDocument();
+    expect(within(timeGoals).queryByText('Gym')).not.toBeInTheDocument();
+    expect(within(timeGoals).getByText('1h / 3h')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('1 completed day has no time logged')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Piano' }));
+    expect(within(timeGoals).queryByText('Piano')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Year' }));
+    expect(within(timeGoals).getByText('33% complete')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('2h remaining')).toBeInTheDocument();
+    expect(within(timeGoals).getByText('2 sessions remaining')).toBeInTheDocument();
   });
 });

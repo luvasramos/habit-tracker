@@ -5,6 +5,7 @@ import {
   calculateYearlyGoalProgress,
   formatMinutes,
   getCheckInDurationMinutes,
+  getDurationHabitSummary,
   isCompletedCheckIn,
   isValidDurationMinutes,
   sumLoggedDurationMinutes,
@@ -56,8 +57,19 @@ describe('duration utilities', () => {
       goalMinutes: 9000,
       remainingMinutes: 7500,
       percent: 1 / 6,
+      visualPercent: 1 / 6,
     });
     expect(calculateRemainingTimeMinutes(9000, 9000)).toBe(0);
+  });
+
+  it('allows goal percentages above 100 while capping visual progress', () => {
+    expect(calculateYearlyGoalProgress(9900, 9000)).toEqual({
+      loggedMinutes: 9900,
+      goalMinutes: 9000,
+      remainingMinutes: 0,
+      percent: 1.1,
+      visualPercent: 1,
+    });
   });
 
   it('calculates remaining default sessions', () => {
@@ -73,5 +85,55 @@ describe('duration utilities', () => {
         yearlyGoalMinutes: 9000,
       }),
     ).toBe(1);
+  });
+
+  it('summarizes period duration totals, averages, goals, and unknown records', () => {
+    const checkIns = {
+      '2026-01-01': { completed: true, durationMinutes: 60 },
+      '2026-01-02': { completed: true, durationMinutes: 30 },
+      '2026-01-03': true,
+    } as const;
+
+    expect(
+      getDurationHabitSummary(
+        { defaultDurationMinutes: 30, yearlyGoalMinutes: 180 },
+        checkIns,
+        ['2026-01-01', '2026-01-02', '2026-01-03', '2026-01-04'],
+      ),
+    ).toEqual({
+      completedDays: 3,
+      loggedDays: 2,
+      unknownDurationDays: 1,
+      loggedMinutes: 90,
+      averageMinutesPerLoggedDay: 45,
+      goalMinutes: 180,
+      progressPercent: 0.5,
+      visualProgressPercent: 0.5,
+      remainingMinutes: 90,
+      remainingSessions: 3,
+      goalReached: false,
+    });
+  });
+
+  it('summarizes habits without yearly goals', () => {
+    expect(
+      getDurationHabitSummary(
+        { defaultDurationMinutes: 60 },
+        { '2026-01-01': { completed: true, durationMinutes: 60 } },
+        ['2026-01-01'],
+      ),
+    ).toEqual({
+      completedDays: 1,
+      loggedDays: 1,
+      unknownDurationDays: 0,
+      loggedMinutes: 60,
+      averageMinutesPerLoggedDay: 60,
+      goalMinutes: 0,
+      progressPercent: 0,
+      visualProgressPercent: 0,
+      remainingMinutes: 0,
+      remainingSessions: 0,
+      goalReached: false,
+    });
   });
 });

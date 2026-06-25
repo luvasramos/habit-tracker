@@ -94,17 +94,20 @@ export const calculateYearlyGoalProgress = (loggedMinutes: number, yearlyGoalMin
       goalMinutes: 0,
       remainingMinutes: 0,
       percent: 0,
+      visualPercent: 0,
     };
   }
 
   const safeLoggedMinutes = Math.max(0, Math.trunc(loggedMinutes));
   const remainingMinutes = Math.max(yearlyGoalMinutes - safeLoggedMinutes, 0);
+  const percent = safeLoggedMinutes / yearlyGoalMinutes;
 
   return {
     loggedMinutes: safeLoggedMinutes,
     goalMinutes: yearlyGoalMinutes,
     remainingMinutes,
-    percent: Math.min(safeLoggedMinutes / yearlyGoalMinutes, 1),
+    percent,
+    visualPercent: Math.min(percent, 1),
   };
 };
 
@@ -124,4 +127,56 @@ export const calculateRemainingDefaultSessions = (
   }
 
   return Math.ceil(remainingMinutes / habit.defaultDurationMinutes);
+};
+
+export const calculateAverageDurationMinutes = (
+  loggedMinutes: number,
+  loggedDays: number,
+) => (loggedDays > 0 ? Math.round(loggedMinutes / loggedDays) : 0);
+
+export const getDurationHabitSummary = (
+  habit: Pick<Habit, 'defaultDurationMinutes' | 'yearlyGoalMinutes'>,
+  habitCheckIns: Record<LocalDateKey, CheckInEntry> | undefined,
+  dateKeys: LocalDateKey[],
+) => {
+  const summary = dateKeys.reduce(
+    (current, dateKey) => {
+      const entry = habitCheckIns?.[dateKey];
+      if (!isCompletedCheckIn(entry)) {
+        return current;
+      }
+
+      const durationMinutes = getCheckInDurationMinutes(entry);
+      return {
+        completedDays: current.completedDays + 1,
+        loggedDays: durationMinutes ? current.loggedDays + 1 : current.loggedDays,
+        unknownDurationDays:
+          durationMinutes === undefined
+            ? current.unknownDurationDays + 1
+            : current.unknownDurationDays,
+        loggedMinutes: current.loggedMinutes + (durationMinutes ?? 0),
+      };
+    },
+    {
+      completedDays: 0,
+      loggedDays: 0,
+      unknownDurationDays: 0,
+      loggedMinutes: 0,
+    },
+  );
+  const goal = calculateYearlyGoalProgress(summary.loggedMinutes, habit.yearlyGoalMinutes);
+
+  return {
+    ...summary,
+    averageMinutesPerLoggedDay: calculateAverageDurationMinutes(
+      summary.loggedMinutes,
+      summary.loggedDays,
+    ),
+    goalMinutes: goal.goalMinutes,
+    progressPercent: goal.percent,
+    visualProgressPercent: goal.visualPercent,
+    remainingMinutes: goal.remainingMinutes,
+    remainingSessions: calculateRemainingDefaultSessions(summary.loggedMinutes, habit),
+    goalReached: goal.goalMinutes > 0 && summary.loggedMinutes >= goal.goalMinutes,
+  };
 };
