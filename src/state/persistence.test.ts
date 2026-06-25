@@ -95,6 +95,54 @@ describe('persistence', () => {
     expect(storage.getItem(LEGACY_STORAGE_KEYS[0])).toBeTruthy();
   });
 
+  it('infers missing habit creation date from the earliest habit check-in', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [{ id: 'habit-1', name: 'Read' }],
+        checkIns: {
+          'habit-1': {
+            '2026-06-17': true,
+            '2026-06-12': true,
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0]).toEqual(
+      expect.objectContaining({
+        createdAt: '2026-06-12',
+        trackingMode: 'completion',
+      }),
+    );
+  });
+
+  it('infers missing habit creation date from persisted app data when a habit has no check-ins', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          { id: 'habit-1', name: 'Read' },
+          { id: 'habit-2', name: 'Gym' },
+        ],
+        checkIns: {
+          'habit-1': {},
+          'habit-2': {
+            '2026-05-01': true,
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0].createdAt).toBe('2026-05-01');
+  });
+
   it('sanitizes invalid habit appearance data', () => {
     const storage = makeStorage();
     storage.setItem(

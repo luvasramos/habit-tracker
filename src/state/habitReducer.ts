@@ -1,4 +1,5 @@
 import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
+import { toLocalDateKey } from '../utils/dates';
 import {
   createCompletedCheckIn,
   getDefaultDurationMinutes,
@@ -62,7 +63,7 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
       const habit: Habit = {
         id: createHabitId(),
         name,
-        createdAt: new Date().toISOString(),
+        createdAt: toLocalDateKey(new Date()),
         color: action.habit.color ?? defaultHabitColor(state.habits.length),
         icon: action.habit.icon ?? defaultHabitIcon,
         trackingMode: action.habit.trackingMode ?? 'completion',

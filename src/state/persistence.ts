@@ -7,6 +7,7 @@ import {
   normalizeHexColor,
   normalizeHabitIcon,
 } from '../utils/habitAppearance';
+import { toLocalDateKey } from '../utils/dates';
 import { isValidDurationMinutes, normalizeCheckInEntry } from '../utils/duration';
 import type { CheckInsByHabit, Habit, HabitState, PersistedState } from './types';
 
@@ -15,16 +16,17 @@ export const STORAGE_KEY = 'habit-grid:v2';
 export const LEGACY_STORAGE_KEYS = ['habit-grid:v1'];
 
 type LegacyPersistedState = Omit<PersistedState, 'version'> & { version: 1 };
-type RawPersistedState = PersistedState | LegacyPersistedState;
+type RawHabit = Omit<Habit, 'createdAt'> & { createdAt?: string };
+type RawPersistedState = (Omit<PersistedState, 'habits'> & { habits: RawHabit[] }) | (Omit<LegacyPersistedState, 'habits'> & { habits: RawHabit[] });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const isHabit = (value: unknown): value is Habit =>
+const isHabit = (value: unknown): value is RawHabit =>
   isRecord(value) &&
   typeof value.id === 'string' &&
   typeof value.name === 'string' &&
-  typeof value.createdAt === 'string';
+  (typeof value.createdAt === 'string' || value.createdAt === undefined);
 
 const isHabitTrackingMode = (value: unknown) =>
   value === 'completion' || value === 'duration';
@@ -55,9 +57,43 @@ export const isPersistedState = (value: unknown): value is RawPersistedState => 
   );
 };
 
+const getEarliestDateKey = (checkIns: CheckInsByHabit) => {
+  const dateKeys = Object.values(checkIns).flatMap((habitCheckIns) => Object.keys(habitCheckIns));
+  return dateKeys.sort()[0];
+};
+
+const inferCreatedAt = (
+  habit: RawHabit,
+  checkIns: CheckInsByHabit,
+  fallbackDateKey = toLocalDateKey(new Date()),
+) => {
+  if (typeof habit.createdAt === 'string' && habit.createdAt.trim()) {
+    return habit.createdAt;
+  }
+
+  return (
+    Object.keys(checkIns[habit.id] ?? {}).sort()[0] ??
+    getEarliestDateKey(checkIns) ??
+    fallbackDateKey
+  );
+};
+
 export const sanitizeState = (state: RawPersistedState): HabitState => {
+  const normalizedCheckIns = Object.fromEntries(
+    Object.entries(state.checkIns).map(([habitId, habitCheckIns]) => [
+      habitId,
+      Object.fromEntries(
+        Object.entries(habitCheckIns)
+          .map(([dateKey, entry]) => [dateKey, normalizeCheckInEntry(entry)] as const)
+          .filter((entry): entry is readonly [string, NonNullable<typeof entry[1]>] =>
+            entry[1] !== null,
+          ),
+      ),
+    ]),
+  );
   const habits = state.habits.map((habit, index) => ({
     ...habit,
+    createdAt: inferCreatedAt(habit, normalizedCheckIns),
     color: isHabitColor(habit.color)
       ? isPresetHabitColor(habit.color)
         ? habit.color
@@ -74,18 +110,8 @@ export const sanitizeState = (state: RawPersistedState): HabitState => {
   }));
   const habitIds = new Set(habits.map((habit) => habit.id));
   const checkIns = Object.fromEntries(
-    Object.entries(state.checkIns)
+    Object.entries(normalizedCheckIns)
       .filter(([habitId]) => habitIds.has(habitId))
-      .map(([habitId, habitCheckIns]) => [
-        habitId,
-        Object.fromEntries(
-          Object.entries(habitCheckIns)
-            .map(([dateKey, entry]) => [dateKey, normalizeCheckInEntry(entry)] as const)
-            .filter((entry): entry is readonly [string, NonNullable<typeof entry[1]>] =>
-              entry[1] !== null,
-            ),
-        ),
-      ]),
   );
   const selectedHabitId =
     state.selectedHabitId && habitIds.has(state.selectedHabitId)

@@ -304,10 +304,9 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await finishDailyCheckIn(user);
 
-    const checkInButton = screen
-      .getAllByRole('button', { name: /Gym, .*not completed/ })
-      .find((button) => !button.hasAttribute('disabled'));
-    expect(checkInButton).toBeDefined();
+    const checkInButton = screen.getByRole('button', {
+      name: new RegExp(`Gym, .*${new Date().getDate()}.*, not completed`),
+    });
     await user.click(checkInButton!);
     expect(checkInButton).toHaveAttribute('aria-pressed', 'true');
     expect(document.querySelector('.completion-dot')).toBeInTheDocument();
@@ -329,16 +328,15 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await finishDailyCheckIn(user);
 
-    const checkInButton = screen
-      .getAllByRole('button', { name: /Gym, .*not completed/ })
-      .find((button) => !button.hasAttribute('disabled'));
-    expect(checkInButton).toBeDefined();
-    await user.click(checkInButton!);
+    const checkInButton = screen.getByRole('button', {
+      name: new RegExp(`Gym, .*${new Date().getDate()}.*, not completed`),
+    });
+    await user.click(checkInButton);
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
-    expect(screen.getByLabelText(/1 completion day and \d+ inactive days/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Gym, 1 completion')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /1 active day and \d+ days with no activity/ })).toBeInTheDocument();
+    expect(screen.getByLabelText('Gym, 1 day done')).toBeInTheDocument();
     expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'No activity' })).toHaveAttribute('aria-pressed', 'true');
 

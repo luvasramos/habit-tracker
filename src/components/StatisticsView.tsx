@@ -1,24 +1,21 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { CheckInsByHabit, Habit, LocalDateKey, ViewMode } from '../state/types';
-import { getMonthCells, getWeekDays } from '../utils/calendar';
+import { getMonthCells } from '../utils/calendar';
 import {
-  daysBetweenInclusive,
   fromLocalDateKey,
   isFutureDay,
   movePeriod,
-  monthBounds,
   periodLabel,
-  toLocalDateKey,
-  yearBounds,
 } from '../utils/dates';
-import {
-  formatMinutes,
-  getCheckInDurationMinutes,
-  getDurationHabitSummary,
-  isCompletedCheckIn,
-} from '../utils/duration';
+import { formatMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
+import {
+  calculateAllHabitsStatistics,
+  calculateHabitStatistics,
+  getRangeDays,
+  isHabitEligibleOnDate,
+} from '../utils/statistics';
 import { Icon } from './Icon';
 
 type StatisticsViewProps = {
@@ -44,20 +41,6 @@ const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   `${count} ${count === 1 ? singular : plural}`;
 const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-const getRangeDays = (range: ViewMode, anchorDate: Date) => {
-  if (range === 'week') {
-    return getWeekDays(anchorDate).map((day) => day.date);
-  }
-
-  if (range === 'month') {
-    const { start, end } = monthBounds(anchorDate);
-    return daysBetweenInclusive(start, end);
-  }
-
-  const { start, end } = yearBounds(anchorDate);
-  return daysBetweenInclusive(start, end);
-};
-
 export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   const [range, setRange] = useState<ViewMode>('week');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
@@ -77,26 +60,25 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
   const selectedHabits = habits.filter((habit) => selectedHabitIds.includes(habit.id));
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
-  const measurableDays = useMemo(() => rangeDays.filter((day) => !isFutureDay(day)), [rangeDays]);
-  const rangeKeys = useMemo(() => measurableDays.map(toLocalDateKey), [measurableDays]);
   const comparisonMonths = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
     [anchorDate],
   );
+  const today = new Date();
+  const allHabitStats = calculateAllHabitsStatistics(selectedHabits, checkIns, rangeDays, today);
+  const habitStatById = new Map(
+    allHabitStats.habitStatistics.map((stat) => [stat.habit.id, stat]),
+  );
 
   const habitStats: HabitStat[] = selectedHabits.map((habit) => {
-    const count = rangeKeys.filter((key) =>
-      isCompletedCheckIn(checkIns[habit.id]?.[key]),
-    ).length;
-    const durationMinutes = rangeKeys.reduce(
-      (sum, key) => sum + (getCheckInDurationMinutes(checkIns[habit.id]?.[key]) ?? 0),
-      0,
-    );
+    const habitSummary =
+      habitStatById.get(habit.id) ??
+      calculateHabitStatistics(habit, checkIns[habit.id], rangeDays, today);
     return {
       id: habit.id,
       name: habit.name,
-      count,
-      durationMinutes,
+      count: habitSummary.daysDone,
+      durationMinutes: habitSummary.loggedMinutes,
       percent: 0,
       color: getHabitColorVar(habit.id, habits),
       kind: 'habit',
@@ -113,20 +95,21 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     .map((habit) => ({
       habit,
       color: getHabitColorVar(habit.id, habits),
-      summary: getDurationHabitSummary(habit, checkIns[habit.id], rangeKeys),
+      summary:
+        habitStatById.get(habit.id)?.durationSummary ??
+        calculateHabitStatistics(habit, checkIns[habit.id], rangeDays, today)
+          .durationSummary,
     }));
-  const activeDays = rangeKeys.filter((key) =>
-    selectedHabits.some((habit) => isCompletedCheckIn(checkIns[habit.id]?.[key])),
-  ).length;
-  const inactiveDays =
-    selectedHabits.length === 0 ? rangeKeys.length : Math.max(rangeKeys.length - activeDays, 0);
-  const completionPercent = rangeKeys.length > 0 ? Math.round((activeDays / rangeKeys.length) * 100) : 0;
+  const activeDays = allHabitStats.activeDateKeys.length;
+  const inactiveDays = allHabitStats.inactiveDateKeys.length;
+  const eligibleDays = allHabitStats.eligibleDateKeys.length;
+  const completionPercent = eligibleDays > 0 ? Math.round((activeDays / eligibleDays) * 100) : 0;
   const inactiveStat: HabitStat = {
     id: noActivityId,
     name: 'No activity',
     count: inactiveDays,
     durationMinutes: 0,
-    percent: rangeKeys.length > 0 ? inactiveDays / rangeKeys.length : 0,
+    percent: eligibleDays > 0 ? inactiveDays / eligibleDays : 0,
     color: 'var(--inactive)',
     kind: 'inactive',
   };
@@ -139,9 +122,10 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     stats.reduce((sum, stat) => sum + stat.count, 0) + (showNoActivity ? inactiveDays : 0);
   const hasVisibleSegments = displayStats.some((stat) => stat.count > 0);
   const nothingSelected = selectedHabits.length === 0 && !showNoActivity;
-  const activityLabel = `${pluralize(activeDays, 'completion day')} and ${pluralize(
+  const activityLabel = `${pluralize(activeDays, 'active day')} and ${pluralize(
     inactiveDays,
-    'inactive day',
+    'day with no activity',
+    'days with no activity',
   )}`;
   let runningOffset = 0;
 
@@ -155,7 +139,11 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
   const getSelectedCompletions = (dateKey: LocalDateKey) =>
     selectedHabits
-      .filter((habit) => isCompletedCheckIn(checkIns[habit.id]?.[dateKey]))
+      .filter(
+        (habit) =>
+          isHabitEligibleOnDate(habit, dateKey, today) &&
+          isCompletedCheckIn(checkIns[habit.id]?.[dateKey]),
+      )
       .map((habit) => ({
         habit,
         color: getHabitColorVar(habit.id, habits),
@@ -259,7 +247,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
         <>
           <div className="stats-summary-grid">
             <div className="metric">
-              <span>Completion days</span>
+              <span>Active days</span>
               <strong>{activeDays}</strong>
             </div>
             {showNoActivity ? (
@@ -273,7 +261,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
               <strong>{completionPercent}%</strong>
             </div>
             <div className="metric">
-              <span>Total completions</span>
+              <span>Habit completions</span>
               <strong>{totalCompletions}</strong>
             </div>
             {totalDurationMinutes > 0 ? (
@@ -334,7 +322,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                 const label =
                   stat.kind === 'inactive'
                     ? `${stat.name}, ${pluralize(stat.count, 'day')}`
-                    : `${stat.name}, ${pluralize(stat.count, 'completion')}`;
+                    : `${stat.name}, ${pluralize(stat.count, 'day done', 'days done')}`;
                 return (
                   <div
                     className={`stat-row${stat.kind === 'inactive' ? ' stat-row--inactive' : ''}`}
@@ -469,7 +457,8 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                         const date = fromLocalDateKey(cell.key);
                         const future = isFutureDay(date);
                         const completions = getSelectedCompletions(cell.key);
-                        const inactive = !future && completions.length === 0;
+                        const eligible = allHabitStats.eligibleDateKeys.includes(cell.key);
+                        const inactive = !future && eligible && completions.length === 0;
                         const visibleInactive = inactive && showNoActivity;
                         const visibleCompletions = completions.slice(0, 4);
                         const title = `${format(date, 'MMM d')}: ${

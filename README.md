@@ -8,7 +8,9 @@ The MVP is intentionally personal and browser-only. There is no login, backend, 
 
 ## Data Storage
 
-Data is stored in `localStorage` under `habit-grid:v1`. Check-ins are keyed by habit ID and local calendar dates in `YYYY-MM-DD` format. Date keys are generated from local date parts, not UTC ISO strings, to avoid one-day shifts.
+Data is stored in `localStorage` under `habit-grid:v2`. Check-ins are keyed by habit ID and local calendar dates in `YYYY-MM-DD` format. Date keys are generated from local date parts, not UTC ISO strings, to avoid one-day shifts.
+
+Each habit stores a local `createdAt` date so statistics can count only eligible calendar days. Legacy habits without `createdAt` are migrated by using the earliest check-in for that habit, then the earliest check-in date anywhere in the persisted app data, then today's local date if no dated data exists.
 
 Clearing browser storage removes all habits and check-ins.
 
