@@ -175,6 +175,7 @@ export const App = () => {
       <HabitDialog
         mode="add"
         isOpen={addOpen}
+        defaultColorIndex={state.habits.length}
         duplicateMessage="A habit with this name already exists."
         onClose={() => {
           setAddOpen(false);
@@ -188,13 +189,14 @@ export const App = () => {
         <HabitDialog
           mode="edit"
           initialName={selectedHabit.name}
+          initialHabit={selectedHabit}
           isOpen={editOpen}
           duplicateMessage="Another habit already uses this name."
           onClose={() => {
             setEditOpen(false);
             editButtonRef.current?.focus();
           }}
-          onSave={(name) => renameHabit(selectedHabit.id, name)}
+          onSave={(habit) => renameHabit(selectedHabit.id, habit)}
           onDelete={() => deleteHabit(selectedHabit.id)}
           isDuplicate={(name) => isDuplicateName(name, selectedHabit.id)}
         />

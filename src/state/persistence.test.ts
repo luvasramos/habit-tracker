@@ -34,7 +34,44 @@ describe('persistence', () => {
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(state));
 
-    expect(loadState(storage)).toEqual(state);
+    expect(loadState(storage)).toEqual({
+      ...state,
+      habits: [
+        {
+          ...state.habits[0],
+          color: 'blue',
+          icon: { type: 'svg', name: 'custom' },
+        },
+      ],
+    });
+  });
+
+  it('sanitizes invalid habit appearance data', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Gym',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'neon',
+            icon: { type: 'emoji', value: '' },
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0]).toEqual(
+      expect.objectContaining({
+        color: 'blue',
+        icon: { type: 'svg', name: 'custom' },
+      }),
+    );
   });
 
   it('recovers from malformed JSON and unsupported shapes', () => {

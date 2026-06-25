@@ -9,13 +9,13 @@ import {
 } from 'react';
 import { habitStore, type HabitStore } from '../data/habitStore';
 import { habitReducer, hasDuplicateHabitName } from './habitReducer';
-import type { HabitState, LocalDateKey } from './types';
+import type { HabitDraft, HabitState, LocalDateKey } from './types';
 
 type HabitContextValue = {
   state: HabitState;
-  addHabit: (name: string) => void;
+  addHabit: (habit: HabitDraft) => void;
   selectHabit: (habitId: string) => void;
-  renameHabit: (habitId: string, name: string) => void;
+  renameHabit: (habitId: string, habit: HabitDraft) => void;
   deleteHabit: (habitId: string) => void;
   toggleCheckIn: (habitId: string, dateKey: LocalDateKey) => void;
   setCheckIn: (habitId: string, dateKey: LocalDateKey, completed: boolean) => void;
@@ -40,9 +40,9 @@ export const HabitProvider = ({
   const value = useMemo<HabitContextValue>(
     () => ({
       state,
-      addHabit: (name) => dispatch({ type: 'addHabit', name }),
+      addHabit: (habit) => dispatch({ type: 'addHabit', habit }),
       selectHabit: (habitId) => dispatch({ type: 'selectHabit', habitId }),
-      renameHabit: (habitId, name) => dispatch({ type: 'renameHabit', habitId, name }),
+      renameHabit: (habitId, habit) => dispatch({ type: 'renameHabit', habitId, habit }),
       deleteHabit: (habitId) => dispatch({ type: 'deleteHabit', habitId }),
       toggleCheckIn: (habitId, dateKey) =>
         dispatch({ type: 'toggleCheckIn', habitId, dateKey }),

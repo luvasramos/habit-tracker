@@ -1,6 +1,6 @@
 import type { CSSProperties, RefObject } from 'react';
 import type { Habit } from '../state/types';
-import { getHabitColorVar } from '../utils/habitColors';
+import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
 type HabitTabsProps = {
@@ -36,7 +36,7 @@ export const HabitTabs = ({
             onClick={() => onSelect(habit.id)}
           >
             <span className="habit-tab__color" />
-            <Icon name="habits" />
+            <HabitIconView habit={habit} />
             {habit.name}
           </button>
         ))}

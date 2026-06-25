@@ -12,7 +12,7 @@ import {
   toLocalDateKey,
   yearBounds,
 } from '../utils/dates';
-import { getHabitColorVar } from '../utils/habitColors';
+import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
 type StatisticsViewProps = {
@@ -27,6 +27,7 @@ type HabitStat = {
   percent: number;
   color: string;
   kind: 'habit' | 'inactive';
+  habit?: Habit;
 };
 
 const noActivityId = '__no_activity__';
@@ -85,6 +86,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
       percent: 0,
       color: getHabitColorVar(habit.id, habits),
       kind: 'habit',
+      habit,
     };
   });
   const totalCompletions = habitStats.reduce((sum, stat) => sum + stat.count, 0);
@@ -197,6 +199,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
             style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
           >
             <span className="filter-pill__dot" />
+            <HabitIconView habit={habit} />
             {habit.name}
           </button>
         ))}
@@ -300,7 +303,11 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                     style={{ '--habit-color': stat.color } as CSSProperties}
                   >
                     <span className="stat-row__name">
-                      <span className="legend-dot" />
+                      {stat.habit ? (
+                        <HabitIconView habit={stat.habit} />
+                      ) : (
+                        <span className="legend-dot" />
+                      )}
                       {stat.name}
                     </span>
                     <span className="stat-row__bar" aria-hidden="true">
@@ -321,7 +328,11 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                     key={stat.id}
                     style={{ '--habit-color': stat.color } as CSSProperties}
                   >
-                    <span className="legend-dot" />
+                    {stat.habit ? (
+                      <HabitIconView habit={stat.habit} />
+                    ) : (
+                      <span className="legend-dot" />
+                    )}
                     {stat.name}
                   </span>
                 ))}

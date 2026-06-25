@@ -7,7 +7,7 @@ import {
 } from '../data/dailyCheckInStore';
 import type { Habit, LocalDateKey } from '../state/types';
 import { toLocalDateKey } from '../utils/dates';
-import { getHabitColorVar } from '../utils/habitColors';
+import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
 type DailyCheckInProps = {
@@ -167,7 +167,7 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
           >
             <div className="checkin-card__identity">
               <span className="checkin-card__icon">
-                <Icon name="habits" />
+                <HabitIconView habit={currentHabit} />
               </span>
               <span className="checkin-card__color" />
             </div>

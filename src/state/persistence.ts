@@ -1,4 +1,10 @@
 import { emptyState } from './habitReducer';
+import {
+  defaultHabitColor,
+  defaultHabitIcon,
+  isHabitColor,
+  normalizeHabitIcon,
+} from '../utils/habitAppearance';
 import type { Habit, HabitState, PersistedState } from './types';
 
 export const STORAGE_KEY = 'habit-grid:v1';
@@ -37,18 +43,23 @@ export const isPersistedState = (value: unknown): value is PersistedState => {
 };
 
 export const sanitizeState = (state: PersistedState): HabitState => {
-  const habitIds = new Set(state.habits.map((habit) => habit.id));
+  const habits = state.habits.map((habit, index) => ({
+    ...habit,
+    color: isHabitColor(habit.color) ? habit.color : defaultHabitColor(index),
+    icon: normalizeHabitIcon(habit.icon ?? defaultHabitIcon),
+  }));
+  const habitIds = new Set(habits.map((habit) => habit.id));
   const checkIns = Object.fromEntries(
     Object.entries(state.checkIns).filter(([habitId]) => habitIds.has(habitId)),
   );
   const selectedHabitId =
     state.selectedHabitId && habitIds.has(state.selectedHabitId)
       ? state.selectedHabitId
-      : state.habits[0]?.id ?? null;
+      : habits[0]?.id ?? null;
 
   return {
     version: 1,
-    habits: state.habits,
+    habits,
     checkIns,
     selectedHabitId,
   };

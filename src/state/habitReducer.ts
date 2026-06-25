@@ -1,9 +1,10 @@
-import type { Habit, HabitState, LocalDateKey } from './types';
+import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
+import type { Habit, HabitDraft, HabitState, LocalDateKey } from './types';
 
 export type HabitAction =
-  | { type: 'addHabit'; name: string }
+  | { type: 'addHabit'; habit: HabitDraft }
   | { type: 'selectHabit'; habitId: string }
-  | { type: 'renameHabit'; habitId: string; name: string }
+  | { type: 'renameHabit'; habitId: string; habit: HabitDraft }
   | { type: 'deleteHabit'; habitId: string }
   | { type: 'toggleCheckIn'; habitId: string; dateKey: LocalDateKey }
   | { type: 'setCheckIn'; habitId: string; dateKey: LocalDateKey; completed: boolean };
@@ -40,7 +41,7 @@ export const createHabitId = () => {
 export const habitReducer = (state: HabitState, action: HabitAction): HabitState => {
   switch (action.type) {
     case 'addHabit': {
-      const name = normalizeHabitName(action.name);
+      const name = normalizeHabitName(action.habit.name);
       if (!name || hasDuplicateHabitName(state.habits, name)) {
         return state;
       }
@@ -49,6 +50,8 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         id: createHabitId(),
         name,
         createdAt: new Date().toISOString(),
+        color: action.habit.color ?? defaultHabitColor(state.habits.length),
+        icon: action.habit.icon ?? defaultHabitIcon,
       };
 
       return {
@@ -66,7 +69,7 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
       return { ...state, selectedHabitId: action.habitId };
 
     case 'renameHabit': {
-      const name = normalizeHabitName(action.name);
+      const name = normalizeHabitName(action.habit.name);
       if (!name || hasDuplicateHabitName(state.habits, name, action.habitId)) {
         return state;
       }
@@ -74,7 +77,14 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
       return {
         ...state,
         habits: state.habits.map((habit) =>
-          habit.id === action.habitId ? { ...habit, name } : habit,
+          habit.id === action.habitId
+            ? {
+                ...habit,
+                name,
+                color: action.habit.color,
+                icon: action.habit.icon,
+              }
+            : habit,
         ),
       };
     }
