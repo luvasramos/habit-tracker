@@ -248,16 +248,28 @@ h2 {
   white-space: nowrap;
 }
 
-.button--primary {
-  background: #1c1c1c;
-  border-color: var(--border-strong);
-  color: var(--text);
+.button.button--primary:not(:disabled) {
+  background: #eeeeee;
+  border-color: #eeeeee;
+  color: #050505;
   font-weight: 500;
 }
 
-.button--primary:hover {
-  background: #242424;
-  border-color: #4a4a4a;
+.button.button--primary:not(:disabled):hover {
+  background: #f0f0f0;
+  border-color: #f0f0f0;
+  color: #050505;
+}
+
+.button.button--primary:not(:disabled):active {
+  background: #d8d8d8;
+  color: #050505;
+}
+
+.button.button--primary:disabled {
+  border-color: var(--border);
+  background: var(--surface-3);
+  color: var(--muted);
 }
 
 .button--quiet {
@@ -1629,47 +1641,38 @@ h2 {
   width: fit-content;
 }
 
-.icon-choice-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.icon-choice {
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 5px;
-  min-height: 70px;
-  padding: 8px 6px;
-  font-size: 0.76rem;
-}
-
-.icon-choice .habit-icon {
-  width: 20px;
-  height: 20px;
-}
-
-.icon-choice[aria-pressed='true'] {
-  border-color: color-mix(in srgb, var(--habit-color) 58%, var(--border));
-  background: color-mix(in srgb, var(--habit-color) 10%, var(--surface-2));
-  color: var(--soft);
-}
-
 .emoji-picker {
   display: grid;
   gap: 8px;
 }
 
+.icon-choice-grid,
 .emoji-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
 }
 
+.icon-choice,
 .emoji-choice {
   display: grid;
   place-items: center;
   min-height: var(--control-size);
   padding: 0;
+}
+
+.icon-choice .habit-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.icon-choice[aria-pressed='true'] {
+  border-color: var(--soft);
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.emoji-choice {
   font-size: 1.12rem;
 }
 
@@ -1895,7 +1898,7 @@ h2 {
   }
 
   .icon-choice-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .emoji-grid {
@@ -2027,10 +2030,6 @@ h2 {
 
   .swatch-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .icon-choice {
-    min-height: 64px;
   }
 
   .custom-color__fields {

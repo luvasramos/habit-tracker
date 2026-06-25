@@ -426,6 +426,7 @@ export const HabitDialog = ({
                       className="icon-choice"
                       type="button"
                       aria-label={option.label}
+                      title={option.label}
                       aria-pressed={svgIcon === option.name}
                       style={{ '--habit-color': previewColor } as CSSProperties}
                       onClick={() => setSvgIcon(option.name)}
@@ -433,7 +434,6 @@ export const HabitDialog = ({
                       <HabitIconView
                         habit={{ color: previewHabit.color, icon: { type: 'svg', name: option.name } }}
                       />
-                      <span>{option.label}</span>
                     </button>
                   ))}
                 </div>
@@ -505,9 +505,11 @@ export const HabitDialog = ({
 
         <div className="dialog__actions">
           <button className="button" type="button" onClick={onClose}>
+            <Icon name="close" />
             Cancel
           </button>
           <button className="button button--primary" type="submit" disabled={Boolean(formError)}>
+            <Icon name="check" />
             Save
           </button>
         </div>
