@@ -372,6 +372,7 @@ h2 {
   width: calc(50% - 2.5px);
   min-height: 58px;
   border-color: color-mix(in srgb, var(--soft) 72%, var(--border-strong));
+  border-radius: 999px;
   background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft) 14%, transparent);
   pointer-events: none;
@@ -385,25 +386,49 @@ h2 {
 
 .floating-nav__reminder {
   flex: 0.72 1 0;
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  background: color-mix(in srgb, var(--surface-3) 42%, var(--surface-2));
+  color: var(--muted);
+  transition:
+    transform 120ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    opacity 120ms ease,
+    box-shadow 180ms ease;
+}
+
+.floating-nav__reminder[data-reminder-state='pending'] {
   border-color: #f15523;
   background: #f15523;
   color: #f1f1f1;
   box-shadow: 0 0 0 1px color-mix(in srgb, #f15523 36%, transparent);
 }
 
-.floating-nav__reminder:hover,
-.floating-nav__reminder:focus-visible {
+.floating-nav__reminder:hover {
+  border-color: color-mix(in srgb, var(--border-strong) 62%, transparent);
+  background: color-mix(in srgb, var(--surface-3) 58%, var(--surface-2));
+  color: var(--soft);
+}
+
+.floating-nav__reminder[data-reminder-state='pending']:hover,
+.floating-nav__reminder[data-reminder-state='pending']:focus-visible {
   border-color: color-mix(in srgb, #f15523 76%, #f1f1f1);
   background: #f15523;
   color: #f1f1f1;
 }
 
 .floating-nav__reminder .icon {
+  color: currentColor;
+  opacity: 0.78;
+}
+
+.floating-nav__reminder[data-reminder-state='pending'] .icon {
   color: #f1f1f1;
   opacity: 1;
 }
 
-.floating-nav__reminder[aria-expanded='true'] {
+.floating-nav__reminder[data-reminder-state='pending'][aria-expanded='true'] {
   border-color: color-mix(in srgb, #f15523 70%, var(--border-strong));
   background: #f15523;
   color: #f1f1f1;

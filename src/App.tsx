@@ -114,6 +114,7 @@ const FloatingNavigation = ({
       ref={reminderButtonRef}
       type="button"
       className="floating-nav__reminder"
+      data-reminder-state={remainingCount > 0 ? 'pending' : 'complete'}
       aria-label={`${remainingCount} habits remaining today`}
       aria-expanded={reminderOpen}
       aria-controls="today-remaining-popover"
