@@ -29,17 +29,21 @@ type HabitStat = {
   name: string;
   count: number;
   durationMinutes: number;
-  percent: number;
   color: string;
   habit?: Habit;
 };
 
 const allHabitsId = '__all_habits__';
-const donutRadius = 38;
-const donutCircumference = 2 * Math.PI * donutRadius;
 const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   `${count} ${count === 1 ? singular : plural}`;
 const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const metricDescriptions = {
+  daysDone: 'Eligible days when the selected habit was completed.',
+  daysMissed: 'Eligible elapsed days when the selected habit was not completed.',
+  activeDays: 'Elapsed days when at least one habit was completed.',
+  noActivity: 'Elapsed days without any habit completion.',
+  timeLogged: 'Known duration recorded in the selected period.',
+};
 
 export const StatisticsView = ({ habits, checkIns, selectedHabitId }: StatisticsViewProps) => {
   const [range, setRange] = useState<ViewMode>('week');
@@ -89,12 +93,10 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
       name: habit.name,
       count: habitSummary.daysDone,
       durationMinutes: habitSummary.loggedMinutes,
-      percent: 0,
       color: getHabitColorVar(habit.id, habits),
       habit,
     };
   });
-  const totalCompletions = habitStats.reduce((sum, stat) => sum + stat.count, 0);
   const totalDurationMinutes = habitStats.reduce(
     (sum, stat) => sum + stat.durationMinutes,
     0,
@@ -108,24 +110,64 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
         habitStatById.get(habit.id)?.durationSummary ??
         calculateHabitStatistics(habit, checkIns[habit.id], rangeDays, today)
           .durationSummary,
-    }));
+  }));
   const activeDays = allHabitStats.activeDateKeys.length;
   const inactiveDays = allHabitStats.inactiveDateKeys.length;
-  const eligibleDays = allHabitStats.eligibleDateKeys.length;
-  const completionPercent = eligibleDays > 0 ? Math.round((activeDays / eligibleDays) * 100) : 0;
-  const stats = habitStats.map((stat) => ({
-    ...stat,
-    percent: totalCompletions > 0 ? stat.count / totalCompletions : 0,
-  }));
-  const displayStats = stats;
-  const distributionTotal = stats.reduce((sum, stat) => sum + stat.count, 0);
-  const hasVisibleSegments = displayStats.some((stat) => stat.count > 0);
-  const activityLabel = `${pluralize(activeDays, 'active day')} and ${pluralize(
-    inactiveDays,
-    'day with no activity',
-    'days with no activity',
-  )}`;
-  let runningOffset = 0;
+  const selectedDurationSummary = selectedHabit
+    ? durationGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
+    : null;
+  const selectedHasYearlyGoal = Boolean(
+    selectedDurationSummary && selectedDurationSummary.goalMinutes > 0,
+  );
+  const selectedHasTimeWithoutGoal = Boolean(
+    selectedHabit?.trackingMode === 'duration' && selectedDurationSummary && !selectedHasYearlyGoal,
+  );
+  const summaryMetrics = selectedHabit
+    ? [
+        {
+          label: 'Days done',
+          value: activeDays,
+          description: metricDescriptions.daysDone,
+        },
+        {
+          label: 'Days missed',
+          value: inactiveDays,
+          description: metricDescriptions.daysMissed,
+          className: 'metric--inactive',
+        },
+        ...(selectedHasTimeWithoutGoal
+          ? [
+              {
+                label: 'Time logged',
+                value: formatMinutes(totalDurationMinutes),
+                description: metricDescriptions.timeLogged,
+              },
+            ]
+          : []),
+      ]
+    : [
+        {
+          label: 'Active days',
+          value: activeDays,
+          description: metricDescriptions.activeDays,
+        },
+        {
+          label: 'Days with no activity',
+          value: inactiveDays,
+          description: metricDescriptions.noActivity,
+          className: 'metric--inactive',
+        },
+        {
+          label: 'Total time logged',
+          value: formatMinutes(totalDurationMinutes),
+          description: metricDescriptions.timeLogged,
+        },
+      ];
+  const visibleDurationGoalStats = selectedHabit
+    ? selectedHasYearlyGoal
+      ? durationGoalStats
+      : []
+    : [];
 
   const getSelectedCompletions = (dateKey: LocalDateKey) =>
     selectedHabits
@@ -253,106 +295,33 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
       </div>
 
       <>
-        <div className="stats-summary-grid">
-          <div className="metric">
-            <span>{selectedHabit ? 'Days done' : 'Active days'}</span>
-            <strong>{activeDays}</strong>
-          </div>
-          <div className="metric metric--inactive">
-            <span>{selectedHabit ? 'Days missed' : 'No activity'}</span>
-            <strong>{inactiveDays}</strong>
-          </div>
-          <div className="metric">
-            <span>Completion rate</span>
-            <strong>{completionPercent}%</strong>
-          </div>
-          {selectedHabit ? null : (
-            <div className="metric">
-              <span>Habit completions</span>
-              <strong>{totalCompletions}</strong>
+        <div
+          className="stats-summary-grid"
+          data-count={summaryMetrics.length}
+        >
+          {summaryMetrics.map((metric) => (
+            <div
+              className={`metric${metric.className ? ` ${metric.className}` : ''}`}
+              key={metric.label}
+              aria-label={`${metric.label}: ${metric.description}`}
+              title={metric.description}
+            >
+              <span>{metric.label}</span>
+              <strong>{metric.value}</strong>
             </div>
-          )}
-          {totalDurationMinutes > 0 ? (
-            <div className="metric">
-              <span>Time logged</span>
-              <strong>{formatMinutes(totalDurationMinutes)}</strong>
-            </div>
-          ) : null}
+          ))}
         </div>
 
-          <div className="stats-view">
-            <div className="donut-wrap">
-              <svg
-                className="donut"
-                viewBox="0 0 120 120"
-                role="img"
-                aria-label={activityLabel}
-              >
-                <circle className="donut__track" cx="60" cy="60" r={donutRadius} />
-                {displayStats
-                  .filter((stat) => stat.count > 0)
-                  .map((stat) => {
-                    const segment = distributionTotal > 0 ? stat.count / distributionTotal : 0;
-                    const offset = runningOffset;
-                    runningOffset -= segment * donutCircumference;
-                    return (
-                      <circle
-                        key={stat.id}
-                        className="donut__slice"
-                        cx="60"
-                        cy="60"
-                        r={donutRadius}
-                        pathLength={donutCircumference}
-                        strokeDasharray={`${segment * donutCircumference} ${donutCircumference}`}
-                        strokeDashoffset={offset}
-                        style={{ stroke: stat.color }}
-                      />
-                    );
-                  })}
-                {!hasVisibleSegments ? (
-                  <circle className="donut__inactive" cx="60" cy="60" r={donutRadius} />
-                ) : null}
-              </svg>
-              <div className="donut-total">
-                <strong>{activeDays}</strong>
-                <span>active days</span>
-              </div>
-            </div>
+        {selectedHasTimeWithoutGoal &&
+        selectedDurationSummary &&
+        selectedDurationSummary.unknownDurationDays > 0 ? (
+          <p className="stats-note">
+            {pluralize(selectedDurationSummary.unknownDurationDays, 'completed day')}{' '}
+            {selectedDurationSummary.unknownDurationDays === 1 ? 'has' : 'have'} no time recorded
+          </p>
+        ) : null}
 
-            <div className="stat-list">
-              {displayStats.map((stat) => {
-                const barPercent = totalCompletions > 0 ? stat.percent * 100 : 0;
-                const rowName = selectedHabit ? 'Days done' : stat.name;
-                const label = selectedHabit
-                  ? pluralize(stat.count, 'day done', 'days done')
-                  : `${stat.name}, ${pluralize(stat.count, 'day done', 'days done')}`;
-                return (
-                  <div
-                    className="stat-row"
-                    key={stat.id}
-                    aria-label={label}
-                    style={{ '--habit-color': stat.color } as CSSProperties}
-                  >
-                    <span className="stat-row__name">
-                      {stat.habit && !selectedHabit ? (
-                        <HabitIconView habit={stat.habit} />
-                      ) : null}
-                      {rowName}
-                    </span>
-                    <span className="stat-row__bar" aria-hidden="true">
-                      <span style={{ width: `${barPercent}%` }} />
-                    </span>
-                    <span className="stat-row__count">{stat.count}</span>
-                    {stat.durationMinutes > 0 ? (
-                      <span className="stat-row__time">{formatMinutes(stat.durationMinutes)}</span>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {durationGoalStats.length > 0 ? (
+          {visibleDurationGoalStats.length > 0 ? (
             <section className="time-goals" aria-label="Time goals">
               <div className="time-goals__header">
                 <h2>Time goals</h2>
@@ -361,7 +330,7 @@ export const StatisticsView = ({ habits, checkIns, selectedHabitId }: Statistics
                 </p>
               </div>
               <div className="time-goal-list">
-                {durationGoalStats.map(({ habit, color, summary }) => {
+                {visibleDurationGoalStats.map(({ habit, color, summary }) => {
                   const hasGoal = summary.goalMinutes > 0;
                   const progressPercent = Math.round(summary.progressPercent * 100);
                   const visualPercent = Math.round(summary.visualProgressPercent * 100);

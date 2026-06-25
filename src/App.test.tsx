@@ -335,9 +335,12 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
-    expect(screen.getByRole('img', { name: /1 active day and \d+ days with no activity/ })).toBeInTheDocument();
-    expect(screen.getAllByText('Days done')).toHaveLength(2);
-    expect(screen.getByLabelText('1 day done')).toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /active day/ })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Days done')).toHaveLength(1);
+    expect(screen.getByText('Days missed')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Days done: Eligible days/)).toBeInTheDocument();
+    expect(screen.queryByText('Completion rate')).not.toBeInTheDocument();
+    expect(screen.queryByText('Habit completions')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Show no activity' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'No activity' })).not.toBeInTheDocument();
 
@@ -525,25 +528,25 @@ describe('Habit Grid app', () => {
     renderApp();
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
-    const timeGoals = screen.getByLabelText('Time goals');
-
     expect(screen.getByRole('button', { name: 'Study Japanese' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('Time logged')).not.toBeInTheDocument();
+    let timeGoals = screen.getByLabelText('Time goals');
     expect(within(timeGoals).queryByText('Piano')).not.toBeInTheDocument();
     expect(within(timeGoals).queryByText('Gym')).not.toBeInTheDocument();
     expect(within(timeGoals).getByText('1h / 3h')).toBeInTheDocument();
     expect(within(timeGoals).getByText('1 completed day has no time logged')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'All habits' }));
-    expect(within(timeGoals).getByText('Study Japanese')).toBeInTheDocument();
-    expect(within(timeGoals).getByText('Piano')).toBeInTheDocument();
-    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Time goals')).not.toBeInTheDocument();
+    expect(screen.getByText('Total time logged')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Piano' }));
     expect(screen.getByRole('button', { name: 'Piano' })).toHaveAttribute('aria-pressed', 'true');
-    expect(within(timeGoals).getByText('30m logged')).toBeInTheDocument();
-    expect(within(timeGoals).queryByText('Piano')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/Time logged: Known duration/)).toHaveTextContent('30m');
+    expect(screen.queryByLabelText('Time goals')).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Study Japanese' }));
     await user.click(screen.getByRole('button', { name: 'Year' }));
+    timeGoals = screen.getByLabelText('Time goals');
     expect(within(timeGoals).getByText('33% complete')).toBeInTheDocument();
     expect(within(timeGoals).getByText('2h remaining')).toBeInTheDocument();
     expect(within(timeGoals).getByText('2 sessions remaining')).toBeInTheDocument();
