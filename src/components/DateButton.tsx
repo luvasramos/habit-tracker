@@ -9,7 +9,7 @@ type DateButtonProps = {
   habitName: string;
   completed: boolean;
   habitColor: string;
-  completions?: Array<{ id: string; name: string; color: string }>;
+  completions?: Array<{ id: string; name: string; color: string; durationLabel?: string }>;
   children: ReactNode;
   compact?: boolean;
   tabIndex?: number;
@@ -38,7 +38,13 @@ export const DateButton = ({
   const state = completed ? 'completed' : 'not completed';
   const completionLabel =
     completions.length > 0
-      ? `${completions.map((completion) => completion.name).join(', ')} completed`
+      ? `${completions
+          .map((completion) =>
+            completion.durationLabel
+              ? `${completion.name}, ${completion.durationLabel}`
+              : completion.name,
+          )
+          .join(', ')} completed`
       : undefined;
   const label = `${habitName}, ${fullDateLabel(date)}, ${state}${completionLabel ? `. ${completionLabel}.` : ''}`;
 
@@ -51,7 +57,7 @@ export const DateButton = ({
       aria-pressed={future ? undefined : completed}
       disabled={future}
       tabIndex={tabIndex}
-      title={`${fullDateLabel(date)}: ${state}`}
+      title={`${fullDateLabel(date)}: ${completionLabel ?? state}`}
       style={{ '--habit-color': habitColor } as CSSProperties}
       onClick={onClick}
       onFocus={onFocus}

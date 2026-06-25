@@ -155,6 +155,7 @@ describe('Habit Grid app', () => {
     expect(screen.getByRole('group', { name: 'Study Japanese. Did you complete this today?' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Yes' }));
     expect(await screen.findByText('1h logged')).toBeInTheDocument();
+    expect(screen.getByText('1 habit completed')).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByRole('region', { name: 'Daily check-in' })).not.toBeInTheDocument();
     }, { timeout: 2400 });
@@ -166,6 +167,7 @@ describe('Habit Grid app', () => {
       durationMinutes: 60,
     });
     expect(Object.keys(state.checkIns[habitId])).toEqual([todayKey]);
+    expect(screen.getByText('1h')).toBeInTheDocument();
   });
 
   it('logs the default duration from the Today remaining popover', async () => {

@@ -5,7 +5,7 @@ import { getMonthCells } from '../utils/calendar';
 import { isFutureDay, monthBounds } from '../utils/dates';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
-import { Icon } from './Icon';
+import { CalendarDateDetails } from './CalendarDateDetails';
 import { DateButton } from './DateButton';
 
 type MonthViewProps = {
@@ -38,11 +38,7 @@ export const MonthView = ({
   const habitColor = getHabitColorVar(habit.id, habits);
   const fallbackEditKey =
     cells.find((cell) => cell.inPeriod && isCompletedCheckIn(checkIns[cell.key]))?.key ?? '';
-  const editKey = isCompletedCheckIn(checkIns[focusedKey]) ? focusedKey : fallbackEditKey;
-  const editEntry = checkIns[editKey];
-  const editDuration = getCheckInDurationMinutes(editEntry);
-  const canEditTime =
-    habit.trackingMode === 'duration' && isCompletedCheckIn(editEntry) && Boolean(onEditTime);
+  const detailKey = focusedKey || fallbackEditKey;
   const count = Object.keys(checkIns).filter((key) => {
     const cell = cells.find((item) => item.key === key);
     return cell?.inPeriod && isCompletedCheckIn(checkIns[key]);
@@ -88,11 +84,17 @@ export const MonthView = ({
               completed={isCompletedCheckIn(checkIns[cell.key])}
               habitColor={habitColor}
               completions={getDateCompletions(cell.key, habits, allCheckIns).map(
-                ({ habit: completedHabit, color }) => ({
-                  id: completedHabit.id,
-                  name: completedHabit.name,
-                  color,
-                }),
+                ({ habit: completedHabit, color }) => {
+                  const durationMinutes = getCheckInDurationMinutes(
+                    allCheckIns[completedHabit.id]?.[cell.key],
+                  );
+                  return {
+                    id: completedHabit.id,
+                    name: completedHabit.name,
+                    color,
+                    durationLabel: durationMinutes ? formatMinutes(durationMinutes) : undefined,
+                  };
+                },
               )}
               tabIndex={cell.key === focusedKey ? 0 : -1}
               onClick={() => {
@@ -124,20 +126,12 @@ export const MonthView = ({
         {count} completed days in {format(start, 'MMMM')}
         <span className="sr-only">, from {format(start, 'MMMM d')} to {format(end, 'MMMM d, yyyy')}</span>
       </p>
-      {canEditTime ? (
-        <button
-          className="button button--quiet time-edit-trigger"
-          type="button"
-          aria-label={`Edit time for ${habit.name}`}
-          onClick={() => onEditTime?.(editKey)}
-        >
-          <Icon name="edit" />
-          Edit time
-          <span>
-            {editDuration ? formatMinutes(editDuration) : 'Unknown time'}
-          </span>
-        </button>
-      ) : null}
+      <CalendarDateDetails
+        habit={habit}
+        dateKey={detailKey}
+        entry={checkIns[detailKey]}
+        onEditTime={onEditTime}
+      />
     </section>
   );
 };

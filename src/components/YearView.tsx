@@ -4,8 +4,8 @@ import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../stat
 import { getMonthCells } from '../utils/calendar';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
+import { CalendarDateDetails } from './CalendarDateDetails';
 import { DateButton } from './DateButton';
-import { Icon } from './Icon';
 
 type YearViewProps = {
   habit: Habit;
@@ -42,11 +42,7 @@ export const YearView = ({
     Object.entries(checkIns).find(
       ([key, entry]) => key.startsWith(`${year}-`) && isCompletedCheckIn(entry),
     )?.[0] ?? '';
-  const editKey = isCompletedCheckIn(checkIns[activeKey]) ? activeKey : fallbackEditKey;
-  const editEntry = checkIns[editKey];
-  const editDuration = getCheckInDurationMinutes(editEntry);
-  const canEditTime =
-    habit.trackingMode === 'duration' && isCompletedCheckIn(editEntry) && Boolean(onEditTime);
+  const detailKey = activeKey || fallbackEditKey;
 
   return (
     <section className="calendar-section" aria-label="Year calendar">
@@ -72,11 +68,17 @@ export const YearView = ({
                     completed={isCompletedCheckIn(checkIns[cell.key])}
                     habitColor={habitColor}
                     completions={getDateCompletions(cell.key, habits, allCheckIns).map(
-                      ({ habit: completedHabit, color }) => ({
-                        id: completedHabit.id,
-                        name: completedHabit.name,
-                        color,
-                      }),
+                      ({ habit: completedHabit, color }) => {
+                        const durationMinutes = getCheckInDurationMinutes(
+                          allCheckIns[completedHabit.id]?.[cell.key],
+                        );
+                        return {
+                          id: completedHabit.id,
+                          name: completedHabit.name,
+                          color,
+                          durationLabel: durationMinutes ? formatMinutes(durationMinutes) : undefined,
+                        };
+                      },
                     )}
                     compact
                     onClick={() => {
@@ -96,20 +98,12 @@ export const YearView = ({
         ))}
       </div>
       <p className="summary">{count} completed days in {year}</p>
-      {canEditTime ? (
-        <button
-          className="button button--quiet time-edit-trigger"
-          type="button"
-          aria-label={`Edit time for ${habit.name}`}
-          onClick={() => onEditTime?.(editKey)}
-        >
-          <Icon name="edit" />
-          Edit time
-          <span>
-            {editDuration ? formatMinutes(editDuration) : 'Unknown time'}
-          </span>
-        </button>
-      ) : null}
+      <CalendarDateDetails
+        habit={habit}
+        dateKey={detailKey}
+        entry={checkIns[detailKey]}
+        onEditTime={onEditTime}
+      />
     </section>
   );
 };

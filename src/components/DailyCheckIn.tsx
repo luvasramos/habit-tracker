@@ -33,6 +33,7 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
   const [leaving, setLeaving] = useState<DailyCheckInAnswer | null>(null);
   const [done, setDone] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState('');
+  const [summary, setSummary] = useState({ completedCount: 0, loggedMinutes: 0 });
   const startXRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const loggedTimerRef = useRef<number | null>(null);
@@ -68,7 +69,7 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
       return undefined;
     }
 
-    completeTimerRef.current = window.setTimeout(onComplete, 720);
+    completeTimerRef.current = window.setTimeout(onComplete, 1200);
     return () => {
       if (completeTimerRef.current) {
         window.clearTimeout(completeTimerRef.current);
@@ -91,6 +92,12 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
       window.clearTimeout(loggedTimerRef.current);
     }
     setLoggedMessage(loggedMinutes ? `${formatMinutes(loggedMinutes)} logged` : '');
+    if (completed) {
+      setSummary((current) => ({
+        completedCount: current.completedCount + 1,
+        loggedMinutes: current.loggedMinutes + (loggedMinutes ?? 0),
+      }));
+    }
     if (loggedMinutes) {
       loggedTimerRef.current = window.setTimeout(() => setLoggedMessage(''), 900);
     }
@@ -165,6 +172,14 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
             <Icon name="check" />
           </span>
           <h2>Check-in complete</h2>
+          <p className="checkin-summary">
+            <span>
+              {summary.completedCount} habit{summary.completedCount === 1 ? '' : 's'} completed
+            </span>
+            {summary.loggedMinutes > 0 ? (
+              <span>{formatMinutes(summary.loggedMinutes)} logged</span>
+            ) : null}
+          </p>
           {loggedMessage ? <p className="checkin-log-note">{loggedMessage}</p> : null}
         </div>
       ) : currentHabit ? (
