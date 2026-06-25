@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { Habit, LocalDateKey, ViewMode } from '../state/types';
-import { getWeekDays } from '../utils/calendar';
+import { getMonthCells, getWeekDays } from '../utils/calendar';
 import {
   daysBetweenInclusive,
   fromLocalDateKey,
@@ -34,6 +34,7 @@ const donutRadius = 38;
 const donutCircumference = 2 * Math.PI * donutRadius;
 const pluralize = (count: number, singular: string, plural = `${singular}s`) =>
   `${count} ${count === 1 ? singular : plural}`;
+const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 const getRangeDays = (range: ViewMode, anchorDate: Date) => {
   if (range === 'week') {
@@ -70,7 +71,10 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
   const measurableDays = useMemo(() => rangeDays.filter((day) => !isFutureDay(day)), [rangeDays]);
   const rangeKeys = useMemo(() => measurableDays.map(toLocalDateKey), [measurableDays]);
-  const comparisonKeys = useMemo(() => rangeDays.map(toLocalDateKey), [rangeDays]);
+  const comparisonMonths = useMemo(
+    () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
+    [anchorDate],
+  );
 
   const habitStats: HabitStat[] = selectedHabits.map((habit) => {
     const count = rangeKeys.filter((key) => checkIns[habit.id]?.[key]).length;
@@ -322,43 +326,61 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                   </span>
                 ))}
               </div>
-              <div className="year-overview" aria-label="Yearly activity overview">
-                {comparisonKeys.map((key) => {
-                  const date = fromLocalDateKey(key);
-                  const future = isFutureDay(date);
-                  const completions = getSelectedCompletions(key);
-                  const inactive = !future && completions.length === 0;
-                  const visibleInactive = inactive && showNoActivity;
-                  const visibleCompletions = completions.slice(0, 4);
-                  const title = `${format(date, 'MMM d')}: ${
-                    future
-                      ? 'future'
-                      : completions.length > 0
-                        ? completions.map(({ habit }) => habit.name).join(', ')
-                        : 'no activity'
-                  }`;
+              <div className="year-months" aria-label="Yearly activity overview">
+                {comparisonMonths.map((month) => (
+                  <section className="year-month-card" key={month.getMonth()} aria-label={format(month, 'MMMM')}>
+                    <div className="year-month-card__header">
+                      <h3>{format(month, 'MMM')}</h3>
+                    </div>
+                    <div className="year-month-card__weekdays" aria-hidden="true">
+                      {weekdayInitials.map((day, index) => (
+                        <span key={`${day}-${index}`}>{day}</span>
+                      ))}
+                    </div>
+                    <div className="year-month-card__grid">
+                      {getMonthCells(month).map((cell) => {
+                        if (!cell.inPeriod) {
+                          return <span className="year-month-day is-outside" key={cell.key} aria-hidden="true" />;
+                        }
 
-                  return (
-                    <span
-                      className={`year-overview-cell${visibleInactive ? ' is-inactive' : ''}${future ? ' is-future' : ''}`}
-                      key={key}
-                      title={title}
-                      aria-label={title}
-                    >
-                      {visibleCompletions.length > 0 ? (
-                        <span className="year-overview-cell__dots" aria-hidden="true">
-                          {visibleCompletions.map(({ habit, color }) => (
-                            <span
-                              className="year-overview-cell__dot"
-                              key={habit.id}
-                              style={{ '--dot-color': color } as CSSProperties}
-                            />
-                          ))}
-                        </span>
-                      ) : null}
-                    </span>
-                  );
-                })}
+                        const date = fromLocalDateKey(cell.key);
+                        const future = isFutureDay(date);
+                        const completions = getSelectedCompletions(cell.key);
+                        const inactive = !future && completions.length === 0;
+                        const visibleInactive = inactive && showNoActivity;
+                        const visibleCompletions = completions.slice(0, 4);
+                        const title = `${format(date, 'MMM d')}: ${
+                          future
+                            ? 'future'
+                            : completions.length > 0
+                              ? completions.map(({ habit }) => habit.name).join(', ')
+                              : 'no activity'
+                        }`;
+
+                        return (
+                          <span
+                            className={`year-month-day${visibleInactive ? ' is-inactive' : ''}${future ? ' is-future' : ''}`}
+                            key={cell.key}
+                            title={title}
+                            aria-label={title}
+                          >
+                            {visibleCompletions.length > 0 ? (
+                              <span className="year-month-day__dots" aria-hidden="true">
+                                {visibleCompletions.map(({ habit, color }) => (
+                                  <span
+                                    className="year-month-day__dot"
+                                    key={habit.id}
+                                    style={{ '--dot-color': color } as CSSProperties}
+                                  />
+                                ))}
+                              </span>
+                            ) : null}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
               </div>
             </div>
           ) : null}

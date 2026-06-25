@@ -1,5 +1,6 @@
-import type { RefObject } from 'react';
+import type { CSSProperties, RefObject } from 'react';
 import type { Habit } from '../state/types';
+import { getHabitColorVar } from '../utils/habitColors';
 import { Icon } from './Icon';
 
 type HabitTabsProps = {
@@ -31,8 +32,10 @@ export const HabitTabs = ({
             type="button"
             role="tab"
             aria-selected={habit.id === selectedHabitId}
+            style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
             onClick={() => onSelect(habit.id)}
           >
+            <span className="habit-tab__color" />
             <Icon name="habits" />
             {habit.name}
           </button>

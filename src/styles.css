@@ -10,9 +10,11 @@
   --muted: #9a9a9a;
   --soft: #c7c7c7;
   --danger: #d0d0d0;
-  --task-blue: #2c638d;
-  --task-forest: #1d5131;
-  --task-lavender: #9d72b0;
+  --task-blue: #2f78ad;
+  --task-forest: #1f5a34;
+  --task-lavender: #a979ba;
+  --task-sage: #93ad96;
+  --task-acid: #b8c951;
   --inactive: #303033;
   --radius: 8px;
   --space-page: clamp(12px, 2.5vw, 24px);
@@ -100,6 +102,7 @@ input:focus-visible {
 
 h1,
 h2,
+h3,
 p {
   margin: 0;
 }
@@ -260,6 +263,20 @@ h2 {
   color: var(--soft);
 }
 
+.habit-tab[aria-selected='true'] {
+  border-color: color-mix(in srgb, var(--habit-color) 54%, var(--border));
+  background: color-mix(in srgb, var(--habit-color) 10%, var(--surface-2));
+}
+
+.habit-tab__color {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--habit-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--habit-color) 38%, var(--surface));
+}
+
 .calendar-controls {
   justify-content: space-between;
   align-items: flex-start;
@@ -324,7 +341,7 @@ h2 {
 
 .date-button.is-complete {
   border-color: color-mix(in srgb, var(--habit-color) 72%, var(--border));
-  background: color-mix(in srgb, var(--habit-color) 30%, var(--surface-2));
+  background: color-mix(in srgb, var(--habit-color) 22%, var(--surface-2));
   color: var(--text);
   animation: check-pop 140ms ease-out;
 }
@@ -721,7 +738,8 @@ h2 {
 
 .comparison-section {
   display: grid;
-  gap: 12px;
+  gap: 14px;
+  padding-top: 4px;
 }
 
 .comparison-legend {
@@ -738,22 +756,57 @@ h2 {
   gap: 7px;
 }
 
-.year-overview {
+.year-months {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14px, 1fr));
-  gap: 4px;
-  max-width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.year-overview-cell {
+.year-month-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.year-month-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 20px;
+}
+
+.year-month-card h3 {
+  color: var(--soft);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.year-month-card__weekdays,
+.year-month-card__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.year-month-card__weekdays {
+  color: var(--muted);
+  font-size: 0.58rem;
+  text-align: center;
+}
+
+.year-month-day {
   display: grid;
   place-items: center;
   min-width: 0;
   aspect-ratio: 1;
   border: 1px solid var(--border);
-  border-radius: 4px;
-  background: #171717;
-  opacity: 0.9;
+  border-radius: 3px;
+  background: #151515;
+  opacity: 0.92;
   transition:
     opacity 120ms ease,
     transform 120ms ease,
@@ -761,22 +814,24 @@ h2 {
     background 120ms ease;
 }
 
-.year-overview-cell.is-inactive {
-  background: var(--inactive);
+.year-month-day.is-inactive {
+  background: color-mix(in srgb, var(--inactive) 82%, var(--surface-2));
 }
 
-.year-overview-cell.is-future {
+.year-month-day.is-future,
+.year-month-day.is-outside {
+  border-color: transparent;
   background: transparent;
-  opacity: 0.28;
+  opacity: 0.26;
 }
 
-.year-overview-cell:hover {
+.year-month-day:hover {
   border-color: var(--border-strong);
   opacity: 1;
   transform: translateY(-1px);
 }
 
-.year-overview-cell__dots {
+.year-month-day__dots {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -786,7 +841,7 @@ h2 {
   padding: 2px;
 }
 
-.year-overview-cell__dot {
+.year-month-day__dot {
   width: 5px;
   height: 5px;
   border-radius: 999px;
@@ -984,12 +1039,11 @@ h2 {
     font-size: 0.78rem;
   }
 
-  .year-overview {
-    grid-template-columns: repeat(auto-fill, minmax(11px, 1fr));
-    gap: 3px;
+  .year-months {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .year-overview-cell__dot {
+  .year-month-day__dot {
     width: 4px;
     height: 4px;
   }
@@ -1040,15 +1094,16 @@ h2 {
     font-size: 1.2rem;
   }
 
-  .year-overview {
-    grid-template-columns: repeat(auto-fill, minmax(9px, 1fr));
+  .year-months {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
-  .year-overview-cell {
-    border-radius: 3px;
+  .year-month-card {
+    padding: 9px;
   }
 
-  .year-overview-cell__dots {
+  .year-month-day__dots {
     gap: 1px;
     padding: 1px;
   }

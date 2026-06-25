@@ -1,6 +1,6 @@
 import type { Habit, LocalDateKey } from '../state/types';
 
-export const habitColorNames = ['blue', 'forest', 'lavender'] as const;
+export const habitColorNames = ['blue', 'forest', 'lavender', 'sage', 'acid'] as const;
 
 export const getHabitColorName = (habitId: string, habits: Pick<Habit, 'id'>[]) => {
   const index = habits.findIndex((habit) => habit.id === habitId);
