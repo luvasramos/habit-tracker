@@ -1,21 +1,20 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { CheckInsByHabit, Habit, LocalDateKey, ViewMode } from '../state/types';
-import { getMonthCells } from '../utils/calendar';
+import { getMonthCells, getWeekDays } from '../utils/calendar';
 import {
-  fromLocalDateKey,
-  isFutureDay,
   movePeriod,
   periodLabel,
+  toLocalDateKey,
 } from '../utils/dates';
-import { formatMinutes, isCompletedCheckIn } from '../utils/duration';
+import { formatMinutes } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import {
   calculateAllHabitsStatistics,
   calculateHabitStatistics,
   getRangeDays,
-  isHabitEligibleOnDate,
 } from '../utils/statistics';
+import { getStatisticsDateLabel, getStatisticsDateState, type StatisticsDateModel } from '../utils/statisticsCalendar';
 import { Icon } from './Icon';
 
 type StatisticsViewProps = {
@@ -44,6 +43,253 @@ const metricDescriptions = {
   activeDays: 'Elapsed days when at least one habit was completed.',
   noActivity: 'Elapsed days without any habit completion.',
   timeLogged: 'Known duration recorded in the selected period.',
+};
+
+const getDateStateClass = (model: StatisticsDateModel, showNoActivity: boolean) => {
+  const classes = [
+    'stats-date-cell',
+    `stats-date-cell--${model.state}`,
+    model.isToday ? 'is-today' : '',
+    model.isCompleted ? 'is-completed' : '',
+    model.isMissed && showNoActivity ? 'is-missed-visible' : '',
+    model.isUnavailable ? 'is-unavailable' : '',
+  ];
+
+  return classes.filter(Boolean).join(' ');
+};
+
+type StatisticsCalendarProps = {
+  range: ViewMode;
+  anchorDate: Date;
+  habits: Habit[];
+  checkIns: CheckInsByHabit;
+  selectedHabit: Habit | null;
+  selectedColor: string;
+  showNoActivity: boolean;
+  today: Date;
+};
+
+const StatisticsDateCell = ({
+  model,
+  selectedHabit,
+  selectedColor,
+  showNoActivity,
+  size,
+  outside = false,
+  onSelect,
+}: {
+  model: StatisticsDateModel;
+  selectedHabit: Habit | null;
+  selectedColor: string;
+  showNoActivity: boolean;
+  size: 'week' | 'month' | 'year';
+  outside?: boolean;
+  onSelect: (model: StatisticsDateModel) => void;
+}) => {
+  const visibleDots = selectedHabit ? [] : model.completions.slice(0, size === 'year' ? 0 : 4);
+  const hiddenCount = selectedHabit ? 0 : Math.max(model.completions.length - visibleDots.length, 0);
+  const durationLabel =
+    selectedHabit && model.durationMinutes !== undefined ? formatMinutes(model.durationMinutes) : null;
+
+  return (
+    <button
+      className={`${getDateStateClass(model, showNoActivity)} stats-date-cell--${size}${outside ? ' is-outside' : ''}`}
+      type="button"
+      aria-label={getStatisticsDateLabel(model, selectedHabit)}
+      aria-disabled={model.isUnavailable}
+      title={getStatisticsDateLabel(model, selectedHabit)}
+      data-date-key={model.dateKey}
+      style={{ '--habit-color': selectedHabit ? selectedColor : 'var(--soft)' } as CSSProperties}
+      onClick={() => onSelect(model)}
+    >
+      {size === 'week' ? (
+        <>
+          <span className="stats-date-cell__weekday">{format(model.date, 'EEE')}</span>
+          <span className="stats-date-cell__number">{format(model.date, 'd')}</span>
+          {durationLabel ? <span className="stats-date-cell__duration">{durationLabel}</span> : null}
+        </>
+      ) : (
+        <>
+          <span className="stats-date-cell__number">{format(model.date, 'd')}</span>
+          {durationLabel && size === 'month' ? (
+            <span className="stats-date-cell__duration stats-date-cell__duration--compact">{durationLabel}</span>
+          ) : null}
+        </>
+      )}
+      {visibleDots.length > 0 ? (
+        <span className="stats-date-cell__dots" aria-hidden="true">
+          {visibleDots.map((completion) => (
+            <span
+              className="stats-date-cell__dot"
+              key={completion.id}
+              style={{ '--dot-color': completion.color } as CSSProperties}
+            />
+          ))}
+          {hiddenCount > 0 ? <span className="stats-date-cell__more">+{hiddenCount}</span> : null}
+        </span>
+      ) : null}
+      {hiddenCount > 0 ? (
+        <span className="sr-only">{hiddenCount} additional completed habits</span>
+      ) : null}
+    </button>
+  );
+};
+
+const StatisticsDateDetails = ({
+  model,
+  selectedHabit,
+}: {
+  model: StatisticsDateModel;
+  selectedHabit: Habit | null;
+}) => (
+  <aside className="stats-date-details" aria-label="Selected date details">
+    <div>
+      <h3>{format(model.date, 'MMMM d, yyyy')}</h3>
+      <p>{getStatisticsDateLabel(model, selectedHabit)}</p>
+    </div>
+    {selectedHabit ? (
+      <div className="stats-date-details__list">
+        <span>{model.isCompleted ? 'Completed' : model.isUnavailable ? 'Unavailable' : 'Not completed'}</span>
+        {model.durationMinutes !== undefined ? <span>{formatMinutes(model.durationMinutes)} logged</span> : null}
+        {model.unknownDuration ? <span>No time recorded</span> : null}
+      </div>
+    ) : model.completions.length > 0 ? (
+      <div className="stats-date-details__list">
+        {model.completions.map((completion) => (
+          <span key={completion.id} style={{ '--habit-color': completion.color } as CSSProperties}>
+            <span className="filter-pill__dot" aria-hidden="true" />
+            {completion.name}
+            {completion.durationMinutes !== undefined ? `, ${formatMinutes(completion.durationMinutes)}` : ''}
+            {completion.unknownDuration ? ', no time recorded' : ''}
+          </span>
+        ))}
+      </div>
+    ) : (
+      <div className="stats-date-details__list">
+        <span>{model.isUnavailable ? 'Unavailable' : 'No activity'}</span>
+      </div>
+    )}
+  </aside>
+);
+
+const StatisticsCalendar = ({
+  range,
+  anchorDate,
+  habits,
+  checkIns,
+  selectedHabit,
+  selectedColor,
+  showNoActivity,
+  today,
+}: StatisticsCalendarProps) => {
+  const months = useMemo(
+    () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
+    [anchorDate],
+  );
+  const [selectedDateKey, setSelectedDateKey] = useState<LocalDateKey>(() => toLocalDateKey(today));
+  const getModel = (date: Date) =>
+    getStatisticsDateState({
+      date,
+      habits,
+      checkIns,
+      selectedHabit,
+      today,
+    });
+  const selectedModel = getStatisticsDateState({
+    date: selectedDateKey ? new Date(Number(selectedDateKey.slice(0, 4)), Number(selectedDateKey.slice(5, 7)) - 1, Number(selectedDateKey.slice(8, 10))) : today,
+    habits,
+    checkIns,
+    selectedHabit,
+    today,
+  });
+  const selectModel = (model: StatisticsDateModel) => setSelectedDateKey(model.dateKey);
+
+  if (range === 'week') {
+    return (
+      <section className="stats-calendar" aria-label="Weekly statistics calendar">
+        <div className="stats-calendar-week">
+          {getWeekDays(anchorDate).map((cell) => (
+            <StatisticsDateCell
+              key={cell.key}
+              model={getModel(cell.date)}
+              selectedHabit={selectedHabit}
+              selectedColor={selectedColor}
+              showNoActivity={showNoActivity}
+              size="week"
+              onSelect={selectModel}
+            />
+          ))}
+        </div>
+        <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+      </section>
+    );
+  }
+
+  if (range === 'month') {
+    return (
+      <section className="stats-calendar" aria-label="Monthly statistics calendar">
+        <div className="stats-calendar-month" aria-label={format(anchorDate, 'MMMM yyyy')}>
+          <div className="stats-calendar-weekdays" aria-hidden="true">
+            {weekdayInitials.map((day, index) => (
+              <span key={`${day}-${index}`}>{day}</span>
+            ))}
+          </div>
+          <div className="stats-calendar-month__grid">
+            {getMonthCells(anchorDate).map((cell) => (
+              <StatisticsDateCell
+                key={cell.key}
+                model={getModel(cell.date)}
+                selectedHabit={selectedHabit}
+                selectedColor={selectedColor}
+                showNoActivity={showNoActivity}
+                size="month"
+                outside={!cell.inPeriod}
+                onSelect={selectModel}
+              />
+            ))}
+          </div>
+        </div>
+        <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+      </section>
+    );
+  }
+
+  return (
+    <section className="stats-calendar" aria-label="Yearly statistics calendar">
+      <div className="year-months stats-year-months" aria-label="Yearly activity overview">
+        {months.map((month) => (
+          <section className="year-month-card" key={month.getMonth()} aria-label={format(month, 'MMMM')}>
+            <div className="year-month-card__header">
+              <h3>{format(month, 'MMM')}</h3>
+            </div>
+            <div className="year-month-card__weekdays" aria-hidden="true">
+              {weekdayInitials.map((day, index) => (
+                <span key={`${day}-${index}`}>{day}</span>
+              ))}
+            </div>
+            <div className="year-month-card__grid">
+              {getMonthCells(month).map((cell) =>
+                cell.inPeriod ? (
+                  <StatisticsDateCell
+                    key={cell.key}
+                    model={getModel(cell.date)}
+                    selectedHabit={selectedHabit}
+                    selectedColor={selectedColor}
+                    showNoActivity={showNoActivity}
+                    size="year"
+                    onSelect={selectModel}
+                  />
+                ) : (
+                  <span className="stats-date-cell stats-date-cell--year is-outside" key={cell.key} aria-hidden="true" />
+                ),
+              )}
+            </div>
+          </section>
+        ))}
+      </div>
+      <StatisticsDateDetails model={selectedModel} selectedHabit={selectedHabit} />
+    </section>
+  );
 };
 
 export const StatisticsView = ({
@@ -81,10 +327,6 @@ export const StatisticsView = ({
   const selectedColor = selectedHabit ? getHabitColorVar(selectedHabit.id, habits) : 'var(--soft)';
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
   const yearDays = useMemo(() => getRangeDays('year', anchorDate), [anchorDate]);
-  const comparisonMonths = useMemo(
-    () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
-    [anchorDate],
-  );
   const today = new Date();
   const allHabitStats = calculateAllHabitsStatistics(selectedHabits, checkIns, rangeDays, today);
   const habitStatById = new Map(
@@ -179,18 +421,6 @@ export const StatisticsView = ({
         ]
       : []
     : [];
-
-  const getSelectedCompletions = (dateKey: LocalDateKey) =>
-    selectedHabits
-      .filter(
-        (habit) =>
-          isHabitEligibleOnDate(habit, dateKey, today) &&
-          isCompletedCheckIn(checkIns[habit.id]?.[dateKey]),
-      )
-      .map((habit) => ({
-        habit,
-        color: getHabitColorVar(habit.id, habits),
-      }));
 
   if (habits.length === 0) {
     return (
@@ -450,67 +680,16 @@ export const StatisticsView = ({
             </section>
           ) : null}
 
-          {range === 'year' ? (
-            <div className="comparison-section">
-              <div className="year-months" aria-label="Yearly activity overview">
-                {comparisonMonths.map((month) => (
-                  <section className="year-month-card" key={month.getMonth()} aria-label={format(month, 'MMMM')}>
-                    <div className="year-month-card__header">
-                      <h3>{format(month, 'MMM')}</h3>
-                    </div>
-                    <div className="year-month-card__weekdays" aria-hidden="true">
-                      {weekdayInitials.map((day, index) => (
-                        <span key={`${day}-${index}`}>{day}</span>
-                      ))}
-                    </div>
-                    <div className="year-month-card__grid">
-                      {getMonthCells(month).map((cell) => {
-                        if (!cell.inPeriod) {
-                          return <span className="year-month-day is-outside" key={cell.key} aria-hidden="true" />;
-                        }
-
-                        const date = fromLocalDateKey(cell.key);
-                        const future = isFutureDay(date);
-                        const completions = getSelectedCompletions(cell.key);
-                        const eligible = allHabitStats.eligibleDateKeys.includes(cell.key);
-                        const inactive = !future && eligible && completions.length === 0;
-                        const visibleInactive = inactive && showNoActivity;
-                        const visibleCompletions = completions.slice(0, 4);
-                        const title = `${format(date, 'MMM d')}: ${
-                          future
-                            ? 'future'
-                            : completions.length > 0
-                              ? completions.map(({ habit }) => habit.name).join(', ')
-                              : 'no activity'
-                        }`;
-
-                        return (
-                          <span
-                            className={`year-month-day${visibleInactive ? ' is-inactive' : ''}${future ? ' is-future' : ''}`}
-                            key={cell.key}
-                            title={title}
-                            aria-label={title}
-                          >
-                            {visibleCompletions.length > 0 ? (
-                              <span className="year-month-day__dots" aria-hidden="true">
-                                {visibleCompletions.map(({ habit, color }) => (
-                                  <span
-                                    className="year-month-day__dot"
-                                    key={habit.id}
-                                    style={{ '--dot-color': color } as CSSProperties}
-                                  />
-                                ))}
-                              </span>
-                            ) : null}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </section>
-                ))}
-              </div>
-            </div>
-          ) : null}
+          <StatisticsCalendar
+            range={range}
+            anchorDate={anchorDate}
+            habits={habits}
+            checkIns={checkIns}
+            selectedHabit={selectedHabit}
+            selectedColor={selectedColor}
+            showNoActivity={showNoActivity}
+            today={today}
+          />
         </>
     </section>
   );
