@@ -119,8 +119,10 @@ input:focus-visible {
 h1,
 h2,
 h3,
-p {
+p,
+strong {
   margin: 0;
+  font-weight: 500;
 }
 
 h1 {
@@ -215,7 +217,7 @@ h2 {
   background: #1c1c1c;
   border-color: var(--border-strong);
   color: var(--text);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .button--primary:hover {
@@ -331,13 +333,7 @@ h2 {
   user-select: none;
   border: 1px solid color-mix(in srgb, var(--habit-color) 46%, var(--border));
   border-radius: var(--radius);
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      color-mix(in srgb, var(--habit-color) 16%, transparent),
-      transparent 44%
-    ),
-    var(--surface-2);
+  background: color-mix(in srgb, var(--habit-color) 8%, var(--surface-2));
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
   transform: translateX(var(--drag-x)) rotate(var(--drag-rotate));
   transition:
@@ -592,7 +588,7 @@ h2 {
 
 .week-day-number {
   font-size: 1rem;
-  font-weight: 650;
+  font-weight: 500;
   line-height: 1;
 }
 
@@ -964,7 +960,7 @@ h2 {
 
 .stat-row__count {
   color: var(--soft);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .stat-row__bar {
@@ -1059,7 +1055,7 @@ h2 {
 .year-month-card h3 {
   color: var(--soft);
   font-size: 0.78rem;
-  font-weight: 650;
+  font-weight: 500;
 }
 
 .year-month-card__weekdays,
@@ -1166,6 +1162,14 @@ h2 {
   padding: 0 10px;
 }
 
+.field--compact {
+  min-width: 0;
+}
+
+.field--search {
+  max-width: 240px;
+}
+
 .appearance-editor {
   display: grid;
   gap: 14px;
@@ -1211,7 +1215,9 @@ h2 {
 }
 
 .swatch-button,
-.icon-choice {
+.icon-choice,
+.emoji-choice,
+.custom-color__toggle {
   min-height: var(--control-size);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1225,13 +1231,17 @@ h2 {
 }
 
 .swatch-button:hover,
-.icon-choice:hover {
+.icon-choice:hover,
+.emoji-choice:hover,
+.custom-color__toggle:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
 }
 
 .swatch-button:active,
-.icon-choice:active {
+.icon-choice:active,
+.emoji-choice:active,
+.custom-color__toggle:active {
   transform: translateY(1px) scale(0.99);
 }
 
@@ -1252,6 +1262,61 @@ h2 {
 .swatch-button[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--swatch-color) 72%, var(--border));
   background: color-mix(in srgb, var(--swatch-color) 12%, var(--surface-2));
+}
+
+.custom-color {
+  display: grid;
+  gap: 8px;
+}
+
+.custom-color__toggle {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--muted);
+}
+
+.custom-color__toggle[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--swatch-color) 58%, var(--border));
+  background: color-mix(in srgb, var(--swatch-color) 10%, var(--surface-2));
+  color: var(--soft);
+}
+
+.custom-color__swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--swatch-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--swatch-color) 45%, var(--surface));
+}
+
+.custom-color__fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--control-size);
+  gap: 8px;
+  align-items: end;
+  max-width: 280px;
+}
+
+.color-picker-label {
+  display: grid;
+  place-items: center;
+  width: var(--control-size);
+  height: var(--control-size);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.color-picker-label input {
+  width: 150%;
+  height: 150%;
+  padding: 0;
+  border: 0;
+  background: transparent;
 }
 
 .segmented--compact {
@@ -1281,6 +1346,31 @@ h2 {
   border-color: color-mix(in srgb, var(--habit-color) 58%, var(--border));
   background: color-mix(in srgb, var(--habit-color) 10%, var(--surface-2));
   color: var(--soft);
+}
+
+.emoji-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.emoji-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.emoji-choice {
+  display: grid;
+  place-items: center;
+  min-height: var(--control-size);
+  padding: 0;
+  font-size: 1.12rem;
+}
+
+.emoji-choice[aria-pressed='true'] {
+  border-color: var(--soft);
+  color: var(--text);
+  background: var(--surface-3);
 }
 
 .emoji-field {
@@ -1505,6 +1595,10 @@ h2 {
   .icon-choice-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .emoji-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 430px) {
@@ -1595,6 +1689,10 @@ h2 {
 
   .icon-choice {
     min-height: 64px;
+  }
+
+  .custom-color__fields {
+    max-width: none;
   }
 }
 

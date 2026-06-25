@@ -1,6 +1,6 @@
 export type LocalDateKey = string;
 
-export type HabitColor =
+export type HabitPresetColor =
   | 'blue'
   | 'sky'
   | 'teal'
@@ -14,6 +14,8 @@ export type HabitColor =
   | 'lavender'
   | 'slate';
 
+export type HabitColor = HabitPresetColor | `#${string}`;
+
 export type HabitIconName =
   | 'health'
   | 'fitness'
@@ -25,6 +27,7 @@ export type HabitIconName =
   | 'food'
   | 'travel'
   | 'mindfulness'
+  | 'sleep'
   | 'custom';
 
 export type HabitIcon =

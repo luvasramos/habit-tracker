@@ -74,6 +74,34 @@ describe('persistence', () => {
     );
   });
 
+  it('keeps valid custom hex habit colors', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Read',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'abc',
+            icon: { type: 'svg', name: 'reading' },
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0]).toEqual(
+      expect.objectContaining({
+        color: '#abc',
+        icon: { type: 'svg', name: 'reading' },
+      }),
+    );
+  });
+
   it('recovers from malformed JSON and unsupported shapes', () => {
     const storage = makeStorage();
     storage.setItem(STORAGE_KEY, '{bad');

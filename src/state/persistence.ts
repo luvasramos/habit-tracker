@@ -3,6 +3,8 @@ import {
   defaultHabitColor,
   defaultHabitIcon,
   isHabitColor,
+  isPresetHabitColor,
+  normalizeHexColor,
   normalizeHabitIcon,
 } from '../utils/habitAppearance';
 import type { Habit, HabitState, PersistedState } from './types';
@@ -45,7 +47,11 @@ export const isPersistedState = (value: unknown): value is PersistedState => {
 export const sanitizeState = (state: PersistedState): HabitState => {
   const habits = state.habits.map((habit, index) => ({
     ...habit,
-    color: isHabitColor(habit.color) ? habit.color : defaultHabitColor(index),
+    color: isHabitColor(habit.color)
+      ? isPresetHabitColor(habit.color)
+        ? habit.color
+        : normalizeHexColor(habit.color) ?? defaultHabitColor(index)
+      : defaultHabitColor(index),
     icon: normalizeHabitIcon(habit.icon ?? defaultHabitIcon),
   }));
   const habitIds = new Set(habits.map((habit) => habit.id));
