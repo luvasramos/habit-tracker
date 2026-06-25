@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 type IconName =
   | 'add'
+  | 'bell'
   | 'calendar'
   | 'check'
   | 'close'
@@ -23,6 +24,12 @@ const paths: Record<IconName, ReactNode> = {
     <>
       <path d="M12 5v14" />
       <path d="M5 12h14" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6" />
+      <path d="M10 19a2 2 0 0 0 4 0" />
     </>
   ),
   calendar: (

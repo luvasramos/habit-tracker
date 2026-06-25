@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { CalendarControls } from './components/CalendarControls';
 import { DailyCheckIn } from './components/DailyCheckIn';
 import { HabitDialog } from './components/HabitDialog';
@@ -11,24 +11,53 @@ import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
 import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
-import type { LocalDateKey, ViewMode } from './state/types';
+import type { Habit, LocalDateKey, ViewMode } from './state/types';
 import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
+import { getHabitColorVar, HabitIconView } from './utils/habitAppearance';
 import { calculateActivityStreak } from './utils/streak';
 
 type FloatingNavigationProps = {
   page: 'calendar' | 'statistics';
+  remainingCount: number;
+  reminderOpen: boolean;
   onPageChange: (page: 'calendar' | 'statistics') => void;
   onAddHabit: () => void;
+  onToggleReminder: () => void;
+  reminderButtonRef: RefObject<HTMLButtonElement | null>;
   addButtonRef: RefObject<HTMLButtonElement | null>;
+};
+
+type TodayRemainingPopoverProps = {
+  isOpen: boolean;
+  habits: Habit[];
+  allHabits: Habit[];
+  onCompleteHabit: (habitId: string) => void;
+  popoverRef: RefObject<HTMLDivElement | null>;
 };
 
 const FloatingNavigation = ({
   page,
+  remainingCount,
+  reminderOpen,
   onPageChange,
   onAddHabit,
+  onToggleReminder,
+  reminderButtonRef,
   addButtonRef,
 }: FloatingNavigationProps) => (
   <nav className="floating-nav" aria-label="Primary">
+    <button
+      ref={reminderButtonRef}
+      type="button"
+      className={`floating-nav__reminder${remainingCount === 0 ? ' is-complete' : ''}`}
+      aria-label={`Today remaining: ${remainingCount}`}
+      aria-expanded={reminderOpen}
+      aria-controls="today-remaining-popover"
+      onClick={onToggleReminder}
+    >
+      <Icon name="bell" />
+      <span>{remainingCount}</span>
+    </button>
     <button
       type="button"
       className="floating-nav__item"
@@ -62,6 +91,59 @@ const FloatingNavigation = ({
   </nav>
 );
 
+const TodayRemainingPopover = ({
+  isOpen,
+  habits,
+  allHabits,
+  onCompleteHabit,
+  popoverRef,
+}: TodayRemainingPopoverProps) => {
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <aside
+      ref={popoverRef}
+      className="today-popover"
+      id="today-remaining-popover"
+      aria-label="Today remaining habits"
+    >
+      <div className="today-popover__header">
+        <h2>Today</h2>
+        <span>{habits.length} left</span>
+      </div>
+      {habits.length === 0 ? (
+        <p className="today-popover__empty">All done for today.</p>
+      ) : (
+        <ul className="today-popover__list">
+          {habits.map((habit) => (
+            <li
+              className="today-popover__item"
+              key={habit.id}
+              style={{ '--habit-color': getHabitColorVar(habit.id, allHabits) } as CSSProperties}
+            >
+              <span className="today-popover__identity">
+                <span className="habit-tab__color" />
+                <HabitIconView habit={habit} />
+                <span>{habit.name}</span>
+              </span>
+              <button
+                className="icon-button today-popover__check"
+                type="button"
+                aria-label={`Mark ${habit.name} complete today`}
+                onClick={() => onCompleteHabit(habit.id)}
+              >
+                <Icon name="check" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </aside>
+  );
+};
+
 export const App = () => {
   const {
     state,
@@ -85,8 +167,11 @@ export const App = () => {
   });
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
+  const reminderButtonRef = useRef<HTMLButtonElement>(null);
+  const reminderPopoverRef = useRef<HTMLDivElement>(null);
   const selectedHabit = state.habits.find((habit) => habit.id === state.selectedHabitId) ?? null;
   const selectedCheckIns = selectedHabit ? state.checkIns[selectedHabit.id] ?? {} : {};
   const label = useMemo(() => periodLabel(view, anchorDate), [view, anchorDate]);
@@ -98,12 +183,46 @@ export const App = () => {
     const answers = loadDailyCheckInAnswers(todayKey);
     return state.habits.some((habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[todayKey]);
   }, [state.checkIns, state.habits, todayKey]);
+  const remainingTodayHabits = useMemo(
+    () => state.habits.filter((habit) => !state.checkIns[habit.id]?.[todayKey]),
+    [state.checkIns, state.habits, todayKey],
+  );
 
   useEffect(() => {
     if (!dailyCheckInOpen && hasUnansweredToday) {
       setDailyCheckInOpen(true);
     }
   }, [dailyCheckInOpen, hasUnansweredToday]);
+
+  useEffect(() => {
+    if (!reminderOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        reminderPopoverRef.current?.contains(target) ||
+        reminderButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setReminderOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setReminderOpen(false);
+        reminderButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [reminderOpen]);
 
   const handleToggle = (dateKey: LocalDateKey) => {
     const [year, month, day] = dateKey.split('-').map(Number);
@@ -195,10 +314,22 @@ export const App = () => {
         )}
       </main>
 
+      <TodayRemainingPopover
+        isOpen={reminderOpen}
+        habits={remainingTodayHabits}
+        allHabits={state.habits}
+        popoverRef={reminderPopoverRef}
+        onCompleteHabit={(habitId) => setCheckIn(habitId, todayKey, true)}
+      />
+
       <FloatingNavigation
         page={page}
+        remainingCount={remainingTodayHabits.length}
+        reminderOpen={reminderOpen}
         onPageChange={setPage}
+        onToggleReminder={() => setReminderOpen((open) => !open)}
         onAddHabit={() => setAddOpen(true)}
+        reminderButtonRef={reminderButtonRef}
         addButtonRef={addButtonRef}
       />
 
