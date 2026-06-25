@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
@@ -11,6 +11,13 @@ const renderApp = () =>
       <App />
     </HabitProvider>,
   );
+
+const finishDailyCheckIn = async (user: ReturnType<typeof userEvent.setup>, answer: 'No' | 'Yes' = 'No') => {
+  await user.click(screen.getByRole('button', { name: answer }));
+  await waitFor(() => {
+    expect(screen.queryByRole('region', { name: 'Daily check-in' })).not.toBeInTheDocument();
+  }, { timeout: 2400 });
+};
 
 describe('Habit Grid app', () => {
   beforeEach(() => {
@@ -25,6 +32,10 @@ describe('Habit Grid app', () => {
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
+    expect(screen.getByRole('region', { name: 'Daily check-in' })).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Gym. Did you complete this today?' })).toBeInTheDocument();
+    await finishDailyCheckIn(user);
+
     expect(screen.getByRole('tab', { name: 'Gym' })).toHaveAttribute('aria-selected', 'true');
     expect(localStorage.getItem(STORAGE_KEY)).toContain('Gym');
   });
@@ -36,6 +47,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    await finishDailyCheckIn(user);
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
     await user.type(screen.getByLabelText('Name'), 'gym');
 
@@ -49,6 +61,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    await finishDailyCheckIn(user);
     await user.click(screen.getByRole('button', { name: 'Edit habit' }));
     await user.clear(screen.getByLabelText('Name'));
     await user.type(screen.getByLabelText('Name'), 'Training');
@@ -71,6 +84,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    await finishDailyCheckIn(user);
 
     const checkInButton = screen
       .getAllByRole('button', { name: /Gym, .*not completed/ })
@@ -91,6 +105,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
+    await finishDailyCheckIn(user);
 
     const checkInButton = screen
       .getAllByRole('button', { name: /Gym, .*not completed/ })

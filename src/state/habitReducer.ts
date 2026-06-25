@@ -5,7 +5,8 @@ export type HabitAction =
   | { type: 'selectHabit'; habitId: string }
   | { type: 'renameHabit'; habitId: string; name: string }
   | { type: 'deleteHabit'; habitId: string }
-  | { type: 'toggleCheckIn'; habitId: string; dateKey: LocalDateKey };
+  | { type: 'toggleCheckIn'; habitId: string; dateKey: LocalDateKey }
+  | { type: 'setCheckIn'; habitId: string; dateKey: LocalDateKey; completed: boolean };
 
 export const emptyState = (): HabitState => ({
   version: 1,
@@ -115,6 +116,26 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
           [action.habitId]: existing
             ? remaining
             : { ...habitCheckIns, [action.dateKey]: true },
+        },
+      };
+    }
+
+    case 'setCheckIn': {
+      if (!state.habits.some((habit) => habit.id === action.habitId)) {
+        return state;
+      }
+
+      const habitCheckIns = state.checkIns[action.habitId] ?? {};
+      const remaining = { ...habitCheckIns };
+      delete remaining[action.dateKey];
+
+      return {
+        ...state,
+        checkIns: {
+          ...state.checkIns,
+          [action.habitId]: action.completed
+            ? { ...habitCheckIns, [action.dateKey]: true }
+            : remaining,
         },
       };
     }

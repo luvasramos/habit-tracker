@@ -2,6 +2,7 @@ type IconName =
   | 'add'
   | 'calendar'
   | 'check'
+  | 'close'
   | 'delete'
   | 'edit'
   | 'habits'
@@ -30,6 +31,12 @@ const paths: Record<IconName, ReactNode> = {
     </>
   ),
   check: <path d="m5 12 4 4 10-10" />,
+  close: (
+    <>
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </>
+  ),
   delete: (
     <>
       <path d="M6 7h12" />

@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarControls } from './components/CalendarControls';
+import { DailyCheckIn } from './components/DailyCheckIn';
 import { HabitDialog } from './components/HabitDialog';
 import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
@@ -7,9 +8,10 @@ import { Icon } from './components/Icon';
 import { StatisticsView } from './components/StatisticsView';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
+import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
 import type { LocalDateKey, ViewMode } from './state/types';
-import { isFutureDay, movePeriod, periodLabel } from './utils/dates';
+import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
 
 export const App = () => {
   const {
@@ -19,11 +21,19 @@ export const App = () => {
     renameHabit,
     deleteHabit,
     toggleCheckIn,
+    setCheckIn,
     isDuplicateName,
   } = useHabits();
   const [view, setView] = useState<ViewMode>('week');
   const [page, setPage] = useState<'calendar' | 'statistics'>('calendar');
   const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const [todayKey] = useState(() => toLocalDateKey(new Date()));
+  const [dailyCheckInOpen, setDailyCheckInOpen] = useState(() => {
+    const answers = loadDailyCheckInAnswers(toLocalDateKey(new Date()));
+    return state.habits.some(
+      (habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[toLocalDateKey(new Date())],
+    );
+  });
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -31,6 +41,16 @@ export const App = () => {
   const selectedHabit = state.habits.find((habit) => habit.id === state.selectedHabitId) ?? null;
   const selectedCheckIns = selectedHabit ? state.checkIns[selectedHabit.id] ?? {} : {};
   const label = useMemo(() => periodLabel(view, anchorDate), [view, anchorDate]);
+  const hasUnansweredToday = useMemo(() => {
+    const answers = loadDailyCheckInAnswers(todayKey);
+    return state.habits.some((habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[todayKey]);
+  }, [state.checkIns, state.habits, todayKey]);
+
+  useEffect(() => {
+    if (!dailyCheckInOpen && hasUnansweredToday) {
+      setDailyCheckInOpen(true);
+    }
+  }, [dailyCheckInOpen, hasUnansweredToday]);
 
   const handleToggle = (dateKey: LocalDateKey) => {
     const [year, month, day] = dateKey.split('-').map(Number);
@@ -75,7 +95,17 @@ export const App = () => {
           </button>
         </header>
 
-        {page === 'statistics' ? (
+        {dailyCheckInOpen ? (
+          <DailyCheckIn
+            habits={state.habits}
+            checkIns={state.checkIns}
+            onAnswer={(habitId, dateKey, completed) => setCheckIn(habitId, dateKey, completed)}
+            onComplete={() => {
+              setPage('calendar');
+              setDailyCheckInOpen(false);
+            }}
+          />
+        ) : page === 'statistics' ? (
           <StatisticsView habits={state.habits} checkIns={state.checkIns} />
         ) : state.habits.length === 0 ? (
           <section className="empty-state">
