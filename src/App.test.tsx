@@ -74,7 +74,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     expect(screen.queryByRole('tab', { name: 'Training' })).not.toBeInTheDocument();
-    expect(screen.getByText('Add a habit to start marking completed days.')).toBeInTheDocument();
+    expect(screen.getByText('No habits yet')).toBeInTheDocument();
   });
 
   it('toggles the same check-in across week and month views', async () => {
@@ -127,7 +127,7 @@ describe('Habit Grid app', () => {
     expect(screen.getByLabelText(/No activity, \d+ days/)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'No activity' }));
-    expect(screen.getByText('No data selected.')).toBeInTheDocument();
+    expect(screen.getByText('No data selected')).toBeInTheDocument();
   });
 
   it('shows a statistics empty state when there is no data', async () => {
@@ -136,6 +136,6 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
-    expect(screen.getByText('No completed days yet.')).toBeInTheDocument();
+    expect(screen.getByText('No statistics yet')).toBeInTheDocument();
   });
 });

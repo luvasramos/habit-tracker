@@ -144,10 +144,13 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
           <span className="daily-checkin__done-mark">
             <Icon name="check" />
           </span>
-          <p>Check-in complete</p>
+          <h2>Check-in complete</h2>
         </div>
       ) : currentHabit ? (
         <>
+          <p className="sr-only" id="daily-checkin-instructions">
+            Swipe left or press the left arrow for no. Swipe right or press the right arrow for yes.
+          </p>
           <div
             className={`checkin-card${leaving ? ` is-leaving-${leaving}` : ''}`}
             style={
@@ -160,6 +163,8 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
             tabIndex={0}
             role="group"
             aria-label={`${currentHabit.name}. Did you complete this today?`}
+            aria-describedby="daily-checkin-instructions"
+            aria-keyshortcuts="ArrowLeft ArrowRight"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerEnd}

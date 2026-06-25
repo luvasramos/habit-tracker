@@ -53,6 +53,8 @@ body {
   background: var(--bg);
   color: var(--text);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -84,9 +86,10 @@ input:focus-visible {
   width: min(100%, 1120px);
   margin: 0 auto;
   padding: var(--space-shell);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 96%, #1a1a1a);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
   overflow-x: clip;
 }
 
@@ -109,7 +112,8 @@ input:focus-visible {
 .app-header {
   justify-content: space-between;
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
 h1,
@@ -170,7 +174,8 @@ h2 {
     border-color 120ms ease,
     background 120ms ease,
     color 120ms ease,
-    opacity 120ms ease;
+    opacity 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .button:hover,
@@ -181,6 +186,13 @@ h2 {
 .nav-button:hover {
   border-color: var(--border-strong);
   background: var(--surface-3);
+}
+
+@media (hover: hover) {
+  .date-button:hover,
+  .year-month-day:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .button:active,
@@ -250,12 +262,43 @@ h2 {
 .empty-state {
   display: grid;
   place-items: center;
-  gap: 14px;
-  min-height: 280px;
+  gap: 16px;
+  min-height: 320px;
+  padding: 28px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   color: var(--muted);
   text-align: center;
+}
+
+.empty-state__icon,
+.stats-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--soft);
+}
+
+.empty-state__icon .icon,
+.stats-empty__icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.empty-state__copy,
+.stats-empty__copy {
+  display: grid;
+  gap: 6px;
+}
+
+.empty-state__copy h2,
+.stats-empty__copy h2 {
+  color: var(--text);
+  font-size: 1rem;
 }
 
 .daily-checkin {
@@ -415,6 +458,10 @@ h2 {
   animation: checkin-done 520ms ease both;
 }
 
+.daily-checkin__done h2 {
+  font-size: 1rem;
+}
+
 .daily-checkin__done-mark {
   display: grid;
   place-items: center;
@@ -515,6 +562,7 @@ h2 {
 .calendar-section {
   display: grid;
   gap: 12px;
+  animation: surface-in 180ms ease both;
 }
 
 .week-grid,
@@ -562,6 +610,11 @@ h2 {
 .date-button.is-today {
   outline: 1px solid var(--soft);
   outline-offset: 2px;
+}
+
+.date-button:focus-visible {
+  position: relative;
+  z-index: 1;
 }
 
 .date-button:disabled {
@@ -688,11 +741,14 @@ h2 {
 
 .summary {
   min-height: 24px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .stats-panel {
   display: grid;
   gap: 16px;
+  animation: surface-in 180ms ease both;
 }
 
 .stats-toolbar {
@@ -937,16 +993,20 @@ h2 {
 .stats-empty {
   display: grid;
   place-items: center;
-  gap: 8px;
-  min-height: 240px;
+  gap: 14px;
+  min-height: 260px;
+  padding: 28px;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   text-align: center;
+  animation: surface-in 180ms ease both;
 }
 
 .stats-empty__icon {
-  width: 24px;
-  height: 24px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
 }
 
 .stats-empty--compact {
@@ -1076,6 +1136,10 @@ h2 {
   overflow: auto;
 }
 
+.dialog[open] {
+  animation: dialog-in 150ms ease both;
+}
+
 .dialog::backdrop {
   background: rgba(0, 0, 0, 0.62);
 }
@@ -1094,7 +1158,7 @@ h2 {
 
 .field input {
   width: 100%;
-  min-height: 40px;
+  min-height: var(--control-size);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #0d0d0d;
@@ -1265,6 +1329,28 @@ h2 {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes surface-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
   }
   to {
     opacity: 1;

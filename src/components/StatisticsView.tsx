@@ -138,9 +138,13 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   if (habits.length === 0) {
     return (
       <section className="stats-empty" aria-label="Statistics">
-        <Icon name="stats" className="stats-empty__icon" />
-        <p>No completed days yet.</p>
-        <p className="muted">Add a habit and mark a day to see statistics.</p>
+        <span className="stats-empty__icon" aria-hidden="true">
+          <Icon name="stats" />
+        </span>
+        <div className="stats-empty__copy">
+          <h2>No statistics yet</h2>
+          <p className="muted">Add a habit and mark a day to see the pattern.</p>
+        </div>
       </section>
     );
   }
@@ -217,9 +221,13 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
       {nothingSelected ? (
         <div className="stats-empty stats-empty--compact">
-          <Icon name="habits" className="stats-empty__icon" />
-          <p>No data selected.</p>
-          <p className="muted">Select a habit or no activity to compare the range.</p>
+          <span className="stats-empty__icon" aria-hidden="true">
+            <Icon name="habits" />
+          </span>
+          <div className="stats-empty__copy">
+            <h2>No data selected</h2>
+            <p className="muted">Select a habit or no activity to compare the range.</p>
+          </div>
         </div>
       ) : (
         <>

@@ -49,6 +49,8 @@ export const HabitDialog = ({
   const [emoji, setEmoji] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
   const errorId = useId();
+  const titleId = useId();
+  const descriptionId = useId();
   const trimmed = normalizeHabitName(name);
   const error =
     name.length > 40
@@ -117,16 +119,23 @@ export const HabitDialog = ({
     <dialog
       ref={dialogRef}
       className="dialog"
+      aria-labelledby={titleId}
+      aria-describedby={descriptionId}
       onCancel={(event) => {
         event.preventDefault();
         onClose();
       }}
       onClose={onClose}
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <form className="dialog__body" onSubmit={handleSubmit}>
         <div>
-          <h2>{mode === 'add' ? 'Add habit' : 'Edit habit'}</h2>
-          <p className="muted">
+          <h2 id={titleId}>{mode === 'add' ? 'Add habit' : 'Edit habit'}</h2>
+          <p className="muted" id={descriptionId}>
             {mode === 'add'
               ? 'Choose a short name and identity.'
               : 'Update this habit or remove it.'}

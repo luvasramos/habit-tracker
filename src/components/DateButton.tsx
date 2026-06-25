@@ -34,11 +34,11 @@ export const DateButton = ({
 }: DateButtonProps) => {
   const future = disabled ?? isFutureDay(date);
   const state = completed ? 'completed' : 'not completed';
-  const label = `${habitName}, ${fullDateLabel(date)}, ${state}`;
   const completionLabel =
     completions.length > 0
       ? `${completions.map((completion) => completion.name).join(', ')} completed`
       : undefined;
+  const label = `${habitName}, ${fullDateLabel(date)}, ${state}${completionLabel ? `. ${completionLabel}.` : ''}`;
 
   return (
     <button

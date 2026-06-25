@@ -109,7 +109,13 @@ export const App = () => {
           <StatisticsView habits={state.habits} checkIns={state.checkIns} />
         ) : state.habits.length === 0 ? (
           <section className="empty-state">
-            <p>Add a habit to start marking completed days.</p>
+            <span className="empty-state__icon" aria-hidden="true">
+              <Icon name="habits" />
+            </span>
+            <div className="empty-state__copy">
+              <h2>No habits yet</h2>
+              <p>Add one small routine to begin.</p>
+            </div>
             <button
               className="button button--primary"
               type="button"

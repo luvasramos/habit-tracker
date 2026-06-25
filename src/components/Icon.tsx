@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 type IconName =
   | 'add'
   | 'calendar'
@@ -85,4 +87,3 @@ export const Icon = ({ name, className = '' }: IconProps) => (
     {paths[name]}
   </svg>
 );
-import type { ReactNode } from 'react';
