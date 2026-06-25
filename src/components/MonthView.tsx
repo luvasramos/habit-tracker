@@ -1,8 +1,9 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
-import type { Habit, LocalDateKey } from '../state/types';
+import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
 import { isFutureDay, monthBounds } from '../utils/dates';
+import { isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
@@ -10,8 +11,8 @@ type MonthViewProps = {
   habit: Habit;
   habits: Habit[];
   anchorDate: Date;
-  checkIns: Record<LocalDateKey, true>;
-  allCheckIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: Record<LocalDateKey, CheckInEntry>;
+  allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
@@ -27,7 +28,7 @@ export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, on
   const habitColor = getHabitColorVar(habit.id, habits);
   const count = Object.keys(checkIns).filter((key) => {
     const cell = cells.find((item) => item.key === key);
-    return cell?.inPeriod;
+    return cell?.inPeriod && isCompletedCheckIn(checkIns[key]);
   }).length;
 
   useEffect(() => {
@@ -67,7 +68,7 @@ export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, on
               date={cell.date}
               dateKey={cell.key}
               habitName={habit.name}
-              completed={Boolean(checkIns[cell.key])}
+              completed={isCompletedCheckIn(checkIns[cell.key])}
               habitColor={habitColor}
               completions={getDateCompletions(cell.key, habits, allCheckIns).map(
                 ({ habit: completedHabit, color }) => ({

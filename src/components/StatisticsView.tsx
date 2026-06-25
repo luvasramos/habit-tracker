@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import type { Habit, LocalDateKey, ViewMode } from '../state/types';
+import type { CheckInsByHabit, Habit, LocalDateKey, ViewMode } from '../state/types';
 import { getMonthCells, getWeekDays } from '../utils/calendar';
 import {
   daysBetweenInclusive,
@@ -12,12 +12,13 @@ import {
   toLocalDateKey,
   yearBounds,
 } from '../utils/dates';
+import { isCompletedCheckIn } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
 type StatisticsViewProps = {
   habits: Habit[];
-  checkIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: CheckInsByHabit;
 };
 
 type HabitStat = {
@@ -78,7 +79,9 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   );
 
   const habitStats: HabitStat[] = selectedHabits.map((habit) => {
-    const count = rangeKeys.filter((key) => checkIns[habit.id]?.[key]).length;
+    const count = rangeKeys.filter((key) =>
+      isCompletedCheckIn(checkIns[habit.id]?.[key]),
+    ).length;
     return {
       id: habit.id,
       name: habit.name,
@@ -91,7 +94,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
   });
   const totalCompletions = habitStats.reduce((sum, stat) => sum + stat.count, 0);
   const activeDays = rangeKeys.filter((key) =>
-    selectedHabits.some((habit) => checkIns[habit.id]?.[key]),
+    selectedHabits.some((habit) => isCompletedCheckIn(checkIns[habit.id]?.[key])),
   ).length;
   const inactiveDays =
     selectedHabits.length === 0 ? rangeKeys.length : Math.max(rangeKeys.length - activeDays, 0);
@@ -129,7 +132,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
   const getSelectedCompletions = (dateKey: LocalDateKey) =>
     selectedHabits
-      .filter((habit) => checkIns[habit.id]?.[dateKey])
+      .filter((habit) => isCompletedCheckIn(checkIns[habit.id]?.[dateKey]))
       .map((habit) => ({
         habit,
         color: getHabitColorVar(habit.id, habits),

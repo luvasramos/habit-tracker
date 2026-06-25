@@ -1,8 +1,9 @@
 import { format } from 'date-fns';
 import { useEffect, useMemo, useState } from 'react';
-import type { Habit, LocalDateKey } from '../state/types';
+import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getWeekDays } from '../utils/calendar';
 import { isFutureDay } from '../utils/dates';
+import { isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
@@ -10,8 +11,8 @@ type ViewProps = {
   habit: Habit;
   habits: Habit[];
   anchorDate: Date;
-  checkIns: Record<LocalDateKey, true>;
-  allCheckIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: Record<LocalDateKey, CheckInEntry>;
+  allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
@@ -22,7 +23,7 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
     [days],
   );
   const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
-  const count = days.filter((day) => checkIns[day.key]).length;
+  const count = days.filter((day) => isCompletedCheckIn(checkIns[day.key])).length;
   const habitColor = getHabitColorVar(habit.id, habits);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
             date={day.date}
             dateKey={day.key}
             habitName={habit.name}
-            completed={Boolean(checkIns[day.key])}
+            completed={isCompletedCheckIn(checkIns[day.key])}
             habitColor={habitColor}
             completions={getDateCompletions(day.key, habits, allCheckIns).map(
               ({ habit: completedHabit, color }) => ({

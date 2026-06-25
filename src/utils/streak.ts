@@ -1,15 +1,14 @@
 import { addDays } from 'date-fns';
-import type { LocalDateKey } from '../state/types';
+import type { CheckInsByHabit, LocalDateKey } from '../state/types';
 import { stripTime, toLocalDateKey } from './dates';
-
-type CheckInsByHabit = Record<string, Record<LocalDateKey, true>>;
+import { isCompletedCheckIn } from './duration';
 
 export const getCompletedActivityDays = (checkIns: CheckInsByHabit) => {
   const completedDays = new Set<LocalDateKey>();
 
   Object.values(checkIns).forEach((habitCheckIns) => {
-    Object.entries(habitCheckIns).forEach(([dateKey, completed]) => {
-      if (completed) {
+    Object.entries(habitCheckIns).forEach(([dateKey, entry]) => {
+      if (isCompletedCheckIn(entry)) {
         completedDays.add(dateKey);
       }
     });

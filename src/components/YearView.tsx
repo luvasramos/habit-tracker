@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
 import { useMemo } from 'react';
-import type { Habit, LocalDateKey } from '../state/types';
+import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
+import { isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
@@ -9,8 +10,8 @@ type YearViewProps = {
   habit: Habit;
   habits: Habit[];
   anchorDate: Date;
-  checkIns: Record<LocalDateKey, true>;
-  allCheckIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: Record<LocalDateKey, CheckInEntry>;
+  allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
@@ -23,7 +24,9 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
   );
   const year = anchorDate.getFullYear();
   const habitColor = getHabitColorVar(habit.id, habits);
-  const count = Object.keys(checkIns).filter((key) => key.startsWith(`${year}-`)).length;
+  const count = Object.entries(checkIns).filter(
+    ([key, entry]) => key.startsWith(`${year}-`) && isCompletedCheckIn(entry),
+  ).length;
 
   return (
     <section className="calendar-section" aria-label="Year calendar">
@@ -46,7 +49,7 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
                     date={cell.date}
                     dateKey={cell.key}
                     habitName={habit.name}
-                    completed={Boolean(checkIns[cell.key])}
+                    completed={isCompletedCheckIn(checkIns[cell.key])}
                     habitColor={habitColor}
                     completions={getDateCompletions(cell.key, habits, allCheckIns).map(
                       ({ habit: completedHabit, color }) => ({

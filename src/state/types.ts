@@ -76,10 +76,15 @@ export type HabitIcon =
       value: string;
     };
 
+export type HabitTrackingMode = 'completion' | 'duration';
+
 export type HabitDraft = {
   name: string;
   color: HabitColor;
   icon: HabitIcon;
+  trackingMode?: HabitTrackingMode;
+  defaultDurationMinutes?: number;
+  yearlyGoalMinutes?: number;
 };
 
 export type Habit = {
@@ -88,12 +93,23 @@ export type Habit = {
   createdAt: string;
   color?: HabitColor;
   icon?: HabitIcon;
+  trackingMode?: HabitTrackingMode;
+  defaultDurationMinutes?: number;
+  yearlyGoalMinutes?: number;
 };
 
+export type CompletedCheckIn = {
+  completed: true;
+  durationMinutes?: number;
+};
+
+export type CheckInEntry = true | CompletedCheckIn;
+export type CheckInsByHabit = Record<string, Record<LocalDateKey, CheckInEntry>>;
+
 export type PersistedState = {
-  version: 1;
+  version: 2;
   habits: Habit[];
-  checkIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: CheckInsByHabit;
   selectedHabitId: string | null;
 };
 

@@ -1,4 +1,5 @@
 import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
+import { createCompletedCheckIn, isCompletedCheckIn } from '../utils/duration';
 import type { Habit, HabitDraft, HabitState, LocalDateKey } from './types';
 
 export type HabitAction =
@@ -7,10 +8,16 @@ export type HabitAction =
   | { type: 'renameHabit'; habitId: string; habit: HabitDraft }
   | { type: 'deleteHabit'; habitId: string }
   | { type: 'toggleCheckIn'; habitId: string; dateKey: LocalDateKey }
-  | { type: 'setCheckIn'; habitId: string; dateKey: LocalDateKey; completed: boolean };
+  | {
+      type: 'setCheckIn';
+      habitId: string;
+      dateKey: LocalDateKey;
+      completed: boolean;
+      durationMinutes?: number;
+    };
 
 export const emptyState = (): HabitState => ({
-  version: 1,
+  version: 2,
   habits: [],
   checkIns: {},
   selectedHabitId: null,
@@ -52,6 +59,9 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         createdAt: new Date().toISOString(),
         color: action.habit.color ?? defaultHabitColor(state.habits.length),
         icon: action.habit.icon ?? defaultHabitIcon,
+        trackingMode: action.habit.trackingMode ?? 'completion',
+        defaultDurationMinutes: action.habit.defaultDurationMinutes,
+        yearlyGoalMinutes: action.habit.yearlyGoalMinutes,
       };
 
       return {
@@ -83,6 +93,10 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
                 name,
                 color: action.habit.color,
                 icon: action.habit.icon,
+                trackingMode: action.habit.trackingMode ?? habit.trackingMode ?? 'completion',
+                defaultDurationMinutes:
+                  action.habit.defaultDurationMinutes ?? habit.defaultDurationMinutes,
+                yearlyGoalMinutes: action.habit.yearlyGoalMinutes ?? habit.yearlyGoalMinutes,
               }
             : habit,
         ),
@@ -123,7 +137,7 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         ...state,
         checkIns: {
           ...state.checkIns,
-          [action.habitId]: existing
+          [action.habitId]: isCompletedCheckIn(existing)
             ? remaining
             : { ...habitCheckIns, [action.dateKey]: true },
         },
@@ -144,7 +158,10 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         checkIns: {
           ...state.checkIns,
           [action.habitId]: action.completed
-            ? { ...habitCheckIns, [action.dateKey]: true }
+            ? {
+                ...habitCheckIns,
+                [action.dateKey]: createCompletedCheckIn(action.durationMinutes),
+              }
             : remaining,
         },
       };

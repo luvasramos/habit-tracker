@@ -5,14 +5,15 @@ import {
   saveDailyCheckInAnswer,
   type DailyCheckInAnswer,
 } from '../data/dailyCheckInStore';
-import type { Habit, LocalDateKey } from '../state/types';
+import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
 import { toLocalDateKey } from '../utils/dates';
+import { isCompletedCheckIn } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
 type DailyCheckInProps = {
   habits: Habit[];
-  checkIns: Record<string, Record<LocalDateKey, true>>;
+  checkIns: CheckInsByHabit;
   onAnswer: (habitId: string, dateKey: LocalDateKey, completed: boolean) => void;
   onComplete: () => void;
 };
@@ -33,7 +34,9 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
     () =>
       new Set([
         ...Object.keys(answers),
-        ...habits.filter((habit) => checkIns[habit.id]?.[todayKey]).map((habit) => habit.id),
+        ...habits
+          .filter((habit) => isCompletedCheckIn(checkIns[habit.id]?.[todayKey]))
+          .map((habit) => habit.id),
       ]),
     [answers, checkIns, habits, todayKey],
   );

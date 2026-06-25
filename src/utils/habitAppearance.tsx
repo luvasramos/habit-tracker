@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react';
 import type {
+  CheckInsByHabit,
   Habit,
   HabitColor,
   HabitIcon,
@@ -8,6 +9,7 @@ import type {
   HabitPresetColor,
   LocalDateKey,
 } from '../state/types';
+import { isCompletedCheckIn } from './duration';
 
 type HabitColorOption = {
   name: HabitPresetColor;
@@ -612,10 +614,10 @@ export const getHabitColorVar = (
 export const getDateCompletions = (
   dateKey: LocalDateKey,
   habits: Habit[],
-  checkIns: Record<string, Record<LocalDateKey, true>>,
+  checkIns: CheckInsByHabit,
 ) =>
   habits
-    .filter((habit) => checkIns[habit.id]?.[dateKey])
+    .filter((habit) => isCompletedCheckIn(checkIns[habit.id]?.[dateKey]))
     .map((habit) => ({
       habit,
       color: getHabitColorVar(habit, habits),

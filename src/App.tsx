@@ -12,6 +12,7 @@ import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
 import type { Habit, LocalDateKey, ViewMode } from './state/types';
 import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
+import { isCompletedCheckIn } from './utils/duration';
 import { getHabitColorVar, HabitIconView } from './utils/habitAppearance';
 import { calculateActivityStreak } from './utils/streak';
 
@@ -161,7 +162,9 @@ export const App = () => {
   const [dailyCheckInOpen, setDailyCheckInOpen] = useState(() => {
     const answers = loadDailyCheckInAnswers(toLocalDateKey(new Date()));
     return state.habits.some(
-      (habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[toLocalDateKey(new Date())],
+      (habit) =>
+        !answers[habit.id] &&
+        !isCompletedCheckIn(state.checkIns[habit.id]?.[toLocalDateKey(new Date())]),
     );
   });
   const [addOpen, setAddOpen] = useState(false);
@@ -180,10 +183,15 @@ export const App = () => {
   );
   const hasUnansweredToday = useMemo(() => {
     const answers = loadDailyCheckInAnswers(todayKey);
-    return state.habits.some((habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[todayKey]);
+    return state.habits.some(
+      (habit) => !answers[habit.id] && !isCompletedCheckIn(state.checkIns[habit.id]?.[todayKey]),
+    );
   }, [state.checkIns, state.habits, todayKey]);
   const remainingTodayHabits = useMemo(
-    () => state.habits.filter((habit) => !state.checkIns[habit.id]?.[todayKey]),
+    () =>
+      state.habits.filter(
+        (habit) => !isCompletedCheckIn(state.checkIns[habit.id]?.[todayKey]),
+      ),
     [state.checkIns, state.habits, todayKey],
   );
 

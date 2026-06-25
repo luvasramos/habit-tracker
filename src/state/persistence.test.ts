@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { emptyState } from './habitReducer';
 import { createLocalStorageHabitStore } from '../data/habitStore';
-import { loadState, saveState, STORAGE_KEY } from './persistence';
+import { LEGACY_STORAGE_KEYS, loadState, saveState, STORAGE_KEY } from './persistence';
 
 const makeStorage = () => {
   let store: Record<string, string> = {};
@@ -27,9 +27,23 @@ describe('persistence', () => {
   it('loads valid persisted state', () => {
     const storage = makeStorage();
     const state = {
-      version: 1 as const,
-      habits: [{ id: 'habit-1', name: 'Gym', createdAt: '2026-01-01T00:00:00.000Z' }],
-      checkIns: { 'habit-1': { '2026-06-17': true as const } },
+      version: 2 as const,
+      habits: [
+        {
+          id: 'habit-1',
+          name: 'Gym',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          trackingMode: 'duration' as const,
+          defaultDurationMinutes: 45,
+          yearlyGoalMinutes: 9000,
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-17': { completed: true as const, durationMinutes: 45 },
+          '2026-06-18': { completed: true as const },
+        },
+      },
       selectedHabitId: 'habit-1',
     };
     storage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -41,9 +55,44 @@ describe('persistence', () => {
           ...state.habits[0],
           color: 'terracotta',
           icon: { type: 'svg', name: 'custom' },
+          trackingMode: 'duration',
+          defaultDurationMinutes: 45,
+          yearlyGoalMinutes: 9000,
         },
       ],
     });
+  });
+
+  it('migrates old localStorage data to the current schema without losing completions', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      LEGACY_STORAGE_KEYS[0],
+      JSON.stringify({
+        version: 1,
+        habits: [{ id: 'habit-1', name: 'Read', createdAt: '2026-01-01T00:00:00.000Z' }],
+        checkIns: { 'habit-1': { '2026-06-17': true } },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage)).toEqual({
+      version: 2,
+      habits: [
+        {
+          id: 'habit-1',
+          name: 'Read',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          color: 'terracotta',
+          icon: { type: 'svg', name: 'custom' },
+          trackingMode: 'completion',
+          defaultDurationMinutes: undefined,
+          yearlyGoalMinutes: undefined,
+        },
+      ],
+      checkIns: { 'habit-1': { '2026-06-17': true } },
+      selectedHabitId: 'habit-1',
+    });
+    expect(storage.getItem(LEGACY_STORAGE_KEYS[0])).toBeTruthy();
   });
 
   it('sanitizes invalid habit appearance data', () => {
@@ -70,6 +119,7 @@ describe('persistence', () => {
       expect.objectContaining({
         color: 'terracotta',
         icon: { type: 'svg', name: 'custom' },
+        trackingMode: 'completion',
       }),
     );
   });
@@ -98,6 +148,7 @@ describe('persistence', () => {
       expect.objectContaining({
         color: '#aabbcc',
         icon: { type: 'svg', name: 'reading' },
+        trackingMode: 'completion',
       }),
     );
   });
@@ -107,7 +158,7 @@ describe('persistence', () => {
     storage.setItem(STORAGE_KEY, '{bad');
     expect(loadState(storage)).toEqual(emptyState());
 
-    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 2 }));
+    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 3 }));
     expect(loadState(storage)).toEqual(emptyState());
   });
 
