@@ -203,4 +203,46 @@ describe('Habit Grid app', () => {
     });
     expect(screen.getByRole('button', { name: 'Today remaining: 0' })).toBeInTheDocument();
   });
+
+  it('returns to the habit editor when historical time migration is cancelled', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Study Japanese',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'language' },
+            trackingMode: 'completion',
+          },
+        ],
+        checkIns: { 'habit-1': { '2026-06-20': true } },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+    await user.click(screen.getByRole('button', { name: 'Completion + time' }));
+    await user.type(screen.getByLabelText('Default session'), '1h');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByText('Past completed days')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Cancel Return to the habit editor/ }));
+
+    expect(screen.queryByText('Past completed days')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Completion + time' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].trackingMode).toBe('completion');
+    expect(state.checkIns['habit-1']['2026-06-20']).toBe(true);
+  });
 });

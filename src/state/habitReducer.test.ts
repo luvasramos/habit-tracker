@@ -13,6 +13,27 @@ const durationDraft = (name: string, defaultDurationMinutes = 60): HabitDraft =>
   trackingMode: 'duration',
   defaultDurationMinutes,
 });
+const migratedState = () => ({
+  ...emptyState(),
+  habits: [
+    {
+      id: 'habit-1',
+      name: 'Study Japanese',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      trackingMode: 'completion' as const,
+      color: 'blue' as const,
+      icon: { type: 'svg' as const, name: 'language' as const },
+    },
+  ],
+  checkIns: {
+    'habit-1': {
+      '2026-06-20': true as const,
+      '2026-06-21': { completed: true as const, durationMinutes: 30 },
+      '2026-06-25': true as const,
+    },
+  },
+  selectedHabitId: 'habit-1',
+});
 
 describe('habitReducer', () => {
   it('adds and selects a habit', () => {
@@ -317,5 +338,103 @@ describe('habitReducer', () => {
         yearlyGoalMinutes: undefined,
       }),
     );
+  });
+
+  it('keeps past time empty when duration migration is not applied', () => {
+    const updated = habitReducer(migratedState(), {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: durationDraft('Study Japanese', 60),
+      options: { historicalDurationMigration: 'keep-empty', todayKey: '2026-06-25' },
+    });
+
+    expect(updated.habits[0].trackingMode).toBe('duration');
+    expect(updated.checkIns['habit-1']['2026-06-20']).toBe(true);
+  });
+
+  it('applies default duration only to past completed days with missing duration', () => {
+    const updated = habitReducer(migratedState(), {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: durationDraft('Study Japanese', 60),
+      options: { historicalDurationMigration: 'apply-default', todayKey: '2026-06-25' },
+    });
+
+    expect(updated.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
+    expect(updated.checkIns['habit-1']['2026-06-21']).toEqual({
+      completed: true,
+      durationMinutes: 30,
+    });
+    expect(updated.checkIns['habit-1']['2026-06-25']).toBe(true);
+    expect(updated.checkIns['habit-1']['2026-06-22']).toBeUndefined();
+  });
+
+  it('changing default duration later does not rewrite logged time', () => {
+    const state = {
+      ...migratedState(),
+      habits: [
+        {
+          ...migratedState().habits[0],
+          trackingMode: 'duration' as const,
+          defaultDurationMinutes: 60,
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-20': { completed: true as const, durationMinutes: 60 },
+        },
+      },
+    };
+    const updated = habitReducer(state, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: durationDraft('Study Japanese', 90),
+    });
+
+    expect(updated.habits[0].defaultDurationMinutes).toBe(90);
+    expect(updated.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
+  });
+
+  it('switching tracking modes does not lose logged duration data', () => {
+    const state = {
+      ...migratedState(),
+      habits: [
+        {
+          ...migratedState().habits[0],
+          trackingMode: 'duration' as const,
+          defaultDurationMinutes: 60,
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-20': { completed: true as const, durationMinutes: 60 },
+        },
+      },
+    };
+    const completionOnly = habitReducer(state, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: { ...draft('Study Japanese'), trackingMode: 'completion' },
+    });
+    const durationAgain = habitReducer(completionOnly, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: durationDraft('Study Japanese', 45),
+    });
+
+    expect(completionOnly.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
+    expect(durationAgain.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
   });
 });

@@ -383,13 +383,14 @@ export const App = () => {
           mode="edit"
           initialName={selectedHabit.name}
           initialHabit={selectedHabit}
+          initialCheckIns={selectedCheckIns}
           isOpen={editOpen}
           duplicateMessage="Another habit already uses this name."
           onClose={() => {
             setEditOpen(false);
             editButtonRef.current?.focus();
           }}
-          onSave={(habit) => renameHabit(selectedHabit.id, habit)}
+          onSave={(habit, options) => renameHabit(selectedHabit.id, habit, options)}
           onDelete={() => deleteHabit(selectedHabit.id)}
           isDuplicate={(name) => isDuplicateName(name, selectedHabit.id)}
         />

@@ -9,13 +9,13 @@ import {
 } from 'react';
 import { habitStore, type HabitStore } from '../data/habitStore';
 import { habitReducer, hasDuplicateHabitName } from './habitReducer';
-import type { HabitDraft, HabitState, LocalDateKey } from './types';
+import type { HabitDraft, HabitSaveOptions, HabitState, LocalDateKey } from './types';
 
 type HabitContextValue = {
   state: HabitState;
   addHabit: (habit: HabitDraft) => void;
   selectHabit: (habitId: string) => void;
-  renameHabit: (habitId: string, habit: HabitDraft) => void;
+  renameHabit: (habitId: string, habit: HabitDraft, options?: HabitSaveOptions) => void;
   deleteHabit: (habitId: string) => void;
   toggleCheckIn: (habitId: string, dateKey: LocalDateKey) => void;
   setCheckIn: (
@@ -47,7 +47,8 @@ export const HabitProvider = ({
       state,
       addHabit: (habit) => dispatch({ type: 'addHabit', habit }),
       selectHabit: (habitId) => dispatch({ type: 'selectHabit', habitId }),
-      renameHabit: (habitId, habit) => dispatch({ type: 'renameHabit', habitId, habit }),
+      renameHabit: (habitId, habit, options) =>
+        dispatch({ type: 'renameHabit', habitId, habit, options }),
       deleteHabit: (habitId) => dispatch({ type: 'deleteHabit', habitId }),
       toggleCheckIn: (habitId, dateKey) =>
         dispatch({ type: 'toggleCheckIn', habitId, dateKey }),

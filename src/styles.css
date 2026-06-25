@@ -1528,6 +1528,66 @@ h2 {
   line-height: 1.4;
 }
 
+.migration-prompt {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.migration-prompt h3 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.migration-choice {
+  display: grid;
+  gap: 4px;
+  min-height: var(--control-size);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.migration-choice:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-3);
+}
+
+.migration-choice:active {
+  transform: translateY(1px) scale(0.99);
+}
+
+.migration-choice span:last-child,
+.migration-cancel span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.migration-choice--recommended {
+  border-color: color-mix(in srgb, var(--soft) 54%, var(--border));
+  background: color-mix(in srgb, var(--soft) 7%, var(--surface-2));
+}
+
+.migration-cancel {
+  width: fit-content;
+  height: auto;
+  min-height: var(--control-size);
+  align-items: center;
+  white-space: normal;
+}
+
 .time-edit-trigger {
   width: fit-content;
   gap: 8px;

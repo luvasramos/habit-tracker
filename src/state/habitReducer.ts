@@ -2,14 +2,16 @@ import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
 import {
   createCompletedCheckIn,
   getDefaultDurationMinutes,
+  getCheckInDurationMinutes,
   isCompletedCheckIn,
+  isValidDurationMinutes,
 } from '../utils/duration';
-import type { Habit, HabitDraft, HabitState, LocalDateKey } from './types';
+import type { Habit, HabitDraft, HabitSaveOptions, HabitState, LocalDateKey } from './types';
 
 export type HabitAction =
   | { type: 'addHabit'; habit: HabitDraft }
   | { type: 'selectHabit'; habitId: string }
-  | { type: 'renameHabit'; habitId: string; habit: HabitDraft }
+  | { type: 'renameHabit'; habitId: string; habit: HabitDraft; options?: HabitSaveOptions }
   | { type: 'deleteHabit'; habitId: string }
   | { type: 'toggleCheckIn'; habitId: string; dateKey: LocalDateKey }
   | {
@@ -88,7 +90,7 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         return state;
       }
 
-      return {
+      const updatedState = {
         ...state,
         habits: state.habits.map((habit) => {
           if (habit.id !== action.habitId) {
@@ -128,6 +130,35 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
                 yearlyGoalMinutes: undefined,
               };
         }),
+      };
+
+      const migrationTodayKey = action.options?.todayKey;
+      const migrationDurationMinutes = action.habit.defaultDurationMinutes;
+      if (
+        action.options?.historicalDurationMigration !== 'apply-default' ||
+        action.habit.trackingMode !== 'duration' ||
+        !isValidDurationMinutes(migrationDurationMinutes) ||
+        !migrationTodayKey
+      ) {
+        return updatedState;
+      }
+
+      const habitCheckIns = updatedState.checkIns[action.habitId] ?? {};
+      return {
+        ...updatedState,
+        checkIns: {
+          ...updatedState.checkIns,
+          [action.habitId]: Object.fromEntries(
+            Object.entries(habitCheckIns).map(([dateKey, entry]) => [
+              dateKey,
+              dateKey < migrationTodayKey &&
+              isCompletedCheckIn(entry) &&
+              getCheckInDurationMinutes(entry) === undefined
+                ? createCompletedCheckIn(migrationDurationMinutes)
+                : entry,
+            ]),
+          ),
+        },
       };
     }
 

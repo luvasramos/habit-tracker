@@ -87,6 +87,13 @@ export type HabitDraft = {
   yearlyGoalMinutes?: number;
 };
 
+export type HistoricalDurationMigration = 'keep-empty' | 'apply-default';
+
+export type HabitSaveOptions = {
+  historicalDurationMigration?: HistoricalDurationMigration;
+  todayKey?: LocalDateKey;
+};
+
 export type Habit = {
   id: string;
   name: string;

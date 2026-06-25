@@ -4,9 +4,12 @@ import type {
   Habit,
   HabitColor,
   HabitDraft,
+  HabitSaveOptions,
   HabitIcon,
   HabitIconName,
   HabitTrackingMode,
+  CheckInEntry,
+  LocalDateKey,
 } from '../state/types';
 import {
   defaultHabitColor,
@@ -21,7 +24,13 @@ import {
   normalizeEmojiValue,
   normalizeHabitIcon,
 } from '../utils/habitAppearance';
-import { formatMinutes, isValidDurationMinutes } from '../utils/duration';
+import {
+  formatMinutes,
+  getCheckInDurationMinutes,
+  isCompletedCheckIn,
+  isValidDurationMinutes,
+} from '../utils/duration';
+import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
 
 type HabitDialogProps = {
@@ -32,9 +41,10 @@ type HabitDialogProps = {
   isOpen: boolean;
   duplicateMessage: string;
   onClose: () => void;
-  onSave: (habit: HabitDraft) => void;
+  onSave: (habit: HabitDraft, options?: HabitSaveOptions) => void;
   onDelete?: () => void;
   isDuplicate: (name: string) => boolean;
+  initialCheckIns?: Record<LocalDateKey, CheckInEntry>;
 };
 
 type EmojiOption = {
@@ -153,6 +163,16 @@ const popularEmojiOptions = emojiOptions.filter(({ emoji }) =>
 const matchesSearch = (query: string, values: string[]) =>
   values.some((value) => value.toLocaleLowerCase().includes(query));
 
+type PendingMigration =
+  | {
+      type: 'enable-duration';
+      draft: HabitDraft;
+    }
+  | {
+      type: 'disable-duration';
+      draft: HabitDraft;
+    };
+
 const formatSessionInput = (minutes?: number) =>
   isValidDurationMinutes(minutes) ? formatMinutes(minutes) : '';
 
@@ -210,6 +230,7 @@ export const HabitDialog = ({
   onSave,
   onDelete,
   isDuplicate,
+  initialCheckIns = {},
 }: HabitDialogProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -230,6 +251,7 @@ export const HabitDialog = ({
   const [trackingMode, setTrackingMode] = useState<HabitTrackingMode>('completion');
   const [defaultSessionInput, setDefaultSessionInput] = useState('');
   const [yearlyGoalInput, setYearlyGoalInput] = useState('');
+  const [pendingMigration, setPendingMigration] = useState<PendingMigration | null>(null);
   const errorId = useId();
   const colorErrorId = useId();
   const defaultSessionErrorId = useId();
@@ -272,6 +294,13 @@ export const HabitDialog = ({
           .join(' · ')
       : '';
   const formError = error || colorError || defaultSessionError || yearlyGoalError;
+  const todayKey = toLocalDateKey(new Date());
+  const historicalCompletionsWithoutDuration = Object.entries(initialCheckIns).filter(
+    ([dateKey, entry]) =>
+      dateKey < todayKey &&
+      isCompletedCheckIn(entry) &&
+      getCheckInDurationMinutes(entry) === undefined,
+  );
 
   const iconQuery = iconSearch.trim().toLocaleLowerCase();
   const emojiQuery = emojiSearch.trim().toLocaleLowerCase();
@@ -314,6 +343,7 @@ export const HabitDialog = ({
       setTrackingMode(initialHabit?.trackingMode ?? 'completion');
       setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
       setYearlyGoalInput(formatGoalInput(initialHabit?.yearlyGoalMinutes));
+      setPendingMigration(null);
       dialog.showModal();
       window.setTimeout(() => inputRef.current?.focus(), 0);
     } else if (!isOpen && dialog.open) {
@@ -321,27 +351,52 @@ export const HabitDialog = ({
     }
   }, [defaultColorIndex, initialHabit, initialName, isOpen]);
 
+  const buildDraft = (): HabitDraft => ({
+    name: trimmed,
+    color: colorMode === 'custom' ? normalizedCustomColor ?? color : color,
+    icon:
+      iconMode === 'emoji'
+        ? { type: 'emoji', value: normalizeEmojiValue(emoji) || '•' }
+        : { type: 'svg', name: svgIcon },
+    trackingMode,
+    defaultDurationMinutes:
+      trackingMode === 'duration' && defaultDurationMinutes ? defaultDurationMinutes : undefined,
+    yearlyGoalMinutes:
+      trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
+  });
+  const saveDraft = (draft: HabitDraft, options?: HabitSaveOptions) => {
+    onSave(draft, options);
+    onClose();
+  };
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
     if (formError) {
       return;
     }
-    onSave({
-      name: trimmed,
-      color: colorMode === 'custom' ? normalizedCustomColor ?? color : color,
-      icon:
-        iconMode === 'emoji'
-          ? { type: 'emoji', value: normalizeEmojiValue(emoji) || '•' }
-          : { type: 'svg', name: svgIcon },
-      trackingMode,
-      defaultDurationMinutes:
-        trackingMode === 'duration' && defaultDurationMinutes
-          ? defaultDurationMinutes
-          : undefined,
-      yearlyGoalMinutes:
-        trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
-    });
-    onClose();
+
+    const draft = buildDraft();
+    const initialTrackingMode = initialHabit?.trackingMode ?? 'completion';
+
+    if (
+      mode === 'edit' &&
+      initialTrackingMode !== 'duration' &&
+      trackingMode === 'duration' &&
+      historicalCompletionsWithoutDuration.length > 0
+    ) {
+      setPendingMigration({ type: 'enable-duration', draft });
+      return;
+    }
+
+    if (
+      mode === 'edit' &&
+      initialTrackingMode === 'duration' &&
+      trackingMode === 'completion'
+    ) {
+      setPendingMigration({ type: 'disable-duration', draft });
+      return;
+    }
+
+    saveDraft(draft);
   };
 
   const previewHabit: Habit = {
@@ -391,6 +446,87 @@ export const HabitDialog = ({
               : 'Update this habit or remove it.'}
           </p>
         </div>
+
+        {pendingMigration?.type === 'enable-duration' ? (
+          <section className="migration-prompt" aria-label="Historical time migration">
+            <div>
+              <h3>Past completed days</h3>
+              <p className="muted">
+                {historicalCompletionsWithoutDuration.length} completed day
+                {historicalCompletionsWithoutDuration.length === 1
+                  ? ' does'
+                  : 's do'} not have time logged.
+              </p>
+            </div>
+            <button
+              className="migration-choice migration-choice--recommended"
+              type="button"
+              onClick={() =>
+                saveDraft(pendingMigration.draft, {
+                  historicalDurationMigration: 'keep-empty',
+                  todayKey,
+                })
+              }
+            >
+              <span>Keep past time empty</span>
+              <span>
+                Past completed days will still count as completed days, but they will not contribute to total hours.
+              </span>
+            </button>
+            <button
+              className="migration-choice"
+              type="button"
+              onClick={() =>
+                saveDraft(pendingMigration.draft, {
+                  historicalDurationMigration: 'apply-default',
+                  todayKey,
+                })
+              }
+            >
+              <span>Apply default time to past completed days</span>
+              <span>
+                Every past completed day without time will receive the current default session duration.
+              </span>
+            </button>
+            <button
+              className="button button--quiet migration-cancel"
+              type="button"
+              onClick={() => setPendingMigration(null)}
+            >
+              <Icon name="close" />
+              Cancel
+              <span>Return to the habit editor without changing the tracking mode.</span>
+            </button>
+          </section>
+        ) : null}
+
+        {pendingMigration?.type === 'disable-duration' ? (
+          <section className="migration-prompt" aria-label="Tracking mode confirmation">
+            <div>
+              <h3>Switch to completion only?</h3>
+              <p className="muted">
+                Logged hours will be preserved internally and can be used again if this habit is switched back to time tracking.
+              </p>
+            </div>
+            <button
+              className="migration-choice migration-choice--recommended"
+              type="button"
+              onClick={() => saveDraft(pendingMigration.draft)}
+            >
+              <span>Preserve logged time and switch</span>
+              <span>Future check-ins will count as completed days only.</span>
+            </button>
+            <button
+              className="button button--quiet migration-cancel"
+              type="button"
+              onClick={() => setPendingMigration(null)}
+            >
+              <Icon name="close" />
+              Cancel
+              <span>Return to the habit editor without changing the tracking mode.</span>
+            </button>
+          </section>
+        ) : null}
 
         <label className="field">
           <span>Name</span>
