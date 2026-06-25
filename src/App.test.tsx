@@ -358,7 +358,7 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
-    expect(screen.getByText('No statistics yet')).toBeInTheDocument();
+    expect(screen.getByText('No habits to analyze yet.')).toBeInTheDocument();
   });
 
   it('logs the default duration from the daily check-in flow', async () => {
@@ -537,7 +537,11 @@ describe('Habit Grid app', () => {
     expect(within(timeGoal).getByText('1 completed day has no time recorded')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'All habits' }));
-    expect(screen.queryByLabelText('Time goal')).not.toBeInTheDocument();
+    const compactTimeGoals = screen.getByLabelText('Time goals');
+    expect(within(compactTimeGoals).getByText('Study Japanese')).toBeInTheDocument();
+    expect(within(compactTimeGoals).getByText('1h / 3h')).toBeInTheDocument();
+    expect(within(compactTimeGoals).queryByText('Piano')).not.toBeInTheDocument();
+    expect(within(compactTimeGoals).queryByText('Gym')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Time summary')).not.toBeInTheDocument();
     expect(screen.getByText('Total time logged')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Piano' }));

@@ -550,6 +550,21 @@ export const StatisticsView = ({
   const selectedHasYearlyGoal = Boolean(
     selectedYearDurationSummary && selectedYearDurationSummary.goalMinutes > 0,
   );
+  const allHabitYearGoalStats = selectedHabit
+    ? []
+    : habits
+        .filter((habit) => habit.trackingMode === 'duration' && (habit.yearlyGoalMinutes ?? 0) > 0)
+        .map((habit) => ({
+          habit,
+          color: getHabitColorVar(habit.id, habits),
+          summary: calculateHabitStatistics(
+            habit,
+            checkIns[habit.id],
+            yearDays,
+            today,
+          ).durationSummary,
+        }))
+        .filter(({ summary }) => summary.goalMinutes > 0);
   const summaryMetrics = selectedHabit
     ? [
         {
@@ -602,8 +617,8 @@ export const StatisticsView = ({
           <Icon name="stats" />
         </span>
         <div className="stats-empty__copy">
-          <h2>No statistics yet</h2>
-          <p className="muted">Add a habit and mark a day to see the pattern.</p>
+          <h2>No habits to analyze yet.</h2>
+          <p className="muted">Add a habit to begin.</p>
         </div>
       </section>
     );
@@ -725,6 +740,14 @@ export const StatisticsView = ({
             </div>
           ))}
         </div>
+
+        {!selectedHabit && activeDays === 0 ? (
+          <p className="stats-note">No activity recorded in this period.</p>
+        ) : null}
+
+        {!selectedHabit && totalDurationMinutes === 0 ? (
+          <p className="stats-note">No time has been logged in this period.</p>
+        ) : null}
 
         {selectedHabit?.trackingMode === 'duration' &&
         !selectedHasYearlyGoal &&
@@ -850,6 +873,46 @@ export const StatisticsView = ({
                   </article>
                 );
               })}
+            </section>
+          ) : null}
+
+          {!selectedHabit && allHabitYearGoalStats.length > 0 ? (
+            <section className="time-goals time-goals--compact" aria-label="Time goals">
+              <div className="time-goals__compact-header">
+                <h2>Time goals</h2>
+              </div>
+              <div className="time-goal-rows">
+                {allHabitYearGoalStats.map(({ habit, color, summary }) => {
+                  const progressPercent = Math.round(summary.progressPercent * 100);
+                  const visualPercent = Math.round(summary.visualProgressPercent * 100);
+
+                  return (
+                    <button
+                      className="time-goal-row-button"
+                      key={habit.id}
+                      type="button"
+                      style={{ '--habit-color': color } as CSSProperties}
+                      onClick={() => setSelectedStatsId(habit.id)}
+                    >
+                      <span className="time-goal-row-button__habit">
+                        <span className="filter-pill__dot" />
+                        <HabitIconView habit={habit} />
+                        <span>{habit.name}</span>
+                      </span>
+                      <span className="time-goal-row-button__value">
+                        {formatMinutes(summary.loggedMinutes)} / {formatMinutes(summary.goalMinutes)}
+                      </span>
+                      <span
+                        className="time-goal-row-button__bar"
+                        aria-hidden="true"
+                      >
+                        <span style={{ width: `${visualPercent}%` }} />
+                      </span>
+                      <span className="time-goal-row-button__percent">{progressPercent}%</span>
+                    </button>
+                  );
+                })}
+              </div>
             </section>
           ) : null}
 

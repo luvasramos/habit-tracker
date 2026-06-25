@@ -1399,6 +1399,87 @@ h2 {
   gap: 10px;
 }
 
+.time-goals--compact {
+  gap: 8px;
+}
+
+.time-goals__compact-header h2 {
+  margin: 0;
+  color: var(--soft);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.time-goal-rows {
+  display: grid;
+  gap: 6px;
+}
+
+.time-goal-row-button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(84px, 120px) 48px;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--muted);
+  text-align: left;
+}
+
+.time-goal-row-button:hover,
+.time-goal-row-button:focus-visible {
+  border-color: color-mix(in srgb, var(--habit-color) 42%, var(--border-strong));
+  background: color-mix(in srgb, var(--habit-color) 7%, var(--surface-2));
+}
+
+.time-goal-row-button__habit {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 8px;
+  color: var(--soft);
+}
+
+.time-goal-row-button__habit > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.time-goal-row-button__habit .habit-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.time-goal-row-button__value,
+.time-goal-row-button__percent {
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.time-goal-row-button__percent {
+  color: var(--soft);
+  text-align: right;
+}
+
+.time-goal-row-button__bar {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #242424;
+}
+
+.time-goal-row-button__bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--habit-color);
+}
+
 .time-goal-card {
   display: grid;
   gap: 12px;
@@ -2845,6 +2926,14 @@ h2 {
 
   .stats-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .time-goal-row-button {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .time-goal-row-button__bar {
+    grid-column: 1 / -1;
   }
 
   .stats-date-details-wrap {

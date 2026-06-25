@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
@@ -239,6 +239,47 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Japanese');
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('1h');
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Gym');
+  });
+
+  it('shows compact All habits time goals and selects a focused habit from a row', () => {
+    const habits = [
+      makeHabit({ id: 'habit-1', name: 'Japanese', yearlyGoalMinutes: 180 }),
+      makeHabit({
+        id: 'habit-2',
+        name: 'Painting',
+        color: 'lavender',
+        icon: { type: 'emoji', value: '🎨' },
+        yearlyGoalMinutes: 300,
+      }),
+      makeHabit({
+        id: 'habit-3',
+        name: 'Walking',
+        trackingMode: 'completion',
+        icon: { type: 'svg', name: 'walking' },
+      }),
+    ];
+    renderStats({
+      habits,
+      selectedHabitId: null,
+      allCheckIns: {
+        'habit-1': { '2026-06-25': { completed: true, durationMinutes: 60 } },
+        'habit-2': { '2026-06-25': { completed: true, durationMinutes: 60 } },
+        'habit-3': { '2026-06-25': true },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    const timeGoals = screen.getByLabelText('Time goals');
+    expect(timeGoals).toHaveTextContent('Japanese');
+    expect(timeGoals).toHaveTextContent('1h / 3h');
+    expect(timeGoals).toHaveTextContent('33%');
+    expect(timeGoals).toHaveTextContent('Painting');
+    expect(timeGoals).not.toHaveTextContent('Walking');
+    expect(timeGoals).not.toHaveTextContent('remaining');
+
+    fireEvent.click(within(timeGoals).getByRole('button', { name: /Painting/ }));
+    expect(screen.getByRole('button', { name: 'Painting' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByLabelText('Time goal')).toHaveTextContent('Painting');
   });
 
   it('opens and closes date details while restoring focus to the date cell', () => {
