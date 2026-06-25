@@ -24,6 +24,7 @@ const finishDailyCheckIn = async (user: ReturnType<typeof userEvent.setup>, answ
 describe('Habit Grid app', () => {
   beforeEach(() => {
     localStorage.clear();
+    window.history.replaceState(null, '', '/');
   });
 
   it('adds and selects a habit from the empty state', async () => {
@@ -34,6 +35,8 @@ describe('Habit Grid app', () => {
     expect(screen.getByRole('navigation', { name: 'Primary' })).not.toHaveTextContent('Add habit');
 
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    expect(window.location.hash).toBe('#/habits/new');
+    expect(screen.getByRole('heading', { name: 'Add habit' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('Name'), 'Gym');
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
@@ -65,6 +68,7 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Reading');
+    await user.click(screen.getByRole('button', { name: 'Use Neon lime' }));
     await user.click(screen.getByRole('button', { name: 'Custom color' }));
 
     expect(screen.getByLabelText('Custom color panel')).toBeInTheDocument();
@@ -78,12 +82,26 @@ describe('Habit Grid app', () => {
     await user.type(screen.getByLabelText('Hex'), '#AbC');
     await user.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.queryByLabelText('Custom color panel')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Current custom color #aabbcc' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Current custom color #AABBCC' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
-    expect(state.habits[0].color).toBe('#aabbcc');
+    expect(state.habits[0].color).toBe('#AABBCC');
+    await finishDailyCheckIn(user);
+  });
+
+  it('saves a neon preset color from the full-page editor', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    await user.type(screen.getByLabelText('Name'), 'Reading');
+    await user.click(screen.getByRole('button', { name: 'Use Neon lime' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].color).toBe('neonLime');
     await finishDailyCheckIn(user);
   });
 
@@ -101,7 +119,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
-    expect(state.habits[0].color).toBe('terracotta');
+    expect(state.habits[0].color).toBe('neonCream');
     await finishDailyCheckIn(user);
   });
 
@@ -130,10 +148,66 @@ describe('Habit Grid app', () => {
     renderApp();
 
     await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+    expect(window.location.hash).toBe('#/habits/habit-1/edit');
+    expect(screen.getByRole('heading', { name: 'Edit habit' })).toBeInTheDocument();
 
     expect(screen.getByRole('button', { name: 'Current custom color #112233' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Custom color' }));
     expect(screen.getByLabelText('Hex')).toHaveValue('#112233');
+  });
+
+  it('opens the edit page from a direct hash route', () => {
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Reading',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: '#112233',
+            icon: { type: 'svg', name: 'book' },
+            trackingMode: 'completion',
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    window.history.replaceState(null, '', '/#/habits/habit-1/edit');
+
+    renderApp();
+
+    expect(screen.getByRole('heading', { name: 'Edit habit' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('Reading');
+  });
+
+  it('opens the add page from a direct hash route', () => {
+    window.history.replaceState(null, '', '/#/habits/new');
+
+    renderApp();
+
+    expect(screen.getByRole('heading', { name: 'Add habit' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('');
+  });
+
+  it('returns from the editor with the Back action and browser back button', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    expect(screen.getByRole('heading', { name: 'Add habit' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to habits' }));
+    expect(screen.getByRole('heading', { name: 'Habits' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    window.history.back();
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Habits' })).toBeInTheDocument();
+    });
   });
 
   it('renames and deletes a habit with confirmation', async () => {
@@ -175,6 +249,10 @@ describe('Habit Grid app', () => {
     await user.click(checkInButton!);
     expect(checkInButton).toHaveAttribute('aria-pressed', 'true');
     expect(document.querySelector('.completion-dot')).toBeInTheDocument();
+    expect(document.querySelector('.date-button.is-complete')).toHaveAttribute(
+      'style',
+      expect.stringContaining('--habit-color'),
+    );
 
     await user.click(screen.getByRole('button', { name: 'Month' }));
     expect(screen.getByText(/1 completed days in/)).toBeInTheDocument();

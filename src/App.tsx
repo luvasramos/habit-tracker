@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { CalendarControls } from './components/CalendarControls';
 import { DailyCheckIn } from './components/DailyCheckIn';
-import { HabitDialog } from './components/HabitDialog';
+import { HabitEditorPage } from './components/HabitEditorPage';
 import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
 import { Icon } from './components/Icon';
@@ -42,6 +42,33 @@ type TodayRemainingPopoverProps = {
   allHabits: Habit[];
   onCompleteHabit: (habitId: string) => void;
   popoverRef: RefObject<HTMLDivElement | null>;
+};
+
+type AppRoute =
+  | { name: 'home' }
+  | { name: 'newHabit' }
+  | { name: 'editHabit'; habitId: string };
+
+const parseHashRoute = (hash: string): AppRoute => {
+  const route = hash.replace(/^#/, '');
+  if (route === '/habits/new') {
+    return { name: 'newHabit' };
+  }
+
+  const editMatch = route.match(/^\/habits\/([^/]+)\/edit$/);
+  if (editMatch) {
+    return { name: 'editHabit', habitId: decodeURIComponent(editMatch[1]) };
+  }
+
+  return { name: 'home' };
+};
+
+const navigateToHash = (hash: string) => {
+  if (window.location.hash === hash) {
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    return;
+  }
+  window.location.hash = hash;
 };
 
 const FloatingNavigation = ({
@@ -165,6 +192,7 @@ export const App = () => {
   } = useHabits();
   const [view, setView] = useState<ViewMode>('week');
   const [page, setPage] = useState<'calendar' | 'statistics'>('calendar');
+  const [route, setRoute] = useState<AppRoute>(() => parseHashRoute(window.location.hash));
   const [anchorDate, setAnchorDate] = useState(() => new Date());
   const [todayKey] = useState(() => toLocalDateKey(new Date()));
   const [dailyCheckInOpen, setDailyCheckInOpen] = useState(() => {
@@ -175,8 +203,6 @@ export const App = () => {
         !isCompletedCheckIn(state.checkIns[habit.id]?.[toLocalDateKey(new Date())]),
     );
   });
-  const [addOpen, setAddOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
   const [reminderVisible, setReminderVisible] = useState(false);
   const [reminderClosing, setReminderClosing] = useState(false);
@@ -189,6 +215,11 @@ export const App = () => {
   const reminderButtonRef = useRef<HTMLButtonElement>(null);
   const reminderPopoverRef = useRef<HTMLDivElement>(null);
   const selectedHabit = state.habits.find((habit) => habit.id === state.selectedHabitId) ?? null;
+  const editingHabit =
+    route.name === 'editHabit'
+      ? state.habits.find((habit) => habit.id === route.habitId) ?? null
+      : null;
+  const editingCheckIns = editingHabit ? state.checkIns[editingHabit.id] ?? {} : {};
   const selectedCheckIns = selectedHabit ? state.checkIns[selectedHabit.id] ?? {} : {};
   const timeEditHabit =
     state.habits.find((habit) => habit.id === timeEditTarget?.habitId) ?? null;
@@ -219,6 +250,12 @@ export const App = () => {
       setDailyCheckInOpen(true);
     }
   }, [dailyCheckInOpen, hasUnansweredToday]);
+
+  useEffect(() => {
+    const handleHashChange = () => setRoute(parseHashRoute(window.location.hash));
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   useEffect(() => {
     if (reminderOpen) {
@@ -286,6 +323,63 @@ export const App = () => {
     setTimeEditTarget({ habitId: selectedHabit.id, dateKey });
   };
 
+  const closeEditor = () => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+      setRoute({ name: 'home' });
+    } else {
+      setRoute({ name: 'home' });
+    }
+  };
+
+  if (route.name === 'newHabit') {
+    return (
+      <div className="app app--editor">
+        <HabitEditorPage
+          mode="add"
+          defaultColorIndex={state.habits.length}
+          duplicateMessage="A habit with this name already exists."
+          onBack={closeEditor}
+          onSave={addHabit}
+          isDuplicate={(name) => isDuplicateName(name)}
+        />
+      </div>
+    );
+  }
+
+  if (route.name === 'editHabit') {
+    return (
+      <div className="app app--editor">
+        {editingHabit ? (
+          <HabitEditorPage
+            mode="edit"
+            initialName={editingHabit.name}
+            initialHabit={editingHabit}
+            initialCheckIns={editingCheckIns}
+            duplicateMessage="Another habit already uses this name."
+            onBack={closeEditor}
+            onSave={(habit, options) => renameHabit(editingHabit.id, habit, options)}
+            onDelete={() => deleteHabit(editingHabit.id)}
+            isDuplicate={(name) => isDuplicateName(name, editingHabit.id)}
+          />
+        ) : (
+          <section className="habit-editor-page" aria-label="Habit not found">
+            <header className="habit-editor-header">
+              <div>
+                <h1>Edit habit</h1>
+                <p className="muted">This habit is no longer available.</p>
+              </div>
+              <button className="button habit-editor-back" type="button" aria-label="Back to habits" onClick={closeEditor}>
+                <Icon name="previous" />
+                Back
+              </button>
+            </header>
+          </section>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <main className="shell">
@@ -305,8 +399,12 @@ export const App = () => {
               habits={state.habits}
               selectedHabitId={state.selectedHabitId}
               onSelect={selectHabit}
-              onEdit={() => setEditOpen(true)}
-              onAdd={() => setAddOpen(true)}
+              onEdit={() => {
+                if (selectedHabit) {
+                  navigateToHash(`#/habits/${encodeURIComponent(selectedHabit.id)}/edit`);
+                }
+              }}
+              onAdd={() => navigateToHash('#/habits/new')}
               editButtonRef={editButtonRef}
               addButtonRef={addButtonRef}
             />
@@ -391,37 +489,6 @@ export const App = () => {
         onToggleReminder={() => setReminderOpen((open) => !open)}
         reminderButtonRef={reminderButtonRef}
       />
-
-      <HabitDialog
-        mode="add"
-        isOpen={addOpen}
-        defaultColorIndex={state.habits.length}
-        duplicateMessage="A habit with this name already exists."
-        onClose={() => {
-          setAddOpen(false);
-          addButtonRef.current?.focus();
-        }}
-        onSave={addHabit}
-        isDuplicate={(name) => isDuplicateName(name)}
-      />
-
-      {selectedHabit ? (
-        <HabitDialog
-          mode="edit"
-          initialName={selectedHabit.name}
-          initialHabit={selectedHabit}
-          initialCheckIns={selectedCheckIns}
-          isOpen={editOpen}
-          duplicateMessage="Another habit already uses this name."
-          onClose={() => {
-            setEditOpen(false);
-            editButtonRef.current?.focus();
-          }}
-          onSave={(habit, options) => renameHabit(selectedHabit.id, habit, options)}
-          onDelete={() => deleteHabit(selectedHabit.id)}
-          isDuplicate={(name) => isDuplicateName(name, selectedHabit.id)}
-        />
-      ) : null}
 
       <TimeEditDialog
         isOpen={Boolean(timeEditTarget && timeEditHabit)}

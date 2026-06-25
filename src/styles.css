@@ -29,6 +29,21 @@
   --habit-slate: #7c8792;
   --habit-red: #a85a55;
   --habit-purple: #8c6aaa;
+  --habit-neonCream: #E4FF98;
+  --habit-neonLime: #98FC00;
+  --habit-neonMagenta: #FE01E8;
+  --habit-neonOrange: #FF7135;
+  --habit-neonGreen: #31CB00;
+  --habit-neonPink: #FB99F8;
+  --habit-neonRose: #FE15BE;
+  --habit-neonBlue: #0163FF;
+  --habit-neonVermilion: #FE4A00;
+  --habit-neonCyan: #00E5FF;
+  --habit-neonViolet: #7C4DFF;
+  --habit-neonYellow: #FFD400;
+  --habit-neonMint: #00FF94;
+  --habit-neonRed: #FF2D55;
+  --habit-neonAcid: #A6FF00;
   --task-blue: var(--habit-blue);
   --task-forest: var(--habit-green);
   --task-lavender: var(--habit-lavender);
@@ -88,6 +103,10 @@ input:focus-visible {
   padding: var(--space-page) var(--space-page)
     calc(136px + var(--space-page) + env(safe-area-inset-bottom));
   overflow-x: clip;
+}
+
+.app--editor {
+  padding-bottom: var(--space-page);
 }
 
 .streak-pill {
@@ -966,9 +985,11 @@ h2 {
 }
 
 .date-button.is-complete {
-  border-color: color-mix(in srgb, var(--habit-color) 72%, var(--border));
-  background: color-mix(in srgb, var(--habit-color) 22%, var(--surface-2));
+  border-width: 2px;
+  border-color: var(--habit-color);
+  background: color-mix(in srgb, var(--habit-color) 14%, var(--surface-2));
   color: var(--text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--habit-color) 14%, transparent);
   animation: check-pop 140ms ease-out;
 }
 
@@ -1625,8 +1646,10 @@ h2 {
 }
 
 .calendar-year-months .date-button--compact.is-complete {
-  border-color: color-mix(in srgb, var(--habit-color) 34%, var(--border));
+  border-width: 1px;
+  border-color: color-mix(in srgb, var(--habit-color) 82%, var(--border));
   background: color-mix(in srgb, var(--habit-color) 14%, #151515);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--habit-color) 28%, transparent);
 }
 
 .calendar-year-months .date-button--compact.has-completions:not(.is-complete) {
@@ -1688,6 +1711,57 @@ h2 {
   display: grid;
   gap: 14px;
   padding: 18px;
+}
+
+.habit-editor-page {
+  width: min(100%, 900px);
+  margin: 0 auto;
+  min-height: calc(100vh - (var(--space-page) * 2));
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface) 96%, #202020);
+  overflow: clip;
+}
+
+.habit-editor-header {
+  position: sticky;
+  top: var(--space-page);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(14px, 2.4vw, 20px);
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, #202020);
+}
+
+.habit-editor-header h1 {
+  color: #f1f1f1;
+  font-size: clamp(1.35rem, 3vw, 2rem);
+  line-height: 1;
+}
+
+.habit-editor-back {
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.habit-editor-form {
+  display: grid;
+  gap: 16px;
+  padding: clamp(14px, 2.4vw, 22px);
+}
+
+.habit-editor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-inline: calc(clamp(14px, 2.4vw, 22px) * -1);
+  margin-bottom: calc(clamp(14px, 2.4vw, 22px) * -1);
+  padding: 12px clamp(14px, 2.4vw, 22px);
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 94%, #202020);
 }
 
 .field {
@@ -2019,20 +2093,31 @@ h2 {
   font-size: 0.78rem;
 }
 
-.custom-color__fields {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 8px;
+.custom-color .react-colorful {
+  width: 100%;
+  height: 180px;
 }
 
-.native-color-field input {
-  width: var(--control-size);
-  height: var(--control-size);
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
+.custom-color .react-colorful__saturation {
+  border-radius: var(--radius) var(--radius) 4px 4px;
+}
+
+.custom-color .react-colorful__hue {
+  height: 18px;
+  margin-top: 8px;
+  border-radius: 999px;
+}
+
+.custom-color .react-colorful__pointer {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #f1f1f1;
+  box-shadow: 0 0 0 1px #000000;
+}
+
+.custom-color__fields {
+  display: grid;
+  gap: 8px;
 }
 
 .custom-color__actions {

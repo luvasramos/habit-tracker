@@ -25,6 +25,24 @@ type HabitIconOption = {
 };
 
 export const habitColorOptions: HabitColorOption[] = [
+  { name: 'neonCream', label: 'Neon cream', value: '#E4FF98' },
+  { name: 'neonLime', label: 'Neon lime', value: '#98FC00' },
+  { name: 'neonMagenta', label: 'Neon magenta', value: '#FE01E8' },
+  { name: 'neonOrange', label: 'Neon orange', value: '#FF7135' },
+  { name: 'neonGreen', label: 'Neon green', value: '#31CB00' },
+  { name: 'neonPink', label: 'Neon pink', value: '#FB99F8' },
+  { name: 'neonRose', label: 'Neon rose', value: '#FE15BE' },
+  { name: 'neonBlue', label: 'Neon blue', value: '#0163FF' },
+  { name: 'neonVermilion', label: 'Neon vermilion', value: '#FE4A00' },
+  { name: 'neonCyan', label: 'Neon cyan', value: '#00E5FF' },
+  { name: 'neonViolet', label: 'Neon violet', value: '#7C4DFF' },
+  { name: 'neonYellow', label: 'Neon yellow', value: '#FFD400' },
+  { name: 'neonMint', label: 'Neon mint', value: '#00FF94' },
+  { name: 'neonRed', label: 'Neon red', value: '#FF2D55' },
+  { name: 'neonAcid', label: 'Neon acid', value: '#A6FF00' },
+];
+
+const legacyHabitColorOptions: HabitColorOption[] = [
   { name: 'terracotta', label: 'Terracotta', value: '#b86556' },
   { name: 'orange', label: 'Warm orange', value: '#c17a45' },
   { name: 'yellow', label: 'Ochre', value: '#b89a42' },
@@ -44,6 +62,8 @@ export const habitColorOptions: HabitColorOption[] = [
   { name: 'red', label: 'Red', value: '#a85a55' },
   { name: 'purple', label: 'Purple', value: '#8c6aaa' },
 ];
+
+const allHabitColorOptions = [...habitColorOptions, ...legacyHabitColorOptions];
 
 export const habitIconOptions: HabitIconOption[] = [
   {
@@ -540,7 +560,7 @@ export const normalizeHexColor = (value: unknown): `#${string}` | null => {
     return null;
   }
 
-  const normalized = withHash.toLowerCase();
+  const normalized = withHash.toUpperCase();
   if (normalized.length === 4) {
     const [, red, green, blue] = normalized;
     return `#${red}${red}${green}${green}${blue}${blue}` as `#${string}`;
@@ -551,7 +571,7 @@ export const normalizeHexColor = (value: unknown): `#${string}` | null => {
 
 export const isPresetHabitColor = (value: unknown): value is HabitPresetColor =>
   typeof value === 'string' &&
-  habitColorOptions.some((option) => option.name === value);
+  allHabitColorOptions.some((option) => option.name === value);
 
 export const isHabitColor = (value: unknown): value is HabitColor =>
   isPresetHabitColor(value) || normalizeHexColor(value) !== null;
@@ -593,7 +613,8 @@ export const getHabitColorName = (habit: Pick<Habit, 'color'>, index = 0): Habit
 
 export const getHabitColorValue = (habit: Pick<Habit, 'color'>, index = 0): string => {
   const color = getHabitColorName(habit, index);
-  return isPresetHabitColor(color) ? `var(--habit-${color})` : color;
+  const option = allHabitColorOptions.find((item) => item.name === color);
+  return option ? option.value : color;
 };
 
 export const getHabitColorVar = (

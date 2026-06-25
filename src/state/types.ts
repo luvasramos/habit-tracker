@@ -1,6 +1,21 @@
 export type LocalDateKey = string;
 
 export type HabitPresetColor =
+  | 'neonCream'
+  | 'neonLime'
+  | 'neonMagenta'
+  | 'neonOrange'
+  | 'neonGreen'
+  | 'neonPink'
+  | 'neonRose'
+  | 'neonBlue'
+  | 'neonVermilion'
+  | 'neonCyan'
+  | 'neonViolet'
+  | 'neonYellow'
+  | 'neonMint'
+  | 'neonRed'
+  | 'neonAcid'
   | 'terracotta'
   | 'blue'
   | 'sky'

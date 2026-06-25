@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type FormEvent } from 'react';
+import { HexColorPicker } from 'react-colorful';
 import { normalizeHabitName } from '../state/habitReducer';
 import type {
   Habit,
@@ -33,14 +34,13 @@ import {
 import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
 
-type HabitDialogProps = {
+type HabitEditorPageProps = {
   mode: 'add' | 'edit';
   initialName?: string;
   initialHabit?: Habit;
   defaultColorIndex?: number;
-  isOpen: boolean;
   duplicateMessage: string;
-  onClose: () => void;
+  onBack: () => void;
   onSave: (habit: HabitDraft, options?: HabitSaveOptions) => void;
   onDelete?: () => void;
   isDuplicate: (name: string) => boolean;
@@ -264,20 +264,18 @@ const SelectorPagination = ({
   </div>
 );
 
-export const HabitDialog = ({
+export const HabitEditorPage = ({
   mode,
   initialName = '',
   initialHabit,
   defaultColorIndex = 0,
-  isOpen,
   duplicateMessage,
-  onClose,
+  onBack,
   onSave,
   onDelete,
   isDuplicate,
   initialCheckIns = {},
-}: HabitDialogProps) => {
-  const dialogRef = useRef<HTMLDialogElement>(null);
+}: HabitEditorPageProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState<HabitColor>(() =>
@@ -286,8 +284,8 @@ export const HabitDialog = ({
   const [iconMode, setIconMode] = useState<HabitIcon['type']>('svg');
   const [svgIcon, setSvgIcon] = useState<HabitIconName>('custom');
   const [emoji, setEmoji] = useState('');
-  const [customColor, setCustomColor] = useState('#7c8792');
-  const [customDraftColor, setCustomDraftColor] = useState('#7c8792');
+  const [customColor, setCustomColor] = useState('#7C8792');
+  const [customDraftColor, setCustomDraftColor] = useState('#7C8792');
   const [customColorOpen, setCustomColorOpen] = useState(false);
   const [colorMode, setColorMode] = useState<'preset' | 'custom'>(() =>
     initialHabit?.color && !isPresetHabitColor(initialHabit.color) ? 'custom' : 'preset',
@@ -408,72 +406,31 @@ export const HabitDialog = ({
   }, [emojiPageCount]);
 
   useEffect(() => {
-    if (!customColorOpen) {
-      return undefined;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (
-        customColorPanelRef.current?.contains(target) ||
-        customColorButtonRef.current?.contains(target)
-      ) {
-        return;
-      }
-      setCustomColorOpen(false);
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setCustomColorOpen(false);
-        customColorButtonRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('pointerdown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [customColorOpen]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) {
-      return;
-    }
-
-    if (isOpen && !dialog.open) {
-      const initialIcon = normalizeHabitIcon(initialHabit?.icon ?? defaultHabitIcon);
-      setName(initialName);
-      const initialColor = initialHabit
-        ? getHabitColorName(initialHabit)
-        : defaultHabitColor(defaultColorIndex);
-      setColor(initialColor);
-      setColorMode(isPresetHabitColor(initialColor) ? 'preset' : 'custom');
-      setCustomColor(isPresetHabitColor(initialColor) ? '#7c8792' : initialColor);
-      setCustomDraftColor(isPresetHabitColor(initialColor) ? '#7c8792' : initialColor);
-      setCustomColorOpen(false);
-      setColorPage(1);
-      setIconMode(initialIcon.type);
-      setSvgIcon(initialIcon.type === 'svg' ? initialIcon.name : 'custom');
-      setEmoji(initialIcon.type === 'emoji' ? initialIcon.value : '');
-      setIconSearch('');
-      setEmojiSearch('');
-      setIconPage(1);
-      setEmojiPage(1);
-      setConfirmDelete(false);
-      setTrackingMode(initialHabit?.trackingMode ?? 'completion');
-      setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
-      setYearlyGoalInput(formatGoalInput(initialHabit?.yearlyGoalMinutes));
-      setPendingMigration(null);
-      dialog.showModal();
-      window.setTimeout(() => inputRef.current?.focus(), 0);
-    } else if (!isOpen && dialog.open) {
-      dialog.close();
-    }
-  }, [defaultColorIndex, initialHabit, initialName, isOpen]);
+    const initialIcon = normalizeHabitIcon(initialHabit?.icon ?? defaultHabitIcon);
+    setName(initialName);
+    const initialColor = initialHabit
+      ? getHabitColorName(initialHabit)
+      : defaultHabitColor(defaultColorIndex);
+    setColor(initialColor);
+    setColorMode(isPresetHabitColor(initialColor) ? 'preset' : 'custom');
+    setCustomColor(isPresetHabitColor(initialColor) ? '#7C8792' : initialColor);
+    setCustomDraftColor(isPresetHabitColor(initialColor) ? '#7C8792' : initialColor);
+    setCustomColorOpen(false);
+    setColorPage(1);
+    setIconMode(initialIcon.type);
+    setSvgIcon(initialIcon.type === 'svg' ? initialIcon.name : 'custom');
+    setEmoji(initialIcon.type === 'emoji' ? initialIcon.value : '');
+    setIconSearch('');
+    setEmojiSearch('');
+    setIconPage(1);
+    setEmojiPage(1);
+    setConfirmDelete(false);
+    setTrackingMode(initialHabit?.trackingMode ?? 'completion');
+    setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
+    setYearlyGoalInput(formatGoalInput(initialHabit?.yearlyGoalMinutes));
+    setPendingMigration(null);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }, [defaultColorIndex, initialHabit, initialName]);
 
   const buildDraft = (): HabitDraft => ({
     name: trimmed,
@@ -490,7 +447,7 @@ export const HabitDialog = ({
   });
   const saveDraft = (draft: HabitDraft, options?: HabitSaveOptions) => {
     onSave(draft, options);
-    onClose();
+    onBack();
   };
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -540,36 +497,22 @@ export const HabitDialog = ({
   };
   const previewColor = getHabitColorValue(previewHabit);
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <dialog
-      ref={dialogRef}
-      className="dialog"
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      onCancel={(event) => {
-        event.preventDefault();
-        onClose();
-      }}
-      onClose={onClose}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <form className="dialog__body" onSubmit={handleSubmit}>
+    <section className="habit-editor-page" aria-labelledby={titleId}>
+      <header className="habit-editor-header">
         <div>
-          <h2 id={titleId}>{mode === 'add' ? 'Add habit' : 'Edit habit'}</h2>
+          <h1 id={titleId}>{mode === 'add' ? 'Add habit' : 'Edit habit'}</h1>
           <p className="muted" id={descriptionId}>
-            {mode === 'add'
-              ? 'Choose a short name and identity.'
-              : 'Update this habit or remove it.'}
+            {mode === 'add' ? 'Choose a short name and identity.' : 'Update this habit or remove it.'}
           </p>
         </div>
+        <button className="button habit-editor-back" type="button" aria-label="Back to habits" onClick={onBack}>
+          <Icon name="previous" />
+          Back
+        </button>
+      </header>
+
+      <form className="habit-editor-form" aria-describedby={descriptionId} onSubmit={handleSubmit}>
 
         {pendingMigration?.type === 'enable-duration' ? (
           <section className="migration-prompt" aria-label="Historical time migration">
@@ -775,7 +718,7 @@ export const HabitDialog = ({
               aria-label="Custom color"
               aria-expanded={customColorOpen}
               aria-pressed={colorMode === 'custom'}
-              style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+              style={{ '--swatch-color': normalizedCustomColor ?? '#7C8792' } as CSSProperties}
               onClick={() => {
                 setCustomDraftColor(normalizedCustomColor ?? customColor);
                 setCustomColorOpen((open) => !open);
@@ -786,9 +729,10 @@ export const HabitDialog = ({
             </button>
             {customColorOpen ? (
               <div className="custom-color" ref={customColorPanelRef} aria-label="Custom color panel">
+                <HexColorPicker color={normalizedCustomDraftColor ?? '#7C8792'} onChange={setCustomDraftColor} />
                 <div
                   className="custom-color__preview"
-                  style={{ '--swatch-color': normalizedCustomDraftColor ?? '#7c8792' } as CSSProperties}
+                  style={{ '--swatch-color': normalizedCustomDraftColor ?? '#7C8792' } as CSSProperties}
                   aria-hidden="true"
                 >
                   <span className="custom-color__swatch" />
@@ -801,15 +745,7 @@ export const HabitDialog = ({
                       value={customDraftColor}
                       aria-invalid={Boolean(colorError)}
                       aria-describedby={colorError ? colorErrorId : undefined}
-                      placeholder="#7c8792"
-                      onChange={(event) => setCustomDraftColor(event.target.value)}
-                    />
-                  </label>
-                  <label className="native-color-field">
-                    <span className="sr-only">Color picker</span>
-                    <input
-                      type="color"
-                      value={normalizedCustomDraftColor ?? '#7c8792'}
+                      placeholder="#7C8792"
                       onChange={(event) => setCustomDraftColor(event.target.value)}
                     />
                   </label>
@@ -835,11 +771,11 @@ export const HabitDialog = ({
                     className="button button--primary"
                     type="button"
                     disabled={!normalizedCustomDraftColor}
-                    onClick={() => {
-                      if (!normalizedCustomDraftColor) {
-                        return;
-                      }
-                      setCustomColor(normalizedCustomDraftColor);
+                  onClick={() => {
+                    if (!normalizedCustomDraftColor) {
+                      return;
+                    }
+                    setCustomColor(normalizedCustomDraftColor);
                       setColor(normalizedCustomDraftColor);
                       setColorMode('custom');
                       setCustomColorOpen(false);
@@ -856,7 +792,7 @@ export const HabitDialog = ({
                 className="custom-color-current"
                 type="button"
                 aria-label={`Current custom color ${normalizedCustomColor ?? customColor}`}
-                style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+                style={{ '--swatch-color': normalizedCustomColor ?? '#7C8792' } as CSSProperties}
                 onClick={() => {
                   setCustomDraftColor(normalizedCustomColor ?? customColor);
                   setCustomColorOpen(true);
@@ -990,7 +926,7 @@ export const HabitDialog = ({
               onClick={() => {
                 if (confirmDelete) {
                   onDelete();
-                  onClose();
+                  onBack();
                 } else {
                   setConfirmDelete(true);
                 }
@@ -1005,8 +941,8 @@ export const HabitDialog = ({
           </div>
         ) : null}
 
-        <div className="dialog__actions">
-          <button className="button" type="button" onClick={onClose}>
+        <div className="dialog__actions habit-editor-actions">
+          <button className="button" type="button" onClick={onBack}>
             <Icon name="close" />
             Cancel
           </button>
@@ -1016,6 +952,6 @@ export const HabitDialog = ({
           </button>
         </div>
       </form>
-    </dialog>
+    </section>
   );
 };
