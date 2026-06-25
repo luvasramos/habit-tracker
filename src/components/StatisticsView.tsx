@@ -330,21 +330,6 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
 
           {range === 'year' ? (
             <div className="comparison-section">
-              <div className="comparison-legend" aria-label="Legend">
-                {displayStats.map((stat) => (
-                  <span
-                    key={stat.id}
-                    style={{ '--habit-color': stat.color } as CSSProperties}
-                  >
-                    {stat.habit ? (
-                      <HabitIconView habit={stat.habit} />
-                    ) : (
-                      <span className="legend-dot" />
-                    )}
-                    {stat.name}
-                  </span>
-                ))}
-              </div>
               <div className="year-months" aria-label="Yearly activity overview">
                 {comparisonMonths.map((month) => (
                   <section className="year-month-card" key={month.getMonth()} aria-label={format(month, 'MMMM')}>

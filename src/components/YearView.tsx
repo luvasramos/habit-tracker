@@ -1,8 +1,7 @@
 import { format } from 'date-fns';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { Habit, LocalDateKey } from '../state/types';
-import { getYearColumns, getYearMonthLabels } from '../utils/calendar';
-import { isFutureDay } from '../utils/dates';
+import { getMonthCells } from '../utils/calendar';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
 
@@ -15,67 +14,32 @@ type YearViewProps = {
   onToggle: (dateKey: LocalDateKey) => void;
 };
 
+const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
 export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: YearViewProps) => {
-  const columns = useMemo(() => getYearColumns(anchorDate), [anchorDate]);
-  const monthLabels = useMemo(() => getYearMonthLabels(anchorDate), [anchorDate]);
-  const cells = columns.flat();
-  const enabledKeys = cells
-    .filter((cell) => cell.inPeriod && !isFutureDay(cell.date))
-    .map((cell) => cell.key);
-  const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
+  const months = useMemo(
+    () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
+    [anchorDate],
+  );
   const year = anchorDate.getFullYear();
   const habitColor = getHabitColorVar(habit.id, habits);
   const count = Object.keys(checkIns).filter((key) => key.startsWith(`${year}-`)).length;
 
-  useEffect(() => {
-    if (!enabledKeys.includes(focusedKey)) {
-      setFocusedKey(enabledKeys[0] ?? '');
-    }
-  }, [enabledKeys, focusedKey]);
-
-  const moveFocus = (currentKey: string, delta: number) => {
-    const currentIndex = cells.findIndex((cell) => cell.key === currentKey);
-    let nextIndex = currentIndex + delta;
-    while (nextIndex >= 0 && nextIndex < cells.length) {
-      const next = cells[nextIndex];
-      if (next.inPeriod && !isFutureDay(next.date)) {
-        setFocusedKey(next.key);
-        window.setTimeout(() => {
-          document.querySelector<HTMLButtonElement>(`[data-date-key="${next.key}"]`)?.focus();
-        }, 0);
-        return;
-      }
-      nextIndex += delta > 0 ? 1 : -1;
-    }
-  };
-
   return (
     <section className="calendar-section" aria-label="Year calendar">
-      <div className="year-scroll">
-        <div
-          className="year-grid"
-          style={{ gridTemplateColumns: `28px repeat(${columns.length}, 28px)` }}
-        >
-          <div aria-hidden="true" />
-          {monthLabels.map((month) => (
-            <div
-              className="year-month-label"
-              key={`${month.label}-${month.column}`}
-              style={{ gridColumn: `${month.column + 2} / span 5` }}
-            >
-              {month.label}
+      <div className="year-months calendar-year-months">
+        {months.map((month) => (
+          <section className="year-month-card" key={month.getMonth()} aria-label={format(month, 'MMMM')}>
+            <div className="year-month-card__header">
+              <h3>{format(month, 'MMM')}</h3>
             </div>
-          ))}
-          <div className="year-weekday-label year-weekday-label--mon">Mon</div>
-          <div className="year-weekday-label year-weekday-label--wed">Wed</div>
-          <div className="year-weekday-label year-weekday-label--fri">Fri</div>
-          {columns.map((week, columnIndex) => (
-            <div
-              className="year-column"
-              key={week.map((cell) => cell.key).join('-')}
-              style={{ gridColumn: columnIndex + 2 }}
-            >
-              {week.map((cell, rowIndex) =>
+            <div className="year-month-card__weekdays" aria-hidden="true">
+              {weekdayInitials.map((day, index) => (
+                <span key={`${day}-${index}`}>{day}</span>
+              ))}
+            </div>
+            <div className="year-month-card__grid">
+              {getMonthCells(month).map((cell) =>
                 cell.inPeriod ? (
                   <DateButton
                     key={cell.key}
@@ -92,34 +56,17 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
                       }),
                     )}
                     compact
-                    tabIndex={cell.key === focusedKey ? 0 : -1}
                     onClick={() => onToggle(cell.key)}
-                    onKeyDown={(event) => {
-                      const moves: Record<string, number> = {
-                        ArrowLeft: -7,
-                        ArrowRight: 7,
-                        ArrowUp: -1,
-                        ArrowDown: 1,
-                      };
-                      if (event.key in moves) {
-                        event.preventDefault();
-                        moveFocus(cell.key, moves[event.key]);
-                      }
-                    }}
                   >
                     <span className="sr-only">{format(cell.date, 'MMM d')}</span>
                   </DateButton>
                 ) : (
-                  <div
-                    className="year-empty-cell"
-                    key={`${columnIndex}-${rowIndex}`}
-                    aria-hidden="true"
-                  />
+                  <span className="year-month-day is-outside" key={cell.key} aria-hidden="true" />
                 ),
               )}
             </div>
-          ))}
-        </div>
+          </section>
+        ))}
       </div>
       <p className="summary">{count} completed days in {year}</p>
     </section>
