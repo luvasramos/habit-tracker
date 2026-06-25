@@ -6,7 +6,6 @@ import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
 import { Icon } from './components/Icon';
 import { StatisticsView } from './components/StatisticsView';
-import { StreakPill } from './components/StreakPill';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
 import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
@@ -234,10 +233,6 @@ export const App = () => {
 
   return (
     <div className="app">
-      <div className="app-status" aria-live="polite">
-        <StreakPill streak={activityStreak} />
-      </div>
-
       <main className="shell">
         {dailyCheckInOpen ? (
           <DailyCheckIn
@@ -266,6 +261,7 @@ export const App = () => {
             <HabitTabs
               habits={state.habits}
               selectedHabitId={state.selectedHabitId}
+              streak={activityStreak}
               onSelect={selectHabit}
               onEdit={() => setEditOpen(true)}
               editButtonRef={editButtonRef}

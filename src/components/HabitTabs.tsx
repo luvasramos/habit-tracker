@@ -2,10 +2,12 @@ import type { CSSProperties, KeyboardEvent, RefObject } from 'react';
 import type { Habit } from '../state/types';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
+import { StreakPill } from './StreakPill';
 
 type HabitTabsProps = {
   habits: Habit[];
   selectedHabitId: string | null;
+  streak: number;
   onSelect: (habitId: string) => void;
   onEdit: () => void;
   editButtonRef?: RefObject<HTMLButtonElement | null>;
@@ -14,6 +16,7 @@ type HabitTabsProps = {
 export const HabitTabs = ({
   habits,
   selectedHabitId,
+  streak,
   onSelect,
   onEdit,
   editButtonRef,
@@ -52,7 +55,7 @@ export const HabitTabs = ({
   return (
     <section className="habit-tabs" aria-label="Habits">
       <div className="habit-tabs__heading">
-        <h2>Habits</h2>
+        <StreakPill streak={streak} />
         <button
           ref={editButtonRef}
           className="icon-button habit-tabs__edit"

@@ -89,12 +89,6 @@ input:focus-visible {
   overflow-x: clip;
 }
 
-.app-status {
-  display: flex;
-  width: min(100%, 1160px);
-  margin: 0 auto 10px;
-}
-
 .streak-pill {
   display: inline-flex;
   align-items: center;
@@ -331,13 +325,25 @@ h2 {
 
 .floating-nav__item {
   flex: 0.95 1 0;
+  border-color: transparent;
   color: var(--muted);
 }
 
+.floating-nav__item:hover {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface-3) 58%, transparent);
+}
+
 .floating-nav__item[aria-current='page'] {
-  border-color: var(--border-strong);
-  background: var(--surface-3);
-  color: var(--text);
+  border-color: color-mix(in srgb, var(--soft) 72%, var(--border-strong));
+  background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
+  color: var(--soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--soft) 14%, transparent);
+}
+
+.floating-nav__item[aria-current='page']:hover {
+  border-color: color-mix(in srgb, var(--soft) 76%, var(--border-strong));
+  background: color-mix(in srgb, var(--surface-3) 88%, var(--soft));
 }
 
 .floating-nav__add {
@@ -750,8 +756,11 @@ h2 {
 }
 
 .calendar-controls {
-  display: grid;
-  gap: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 18px;
 }
 
@@ -777,9 +786,11 @@ h2 {
 }
 
 .period-controls {
+  flex: 0 1 auto;
   justify-content: space-between;
   flex-wrap: nowrap;
   min-width: 0;
+  width: fit-content;
   padding: 4px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -800,8 +811,8 @@ h2 {
 }
 
 .period-label {
-  min-width: 0;
-  flex: 1;
+  min-width: 18ch;
+  flex: 0 1 auto;
   min-height: var(--control-size);
   display: grid;
   place-items: center;
