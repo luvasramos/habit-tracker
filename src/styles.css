@@ -1353,6 +1353,10 @@ h2 {
   max-width: 240px;
 }
 
+.search-fallback {
+  font-size: 0.82rem;
+}
+
 .appearance-editor {
   display: grid;
   gap: 14px;

@@ -29,6 +29,122 @@ type HabitDialogProps = {
   isDuplicate: (name: string) => boolean;
 };
 
+type EmojiOption = {
+  emoji: string;
+  label: string;
+  keywords: string[];
+};
+
+const popularIconNames: HabitIconName[] = [
+  'star',
+  'book',
+  'graduation',
+  'language',
+  'dumbbell',
+  'running',
+  'meditation',
+  'money',
+  'water',
+  'sleep',
+  'target',
+  'custom',
+];
+
+const emojiOptions: EmojiOption[] = [
+  { emoji: '🇯🇵', label: 'Japan flag', keywords: ['japan', 'japanese', 'language', 'country', 'flag'] },
+  { emoji: '⭐', label: 'Star', keywords: ['star', 'favorite', 'priority', 'important'] },
+  { emoji: '🔥', label: 'Flame', keywords: ['flame', 'fire', 'streak', 'energy'] },
+  { emoji: '✅', label: 'Check', keywords: ['check', 'done', 'complete', 'success'] },
+  { emoji: '🏃', label: 'Running', keywords: ['running', 'run', 'fitness', 'cardio', 'jog'] },
+  { emoji: '🚶', label: 'Walking', keywords: ['walking', 'walk', 'steps', 'fitness'] },
+  { emoji: '🏋️', label: 'Fitness', keywords: ['fitness', 'gym', 'lift', 'strength', 'weights'] },
+  { emoji: '💪', label: 'Strength', keywords: ['strength', 'gym', 'fitness', 'muscle'] },
+  { emoji: '🧘', label: 'Meditation', keywords: ['meditation', 'meditate', 'mindfulness', 'yoga', 'calm'] },
+  { emoji: '📚', label: 'Books', keywords: ['books', 'book', 'study', 'read', 'reading'] },
+  { emoji: '📖', label: 'Reading', keywords: ['reading', 'read', 'book', 'study'] },
+  { emoji: '🎓', label: 'Learning', keywords: ['learning', 'study', 'school', 'course', 'graduation'] },
+  { emoji: '🗣️', label: 'Language', keywords: ['language', 'speak', 'japanese', 'japan', 'study'] },
+  { emoji: '🌏', label: 'Globe Asia', keywords: ['globe', 'world', 'asia', 'japan', 'japanese', 'travel'] },
+  { emoji: '🌍', label: 'Globe', keywords: ['globe', 'world', 'language', 'travel'] },
+  { emoji: '🎵', label: 'Music', keywords: ['music', 'song', 'practice', 'note'] },
+  { emoji: '🎹', label: 'Piano', keywords: ['piano', 'music', 'practice', 'instrument'] },
+  { emoji: '🎸', label: 'Guitar', keywords: ['guitar', 'music', 'practice', 'instrument'] },
+  { emoji: '💰', label: 'Finance', keywords: ['finance', 'money', 'budget', 'saving'] },
+  { emoji: '💵', label: 'Cash', keywords: ['cash', 'money', 'finance', 'saving'] },
+  { emoji: '📈', label: 'Investing', keywords: ['investing', 'chart', 'finance', 'money'] },
+  { emoji: '🍎', label: 'Apple', keywords: ['apple', 'food', 'nutrition', 'healthy'] },
+  { emoji: '🥗', label: 'Salad', keywords: ['salad', 'food', 'nutrition', 'meal'] },
+  { emoji: '🥦', label: 'Vegetables', keywords: ['vegetables', 'food', 'nutrition', 'healthy'] },
+  { emoji: '🍳', label: 'Cooking', keywords: ['cooking', 'cook', 'food', 'meal'] },
+  { emoji: '💧', label: 'Water', keywords: ['water', 'hydrate', 'drink', 'health'] },
+  { emoji: '☕', label: 'Coffee', keywords: ['coffee', 'drink', 'morning', 'caffeine'] },
+  { emoji: '😴', label: 'Sleep', keywords: ['sleep', 'rest', 'night', 'recovery'] },
+  { emoji: '🌙', label: 'Moon', keywords: ['moon', 'night', 'sleep', 'rest'] },
+  { emoji: '☀️', label: 'Sun', keywords: ['sun', 'morning', 'day', 'outside'] },
+  { emoji: '✈️', label: 'Travel', keywords: ['travel', 'plane', 'flight', 'trip'] },
+  { emoji: '🚲', label: 'Bike', keywords: ['bike', 'cycle', 'cycling', 'fitness'] },
+  { emoji: '🚗', label: 'Car', keywords: ['car', 'drive', 'commute', 'travel'] },
+  { emoji: '🏠', label: 'Home', keywords: ['home', 'house', 'chores', 'family'] },
+  { emoji: '🧹', label: 'Clean', keywords: ['clean', 'tidy', 'chores', 'home'] },
+  { emoji: '🐶', label: 'Pet', keywords: ['pet', 'dog', 'animal', 'walk'] },
+  { emoji: '🐱', label: 'Cat', keywords: ['cat', 'pet', 'animal'] },
+  { emoji: '🌱', label: 'Plant', keywords: ['plant', 'grow', 'garden', 'nature'] },
+  { emoji: '🪴', label: 'Houseplant', keywords: ['houseplant', 'plant', 'water', 'garden'] },
+  { emoji: '🎯', label: 'Goal', keywords: ['goal', 'target', 'focus', 'aim'] },
+  { emoji: '🏆', label: 'Trophy', keywords: ['trophy', 'win', 'achievement', 'goal'] },
+  { emoji: '💻', label: 'Laptop', keywords: ['laptop', 'computer', 'work', 'coding'] },
+  { emoji: '🧑‍💻', label: 'Coding', keywords: ['coding', 'computer', 'work', 'programming'] },
+  { emoji: '📝', label: 'Notes', keywords: ['notes', 'write', 'journal', 'study'] },
+  { emoji: '✍️', label: 'Writing', keywords: ['writing', 'write', 'journal', 'notes'] },
+  { emoji: '📅', label: 'Calendar', keywords: ['calendar', 'date', 'schedule', 'plan'] },
+  { emoji: '⏰', label: 'Alarm', keywords: ['alarm', 'clock', 'time', 'morning'] },
+  { emoji: '⏱️', label: 'Timer', keywords: ['timer', 'time', 'focus', 'clock'] },
+  { emoji: '📷', label: 'Camera', keywords: ['camera', 'photo', 'creative'] },
+  { emoji: '🎨', label: 'Art', keywords: ['art', 'paint', 'creative'] },
+  { emoji: '🧠', label: 'Brain', keywords: ['brain', 'learn', 'focus', 'mind'] },
+  { emoji: '🫀', label: 'Heart organ', keywords: ['heart', 'health', 'cardio'] },
+  { emoji: '🫁', label: 'Breathing', keywords: ['breathing', 'breath', 'health', 'mindfulness'] },
+  { emoji: '🦷', label: 'Teeth', keywords: ['teeth', 'brush', 'dental', 'health'] },
+  { emoji: '🛁', label: 'Bath', keywords: ['bath', 'self care', 'clean', 'relax'] },
+  { emoji: '🛏️', label: 'Bed', keywords: ['bed', 'sleep', 'rest'] },
+  { emoji: '🧺', label: 'Laundry', keywords: ['laundry', 'clean', 'chores', 'home'] },
+  { emoji: '🛒', label: 'Shopping', keywords: ['shopping', 'groceries', 'food', 'errands'] },
+  { emoji: '📦', label: 'Package', keywords: ['package', 'organize', 'home', 'errand'] },
+  { emoji: '📌', label: 'Pin', keywords: ['pin', 'task', 'important', 'reminder'] },
+  { emoji: '🔁', label: 'Repeat', keywords: ['repeat', 'routine', 'habit', 'cycle'] },
+  { emoji: '🔒', label: 'Lock', keywords: ['lock', 'privacy', 'focus', 'secure'] },
+  { emoji: '🔑', label: 'Key', keywords: ['key', 'home', 'routine'] },
+  { emoji: '🧩', label: 'Puzzle', keywords: ['puzzle', 'brain', 'learn', 'challenge'] },
+  { emoji: '🎧', label: 'Headphones', keywords: ['headphones', 'music', 'listen', 'language'] },
+  { emoji: '🎤', label: 'Microphone', keywords: ['microphone', 'sing', 'voice', 'language'] },
+  { emoji: '📞', label: 'Call', keywords: ['call', 'phone', 'connect', 'family'] },
+  { emoji: '💬', label: 'Chat', keywords: ['chat', 'message', 'language', 'talk'] },
+  { emoji: '🤝', label: 'Handshake', keywords: ['handshake', 'social', 'work', 'meet'] },
+  { emoji: '🙏', label: 'Gratitude', keywords: ['gratitude', 'pray', 'mindfulness', 'thanks'] },
+  { emoji: '😊', label: 'Smile', keywords: ['smile', 'mood', 'happy', 'mindfulness'] },
+  { emoji: '🧊', label: 'Cold', keywords: ['cold', 'ice', 'shower', 'recovery'] },
+  { emoji: '🏊', label: 'Swimming', keywords: ['swimming', 'fitness', 'exercise'] },
+  { emoji: '⚽', label: 'Soccer', keywords: ['soccer', 'sport', 'fitness'] },
+  { emoji: '🏀', label: 'Basketball', keywords: ['basketball', 'sport', 'fitness'] },
+  { emoji: '🎾', label: 'Tennis', keywords: ['tennis', 'sport', 'fitness'] },
+  { emoji: '🥾', label: 'Hiking', keywords: ['hiking', 'walk', 'travel', 'nature'] },
+  { emoji: '🏕️', label: 'Camping', keywords: ['camping', 'outside', 'travel', 'nature'] },
+  { emoji: '🌊', label: 'Ocean', keywords: ['ocean', 'water', 'outside', 'calm'] },
+  { emoji: '💡', label: 'Idea', keywords: ['idea', 'learn', 'creative', 'focus'] },
+  { emoji: '📒', label: 'Journal', keywords: ['journal', 'write', 'notes', 'diary'] },
+  { emoji: '🕯️', label: 'Candle', keywords: ['candle', 'calm', 'mindfulness', 'evening'] },
+  { emoji: '🧭', label: 'Compass', keywords: ['compass', 'travel', 'direction', 'goal'] },
+  { emoji: '🧪', label: 'Experiment', keywords: ['experiment', 'science', 'study', 'learn'] },
+  { emoji: '🪙', label: 'Coin', keywords: ['coin', 'money', 'finance', 'saving'] },
+];
+
+const popularEmojiOptions = emojiOptions.filter(({ emoji }) =>
+  ['⭐', '🔥', '✅', '🏃', '🏋️', '📚', '🎓', '🗣️', '🇯🇵', '💰', '💧', '😴'].includes(emoji),
+);
+
+const matchesSearch = (query: string, values: string[]) =>
+  values.some((value) => value.toLocaleLowerCase().includes(query));
+
 export const HabitDialog = ({
   mode,
   initialName = '',
@@ -77,39 +193,23 @@ export const HabitDialog = ({
       : '';
   const formError = error || colorError;
 
-  const filteredIcons = habitIconOptions.filter((option) => {
-    const query = iconSearch.trim().toLocaleLowerCase();
-    if (!query) {
-      return true;
-    }
-    return [option.label, option.name, ...option.keywords].some((item) =>
-      item.toLocaleLowerCase().includes(query),
-    );
-  });
-
-  const emojiOptions = [
-    { emoji: '💧', label: 'Water', keywords: ['water', 'hydrate', 'drink'] },
-    { emoji: '🏃', label: 'Run', keywords: ['run', 'fitness', 'cardio'] },
-    { emoji: '🏋️', label: 'Gym', keywords: ['gym', 'lift', 'strength'] },
-    { emoji: '📚', label: 'Read', keywords: ['read', 'book', 'study'] },
-    { emoji: '✍️', label: 'Write', keywords: ['write', 'journal', 'notes'] },
-    { emoji: '🧘', label: 'Meditate', keywords: ['meditate', 'mindfulness', 'calm'] },
-    { emoji: '🥗', label: 'Eat well', keywords: ['food', 'meal', 'nutrition'] },
-    { emoji: '😴', label: 'Sleep', keywords: ['sleep', 'rest', 'night'] },
-    { emoji: '🎵', label: 'Music', keywords: ['music', 'practice', 'song'] },
-    { emoji: '💰', label: 'Money', keywords: ['money', 'finance', 'budget'] },
-    { emoji: '🧹', label: 'Clean', keywords: ['clean', 'home', 'tidy'] },
-    { emoji: '🌱', label: 'Grow', keywords: ['grow', 'plants', 'habit'] },
-  ];
-  const filteredEmojis = emojiOptions.filter((option) => {
-    const query = emojiSearch.trim().toLocaleLowerCase();
-    if (!query) {
-      return true;
-    }
-    return [option.emoji, option.label, ...option.keywords].some((item) =>
-      item.toLocaleLowerCase().includes(query),
-    );
-  });
+  const iconQuery = iconSearch.trim().toLocaleLowerCase();
+  const emojiQuery = emojiSearch.trim().toLocaleLowerCase();
+  const filteredIcons = iconQuery
+    ? habitIconOptions.filter((option) =>
+        matchesSearch(iconQuery, [option.label, option.name, ...option.keywords]),
+      )
+    : habitIconOptions;
+  const suggestedIcons = popularIconNames
+    .map((name) => habitIconOptions.find((option) => option.name === name))
+    .filter((option): option is (typeof habitIconOptions)[number] => Boolean(option));
+  const visibleIcons = filteredIcons.length > 0 ? filteredIcons : suggestedIcons;
+  const filteredEmojis = emojiQuery
+    ? emojiOptions.filter((option) =>
+        matchesSearch(emojiQuery, [option.emoji, option.label, ...option.keywords]),
+      )
+    : emojiOptions;
+  const visibleEmojis = filteredEmojis.length > 0 ? filteredEmojis : popularEmojiOptions;
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) {
@@ -316,8 +416,11 @@ export const HabitDialog = ({
                     onChange={(event) => setIconSearch(event.target.value)}
                   />
                 </label>
+                {filteredIcons.length === 0 ? (
+                  <p className="muted search-fallback">No exact match. Try one of these.</p>
+                ) : null}
                 <div className="icon-choice-grid">
-                  {filteredIcons.map((option) => (
+                  {visibleIcons.map((option) => (
                     <button
                       key={option.name}
                       className="icon-choice"
@@ -334,9 +437,6 @@ export const HabitDialog = ({
                     </button>
                   ))}
                 </div>
-                {filteredIcons.length === 0 ? (
-                  <p className="muted">No icons found.</p>
-                ) : null}
               </>
             ) : (
               <div className="emoji-picker">
@@ -348,8 +448,11 @@ export const HabitDialog = ({
                     onChange={(event) => setEmojiSearch(event.target.value)}
                   />
                 </label>
+                {filteredEmojis.length === 0 ? (
+                  <p className="muted search-fallback">No exact match. Try one of these.</p>
+                ) : null}
                 <div className="emoji-grid">
-                  {filteredEmojis.map((option) => (
+                  {visibleEmojis.map((option) => (
                     <button
                       key={option.label}
                       className="emoji-choice"
@@ -362,9 +465,6 @@ export const HabitDialog = ({
                     </button>
                   ))}
                 </div>
-                {filteredEmojis.length === 0 ? (
-                  <p className="muted">No emoji found.</p>
-                ) : null}
                 <label className="field emoji-field">
                   <span>Selected emoji</span>
                   <input
