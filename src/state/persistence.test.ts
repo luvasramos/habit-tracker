@@ -39,7 +39,7 @@ describe('persistence', () => {
       habits: [
         {
           ...state.habits[0],
-          color: 'blue',
+          color: 'terracotta',
           icon: { type: 'svg', name: 'custom' },
         },
       ],
@@ -68,7 +68,7 @@ describe('persistence', () => {
 
     expect(loadState(storage).habits[0]).toEqual(
       expect.objectContaining({
-        color: 'blue',
+        color: 'terracotta',
         icon: { type: 'svg', name: 'custom' },
       }),
     );
@@ -96,7 +96,7 @@ describe('persistence', () => {
 
     expect(loadState(storage).habits[0]).toEqual(
       expect.objectContaining({
-        color: '#abc',
+        color: '#aabbcc',
         icon: { type: 'svg', name: 'reading' },
       }),
     );

@@ -1,17 +1,23 @@
 export type LocalDateKey = string;
 
 export type HabitPresetColor =
+  | 'terracotta'
   | 'blue'
   | 'sky'
   | 'teal'
   | 'green'
   | 'sage'
   | 'yellow'
+  | 'acid'
   | 'orange'
   | 'red'
   | 'rose'
   | 'purple'
+  | 'violet'
   | 'lavender'
+  | 'magenta'
+  | 'clay'
+  | 'cream'
   | 'slate';
 
 export type HabitColor = HabitPresetColor | `#${string}`;

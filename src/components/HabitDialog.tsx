@@ -110,17 +110,6 @@ export const HabitDialog = ({
       item.toLocaleLowerCase().includes(query),
     );
   });
-  const colorPickerValue =
-    normalizedCustomColor?.length === 4
-      ? (`#${normalizedCustomColor
-          .slice(1)
-          .split('')
-          .map((character) => character + character)
-          .join('')}` as `#${string}`)
-      : normalizedCustomColor?.length === 7
-        ? normalizedCustomColor
-        : '#7c8792';
-
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) {
@@ -241,7 +230,7 @@ export const HabitDialog = ({
                   key={option.name}
                   className="swatch-button"
                   type="button"
-                  aria-label={option.label}
+                  aria-label={`Use ${option.label}`}
                   aria-pressed={colorMode === 'preset' && color === option.name}
                   style={{ '--swatch-color': option.value } as CSSProperties}
                   onClick={() => {
@@ -249,22 +238,32 @@ export const HabitDialog = ({
                     setColorMode('preset');
                   }}
                 >
-                  <span />
+                  <span className="swatch-button__mark" />
+                  <span className="swatch-button__name">{option.label}</span>
                 </button>
               ))}
-            </div>
-            <div className="custom-color">
               <button
-                className="custom-color__toggle"
+                className="swatch-button swatch-button--custom"
                 type="button"
+                aria-label="Use custom color"
                 aria-pressed={colorMode === 'custom'}
                 style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
                 onClick={() => setColorMode('custom')}
               >
-                <span className="custom-color__swatch" />
-                Custom color
+                <span className="swatch-button__mark" />
+                <span className="swatch-button__name">Custom</span>
               </button>
-              {colorMode === 'custom' ? (
+            </div>
+            {colorMode === 'custom' ? (
+              <div className="custom-color">
+                <div
+                  className="custom-color__preview"
+                  style={{ '--swatch-color': normalizedCustomColor ?? '#7c8792' } as CSSProperties}
+                  aria-hidden="true"
+                >
+                  <span className="custom-color__swatch" />
+                  <span>{normalizedCustomColor ?? 'Preview'}</span>
+                </div>
                 <div className="custom-color__fields">
                   <label className="field field--compact">
                     <span>Hex</span>
@@ -276,17 +275,9 @@ export const HabitDialog = ({
                       onChange={(event) => setCustomColor(event.target.value)}
                     />
                   </label>
-                  <label className="color-picker-label">
-                    <span className="sr-only">Pick custom color</span>
-                    <input
-                      type="color"
-                      value={colorPickerValue}
-                      onChange={(event) => setCustomColor(event.target.value)}
-                    />
-                  </label>
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             {colorError ? (
               <p className="form-error" id={colorErrorId}>
                 {colorError}

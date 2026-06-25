@@ -23,18 +23,24 @@ type HabitIconOption = {
 };
 
 export const habitColorOptions: HabitColorOption[] = [
-  { name: 'blue', label: 'Blue', value: '#3f7dad' },
-  { name: 'sky', label: 'Sky', value: '#5d8fa8' },
+  { name: 'terracotta', label: 'Terracotta', value: '#b86556' },
+  { name: 'orange', label: 'Warm orange', value: '#c17a45' },
+  { name: 'yellow', label: 'Ochre', value: '#b89a42' },
+  { name: 'acid', label: 'Acid sage', value: '#b6c94f' },
+  { name: 'green', label: 'Forest', value: '#4f7f58' },
   { name: 'teal', label: 'Teal', value: '#4b8f86' },
-  { name: 'green', label: 'Green', value: '#5f8d62' },
-  { name: 'sage', label: 'Sage', value: '#8ca58c' },
-  { name: 'yellow', label: 'Yellow', value: '#b8a94a' },
-  { name: 'orange', label: 'Orange', value: '#b8794b' },
-  { name: 'red', label: 'Red', value: '#a85a55' },
-  { name: 'rose', label: 'Rose', value: '#a56b7d' },
-  { name: 'purple', label: 'Purple', value: '#8c6aaa' },
+  { name: 'sky', label: 'Sky', value: '#5c93b0' },
+  { name: 'blue', label: 'Deep blue', value: '#3d6fa6' },
+  { name: 'violet', label: 'Violet', value: '#8067ad' },
   { name: 'lavender', label: 'Lavender', value: '#a383b8' },
-  { name: 'slate', label: 'Slate', value: '#7c8792' },
+  { name: 'magenta', label: 'Magenta', value: '#a85f91' },
+  { name: 'rose', label: 'Rose', value: '#a96a78' },
+  { name: 'clay', label: 'Clay', value: '#8f6a54' },
+  { name: 'sage', label: 'Sage', value: '#8ca58c' },
+  { name: 'cream', label: 'Warm cream', value: '#c8b98d' },
+  { name: 'slate', label: 'Graphite', value: '#7c8792' },
+  { name: 'red', label: 'Red', value: '#a85a55' },
+  { name: 'purple', label: 'Purple', value: '#8c6aaa' },
 ];
 
 export const habitIconOptions: HabitIconOption[] = [
@@ -191,7 +197,17 @@ export const normalizeHexColor = (value: unknown): `#${string}` | null => {
 
   const trimmed = value.trim();
   const withHash = trimmed.startsWith('#') ? trimmed : `#${trimmed}`;
-  return hexColorPattern.test(withHash) ? (withHash.toLowerCase() as `#${string}`) : null;
+  if (!hexColorPattern.test(withHash)) {
+    return null;
+  }
+
+  const normalized = withHash.toLowerCase();
+  if (normalized.length === 4) {
+    const [, red, green, blue] = normalized;
+    return `#${red}${red}${green}${green}${blue}${blue}` as `#${string}`;
+  }
+
+  return normalized as `#${string}`;
 };
 
 export const isPresetHabitColor = (value: unknown): value is HabitPresetColor =>
