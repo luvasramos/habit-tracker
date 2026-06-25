@@ -6,12 +6,14 @@ import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
 import { Icon } from './components/Icon';
 import { StatisticsView } from './components/StatisticsView';
+import { StreakPill } from './components/StreakPill';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
 import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
 import type { LocalDateKey, ViewMode } from './state/types';
 import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
+import { calculateActivityStreak } from './utils/streak';
 
 type FloatingNavigationProps = {
   page: 'calendar' | 'statistics';
@@ -88,6 +90,10 @@ export const App = () => {
   const selectedHabit = state.habits.find((habit) => habit.id === state.selectedHabitId) ?? null;
   const selectedCheckIns = selectedHabit ? state.checkIns[selectedHabit.id] ?? {} : {};
   const label = useMemo(() => periodLabel(view, anchorDate), [view, anchorDate]);
+  const activityStreak = useMemo(
+    () => calculateActivityStreak(state.checkIns),
+    [state.checkIns],
+  );
   const hasUnansweredToday = useMemo(() => {
     const answers = loadDailyCheckInAnswers(todayKey);
     return state.habits.some((habit) => !answers[habit.id] && !state.checkIns[habit.id]?.[todayKey]);
@@ -109,6 +115,10 @@ export const App = () => {
 
   return (
     <div className="app">
+      <div className="app-status" aria-live="polite">
+        <StreakPill streak={activityStreak} />
+      </div>
+
       <main className="shell">
         {dailyCheckInOpen ? (
           <DailyCheckIn
