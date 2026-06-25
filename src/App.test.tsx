@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { saveDailyCheckInAnswer } from './data/dailyCheckInStore';
 import { HabitProvider } from './state/HabitProvider';
@@ -23,6 +23,7 @@ const finishDailyCheckIn = async (user: ReturnType<typeof userEvent.setup>, answ
 
 describe('Habit Grid app', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     localStorage.clear();
     window.history.replaceState(null, '', '/');
   });
@@ -102,6 +103,67 @@ describe('Habit Grid app', () => {
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
     expect(state.habits[0].color).toBe('neonLime');
+    await finishDailyCheckIn(user);
+  });
+
+  it('opens Browse all icons lazily and selects an Iconify icon', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ icons: ['tabler:star', 'tabler:language'] }),
+    } as Response);
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    expect(screen.queryByLabelText('Browse all icons')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Name'), 'Icons');
+    await user.click(screen.getByRole('button', { name: 'Browse all icons' }));
+
+    expect(await screen.findByRole('heading', { name: 'Browse all icons' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Search icons'), 'star');
+    await waitFor(() => expect(window.fetch).toHaveBeenCalled());
+    await user.click(await screen.findByRole('button', { name: 'star' }));
+    expect(screen.queryByLabelText('Browse all icons')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].icon).toEqual({ type: 'iconify', id: 'tabler:star' });
+    expect(JSON.parse(localStorage.getItem('habit-grid:recent-icons') ?? '[]')).toContain('tabler:star');
+    await finishDailyCheckIn(user);
+  });
+
+  it('shows built-in icon fallback when Iconify search fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'fetch').mockRejectedValue(new Error('offline'));
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    await user.click(screen.getByRole('button', { name: 'Browse all icons' }));
+    await user.type(await screen.findByLabelText('Search icons'), 'unknown');
+
+    expect(await screen.findByText('Icon search failed. Try again, or use the built-in fallback icons.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Built-in fallback icons')).toBeInTheDocument();
+  });
+
+  it('opens Browse all emoji, searches, selects emoji, and caches it', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    await user.type(screen.getByLabelText('Name'), 'Japan');
+    await user.click(screen.getByRole('button', { name: 'Emoji' }));
+    expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Browse all emoji' }));
+
+    expect(await screen.findByRole('heading', { name: 'Browse all emoji' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Search emoji'), 'japan');
+    await user.click(screen.getByRole('button', { name: 'Japan flag' }));
+    expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].icon).toEqual({ type: 'emoji', value: '🇯🇵' });
+    expect(JSON.parse(localStorage.getItem('habit-grid:recent-emoji') ?? '[]')).toContain('🇯🇵');
     await finishDailyCheckIn(user);
   });
 

@@ -87,6 +87,10 @@ export type HabitIcon =
       name: HabitIconName;
     }
   | {
+      type: 'iconify';
+      id: `tabler:${string}`;
+    }
+  | {
       type: 'emoji';
       value: string;
     };

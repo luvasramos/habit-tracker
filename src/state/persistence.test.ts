@@ -153,6 +153,33 @@ describe('persistence', () => {
     );
   });
 
+  it('keeps valid Iconify habit icons', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Read',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'neonBlue',
+            icon: { type: 'iconify', id: 'tabler:star' },
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0]).toEqual(
+      expect.objectContaining({
+        icon: { type: 'iconify', id: 'tabler:star' },
+      }),
+    );
+  });
+
   it('preserves legacy preset habit colors', () => {
     const storage = makeStorage();
     storage.setItem(

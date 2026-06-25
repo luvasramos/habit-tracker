@@ -41,3 +41,9 @@ npm run build
 The repository includes `.github/workflows/deploy.yml` for GitHub Pages. In the repository settings, set Pages to deploy from GitHub Actions. The workflow runs lint, tests, type checking, and the production build, then publishes `dist`.
 
 The Vite base path uses `/habit-tracker/` when `GITHUB_PAGES=true` so project-page assets resolve correctly for `luvasramos/habit-tracker`.
+
+## Acknowledgements
+
+Expanded icon search uses the Tabler Icons collection through Iconify. Tabler Icons are MIT licensed. Full emoji browsing uses `emoji-picker-element`, also MIT licensed. Both large browsers are loaded only from the Habit Editor browse actions.
+
+The catalog update keeps the full browsers code-split: the production main JavaScript increased by about 20.6 kB raw, 8.2 kB gzip, with `FullIconBrowser` and `FullEmojiBrowser` emitted as lazy chunks.

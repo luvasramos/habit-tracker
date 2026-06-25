@@ -211,6 +211,19 @@ h2 {
   line-height: 1;
 }
 
+.habit-icon--iconify {
+  display: inline-grid;
+  place-items: center;
+  font-size: 1rem;
+}
+
+.habit-icon__fallback {
+  width: 1em;
+  height: 1em;
+  border: 1.8px solid currentColor;
+  border-radius: 999px;
+}
+
 .button,
 .icon-button,
 .segmented__button,
@@ -2136,6 +2149,15 @@ h2 {
   gap: 8px;
 }
 
+.compact-catalog {
+  display: grid;
+  gap: 8px;
+}
+
+.browse-all-button {
+  width: fit-content;
+}
+
 .icon-choice,
 .emoji-choice {
   padding: 0;
@@ -2171,6 +2193,79 @@ h2 {
 .selector-pagination__button {
   width: var(--control-size);
   min-height: var(--control-size);
+}
+
+.catalog-browser {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-2) 54%, transparent);
+}
+
+.catalog-browser__header,
+.catalog-browser__notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.catalog-browser__header h2 {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.catalog-browser__search {
+  max-width: 420px;
+}
+
+.catalog-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.catalog-grid--icons,
+.catalog-grid--emoji {
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+}
+
+.catalog-grid--icons .selector-card,
+.catalog-grid--emoji .selector-card {
+  min-height: 48px;
+}
+
+.catalog-grid--icons .iconify {
+  width: 20px;
+  height: 20px;
+  color: color-mix(in srgb, var(--habit-color) 84%, var(--soft));
+}
+
+.emoji-picker-shell {
+  min-height: 120px;
+  overflow: clip;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #000000;
+}
+
+.full-emoji-picker {
+  width: 100%;
+  height: min(420px, 62vh);
+  --background: #000000;
+  --border-color: var(--border);
+  --button-active-background: var(--surface-3);
+  --button-hover-background: var(--surface-2);
+  --category-emoji-padding: 4px;
+  --emoji-size: 1.35rem;
+  --indicator-color: #f1f1f1;
+  --input-border-color: var(--border);
+  --input-font-color: #f1f1f1;
+  --input-placeholder-color: var(--muted);
+  --outline-color: #f1f1f1;
+  --text-color: #f1f1f1;
 }
 
 .form-error {

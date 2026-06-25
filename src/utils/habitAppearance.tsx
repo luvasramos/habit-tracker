@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import type { CSSProperties, ReactNode } from 'react';
+import { Icon as IconifyIcon } from '@iconify/react';
 import type {
   CheckInsByHabit,
   Habit,
@@ -580,6 +581,9 @@ export const isHabitIconName = (value: unknown): value is HabitIconName =>
   typeof value === 'string' &&
   habitIconOptions.some((option) => option.name === value);
 
+export const isIconifyHabitIconId = (value: unknown): value is `tabler:${string}` =>
+  typeof value === 'string' && /^tabler:[a-z0-9][a-z0-9-]*$/.test(value);
+
 export const normalizeEmojiValue = (value: unknown) => {
   if (typeof value !== 'string') {
     return '';
@@ -595,6 +599,7 @@ export const isHabitIcon = (value: unknown): value is HabitIcon => {
   const icon = value as Record<string, unknown>;
   return (
     (icon.type === 'svg' && isHabitIconName(icon.name)) ||
+    (icon.type === 'iconify' && isIconifyHabitIconId(icon.id)) ||
     (icon.type === 'emoji' && normalizeEmojiValue(icon.value).length > 0)
   );
 };
@@ -661,6 +666,14 @@ export const HabitIconView = ({
     return (
       <span className={classNames} aria-hidden="true">
         {icon.value}
+      </span>
+    );
+  }
+
+  if (icon.type === 'iconify') {
+    return (
+      <span className={`${classNames} habit-icon--iconify`} aria-hidden="true">
+        <IconifyIcon icon={icon.id} width="1em" height="1em" fallback={<span className="habit-icon__fallback" />} />
       </span>
     );
   }
