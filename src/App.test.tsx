@@ -2,8 +2,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from './App';
+import { saveDailyCheckInAnswer } from './data/dailyCheckInStore';
 import { HabitProvider } from './state/HabitProvider';
 import { STORAGE_KEY } from './state/persistence';
+import { toLocalDateKey } from './utils/dates';
 
 const renderApp = () =>
   render(
@@ -137,5 +139,68 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
     expect(screen.getByText('No statistics yet')).toBeInTheDocument();
+  });
+
+  it('logs the default duration from the daily check-in flow', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Study Japanese');
+    await user.click(screen.getByRole('button', { name: 'Completion + time' }));
+    await user.type(screen.getByLabelText('Default session'), '1h');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByRole('group', { name: 'Study Japanese. Did you complete this today?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Yes' }));
+    expect(await screen.findByText('1h logged')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: 'Daily check-in' })).not.toBeInTheDocument();
+    }, { timeout: 2400 });
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    const habitId = state.habits[0].id;
+    expect(state.checkIns[habitId][todayKey]).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
+    expect(Object.keys(state.checkIns[habitId])).toEqual([todayKey]);
+  });
+
+  it('logs the default duration from the Today remaining popover', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Study Japanese',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'language' },
+            trackingMode: 'duration',
+            defaultDurationMinutes: 45,
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Today remaining: 1' }));
+    await user.click(screen.getByRole('button', { name: 'Mark Study Japanese complete today' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.checkIns['habit-1'][todayKey]).toEqual({
+      completed: true,
+      durationMinutes: 45,
+    });
+    expect(screen.getByRole('button', { name: 'Today remaining: 0' })).toBeInTheDocument();
   });
 });

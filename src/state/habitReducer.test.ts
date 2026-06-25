@@ -8,6 +8,11 @@ const draft = (name: string): HabitDraft => ({
   color: 'blue',
   icon: { type: 'svg', name: 'fitness' },
 });
+const durationDraft = (name: string, defaultDurationMinutes = 60): HabitDraft => ({
+  ...draft(name),
+  trackingMode: 'duration',
+  defaultDurationMinutes,
+});
 
 describe('habitReducer', () => {
   it('adds and selects a habit', () => {
@@ -140,7 +145,118 @@ describe('habitReducer', () => {
       completed: true,
       durationMinutes: 60,
     });
-    expect(unknownDuration.checkIns['habit-1']['2026-06-18']).toBe(true);
+    expect(unknownDuration.checkIns['habit-1']['2026-06-18']).toEqual({
+      completed: true,
+      durationMinutes: 60,
+    });
+  });
+
+  it('automatically logs the default duration when completing a duration habit', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: durationDraft('Study Japanese', 45),
+    });
+    const checked = habitReducer(added, {
+      type: 'toggleCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+    });
+
+    expect(checked.checkIns['habit-1']['2026-06-17']).toEqual({
+      completed: true,
+      durationMinutes: 45,
+    });
+  });
+
+  it('keeps completion-only habit check-ins as completion entries', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), { type: 'addHabit', habit: draft('Gym') });
+    const checked = habitReducer(added, {
+      type: 'toggleCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+    });
+
+    expect(checked.checkIns['habit-1']['2026-06-17']).toBe(true);
+  });
+
+  it('replaces an existing duration when editing time', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: durationDraft('Study Japanese'),
+    });
+    const checked = habitReducer(added, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      durationMinutes: 60,
+    });
+    const edited = habitReducer(checked, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      durationMinutes: 90,
+    });
+
+    expect(edited.checkIns['habit-1']['2026-06-17']).toEqual({
+      completed: true,
+      durationMinutes: 90,
+    });
+  });
+
+  it('adds duration to a completed historical day with unknown duration', () => {
+    const state = {
+      ...emptyState(),
+      habits: [
+        {
+          id: 'habit-1',
+          name: 'Study Japanese',
+          createdAt: '2026-01-01T00:00:00.000Z',
+          trackingMode: 'duration' as const,
+          defaultDurationMinutes: 60,
+        },
+      ],
+      checkIns: { 'habit-1': { '2026-06-17': true as const } },
+      selectedHabitId: 'habit-1',
+    };
+    const edited = habitReducer(state, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      durationMinutes: 30,
+    });
+
+    expect(edited.checkIns['habit-1']['2026-06-17']).toEqual({
+      completed: true,
+      durationMinutes: 30,
+    });
+  });
+
+  it('unchecking clears duration for that date', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: durationDraft('Study Japanese'),
+    });
+    const checked = habitReducer(added, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      durationMinutes: 60,
+    });
+    const unchecked = habitReducer(checked, {
+      type: 'toggleCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+    });
+
+    expect(unchecked.checkIns['habit-1']).toEqual({});
   });
 
   it('clears duration settings when a habit changes back to completion only', () => {

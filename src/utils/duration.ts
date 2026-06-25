@@ -38,6 +38,13 @@ export const createCompletedCheckIn = (durationMinutes?: number): CheckInEntry =
     ? { completed: true, durationMinutes }
     : true;
 
+export const getDefaultDurationMinutes = (
+  habit: Pick<Habit, 'trackingMode' | 'defaultDurationMinutes'>,
+) =>
+  habit.trackingMode === 'duration' && isValidDurationMinutes(habit.defaultDurationMinutes)
+    ? habit.defaultDurationMinutes
+    : undefined;
+
 export const sumLoggedDurationMinutes = (
   checkIns: CheckInsByHabit,
   habitIds?: string[],

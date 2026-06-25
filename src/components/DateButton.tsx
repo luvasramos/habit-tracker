@@ -15,6 +15,7 @@ type DateButtonProps = {
   tabIndex?: number;
   disabled?: boolean;
   onClick: () => void;
+  onFocus?: () => void;
   onKeyDown?: (event: KeyboardEvent<HTMLButtonElement>) => void;
 };
 
@@ -30,6 +31,7 @@ export const DateButton = ({
   tabIndex,
   disabled,
   onClick,
+  onFocus,
   onKeyDown,
 }: DateButtonProps) => {
   const future = disabled ?? isFutureDay(date);
@@ -52,6 +54,7 @@ export const DateButton = ({
       title={`${fullDateLabel(date)}: ${state}`}
       style={{ '--habit-color': habitColor } as CSSProperties}
       onClick={onClick}
+      onFocus={onFocus}
       onKeyDown={onKeyDown}
     >
       {children}

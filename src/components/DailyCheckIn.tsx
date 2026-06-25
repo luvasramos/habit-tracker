@@ -7,7 +7,11 @@ import {
 } from '../data/dailyCheckInStore';
 import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
 import { toLocalDateKey } from '../utils/dates';
-import { isCompletedCheckIn } from '../utils/duration';
+import {
+  formatMinutes,
+  getDefaultDurationMinutes,
+  isCompletedCheckIn,
+} from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
@@ -28,8 +32,10 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
   const [dragX, setDragX] = useState(0);
   const [leaving, setLeaving] = useState<DailyCheckInAnswer | null>(null);
   const [done, setDone] = useState(false);
+  const [loggedMessage, setLoggedMessage] = useState('');
   const startXRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
+  const loggedTimerRef = useRef<number | null>(null);
   const answeredHabitIds = useMemo(
     () =>
       new Set([
@@ -67,6 +73,9 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
       if (completeTimerRef.current) {
         window.clearTimeout(completeTimerRef.current);
       }
+      if (loggedTimerRef.current) {
+        window.clearTimeout(loggedTimerRef.current);
+      }
     };
   }, [done, onComplete]);
 
@@ -76,7 +85,15 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
     }
 
     const completed = answer === 'yes';
+    const loggedMinutes = completed ? getDefaultDurationMinutes(currentHabit) : undefined;
     setLeaving(answer);
+    if (loggedTimerRef.current) {
+      window.clearTimeout(loggedTimerRef.current);
+    }
+    setLoggedMessage(loggedMinutes ? `${formatMinutes(loggedMinutes)} logged` : '');
+    if (loggedMinutes) {
+      loggedTimerRef.current = window.setTimeout(() => setLoggedMessage(''), 900);
+    }
     saveDailyCheckInAnswer(todayKey, currentHabit.id, answer);
     onAnswer(currentHabit.id, todayKey, completed);
 
@@ -148,6 +165,7 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
             <Icon name="check" />
           </span>
           <h2>Check-in complete</h2>
+          {loggedMessage ? <p className="checkin-log-note">{loggedMessage}</p> : null}
         </div>
       ) : currentHabit ? (
         <>
@@ -203,6 +221,9 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
               <Icon name="check" />
             </button>
           </div>
+          <p className="checkin-log-note" aria-live="polite">
+            {loggedMessage}
+          </p>
         </>
       ) : null}
     </section>

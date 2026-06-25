@@ -1,5 +1,9 @@
 import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
-import { createCompletedCheckIn, isCompletedCheckIn } from '../utils/duration';
+import {
+  createCompletedCheckIn,
+  getDefaultDurationMinutes,
+  isCompletedCheckIn,
+} from '../utils/duration';
 import type { Habit, HabitDraft, HabitState, LocalDateKey } from './types';
 
 export type HabitAction =
@@ -150,7 +154,8 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
     }
 
     case 'toggleCheckIn': {
-      if (!state.habits.some((habit) => habit.id === action.habitId)) {
+      const habit = state.habits.find((candidate) => candidate.id === action.habitId);
+      if (!habit) {
         return state;
       }
 
@@ -163,13 +168,17 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
           ...state.checkIns,
           [action.habitId]: isCompletedCheckIn(existing)
             ? remaining
-            : { ...habitCheckIns, [action.dateKey]: true },
+            : {
+                ...habitCheckIns,
+                [action.dateKey]: createCompletedCheckIn(getDefaultDurationMinutes(habit)),
+              },
         },
       };
     }
 
     case 'setCheckIn': {
-      if (!state.habits.some((habit) => habit.id === action.habitId)) {
+      const habit = state.habits.find((candidate) => candidate.id === action.habitId);
+      if (!habit) {
         return state;
       }
 
@@ -184,7 +193,9 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
           [action.habitId]: action.completed
             ? {
                 ...habitCheckIns,
-                [action.dateKey]: createCompletedCheckIn(action.durationMinutes),
+                [action.dateKey]: createCompletedCheckIn(
+                  action.durationMinutes ?? getDefaultDurationMinutes(habit),
+                ),
               }
             : remaining,
         },

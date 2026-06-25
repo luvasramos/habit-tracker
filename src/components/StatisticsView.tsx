@@ -12,7 +12,11 @@ import {
   toLocalDateKey,
   yearBounds,
 } from '../utils/dates';
-import { isCompletedCheckIn } from '../utils/duration';
+import {
+  formatMinutes,
+  getCheckInDurationMinutes,
+  isCompletedCheckIn,
+} from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
 
@@ -25,6 +29,7 @@ type HabitStat = {
   id: string;
   name: string;
   count: number;
+  durationMinutes: number;
   percent: number;
   color: string;
   kind: 'habit' | 'inactive';
@@ -82,10 +87,15 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     const count = rangeKeys.filter((key) =>
       isCompletedCheckIn(checkIns[habit.id]?.[key]),
     ).length;
+    const durationMinutes = rangeKeys.reduce(
+      (sum, key) => sum + (getCheckInDurationMinutes(checkIns[habit.id]?.[key]) ?? 0),
+      0,
+    );
     return {
       id: habit.id,
       name: habit.name,
       count,
+      durationMinutes,
       percent: 0,
       color: getHabitColorVar(habit.id, habits),
       kind: 'habit',
@@ -93,6 +103,10 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     };
   });
   const totalCompletions = habitStats.reduce((sum, stat) => sum + stat.count, 0);
+  const totalDurationMinutes = habitStats.reduce(
+    (sum, stat) => sum + stat.durationMinutes,
+    0,
+  );
   const activeDays = rangeKeys.filter((key) =>
     selectedHabits.some((habit) => isCompletedCheckIn(checkIns[habit.id]?.[key])),
   ).length;
@@ -103,6 +117,7 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
     id: noActivityId,
     name: 'No activity',
     count: inactiveDays,
+    durationMinutes: 0,
     percent: rangeKeys.length > 0 ? inactiveDays / rangeKeys.length : 0,
     color: 'var(--inactive)',
     kind: 'inactive',
@@ -253,6 +268,12 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
               <span>Total completions</span>
               <strong>{totalCompletions}</strong>
             </div>
+            {totalDurationMinutes > 0 ? (
+              <div className="metric">
+                <span>Time logged</span>
+                <strong>{formatMinutes(totalDurationMinutes)}</strong>
+              </div>
+            ) : null}
           </div>
 
           <div className="stats-view">
@@ -325,6 +346,9 @@ export const StatisticsView = ({ habits, checkIns }: StatisticsViewProps) => {
                       <span style={{ width: `${barPercent}%` }} />
                     </span>
                     <span className="stat-row__count">{stat.count}</span>
+                    {stat.durationMinutes > 0 ? (
+                      <span className="stat-row__time">{formatMinutes(stat.durationMinutes)}</span>
+                    ) : null}
                   </div>
                 );
               })}

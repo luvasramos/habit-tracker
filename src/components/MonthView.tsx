@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
 import { isFutureDay, monthBounds } from '../utils/dates';
-import { isCompletedCheckIn } from '../utils/duration';
+import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
+import { Icon } from './Icon';
 import { DateButton } from './DateButton';
 
 type MonthViewProps = {
@@ -14,11 +15,20 @@ type MonthViewProps = {
   checkIns: Record<LocalDateKey, CheckInEntry>;
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
+  onEditTime?: (dateKey: LocalDateKey) => void;
 };
 
 const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: MonthViewProps) => {
+export const MonthView = ({
+  habit,
+  habits,
+  anchorDate,
+  checkIns,
+  allCheckIns,
+  onToggle,
+  onEditTime,
+}: MonthViewProps) => {
   const cells = useMemo(() => getMonthCells(anchorDate), [anchorDate]);
   const enabledKeys = cells
     .filter((cell) => cell.inPeriod && !isFutureDay(cell.date))
@@ -26,6 +36,13 @@ export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, on
   const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
   const { start, end } = monthBounds(anchorDate);
   const habitColor = getHabitColorVar(habit.id, habits);
+  const fallbackEditKey =
+    cells.find((cell) => cell.inPeriod && isCompletedCheckIn(checkIns[cell.key]))?.key ?? '';
+  const editKey = isCompletedCheckIn(checkIns[focusedKey]) ? focusedKey : fallbackEditKey;
+  const editEntry = checkIns[editKey];
+  const editDuration = getCheckInDurationMinutes(editEntry);
+  const canEditTime =
+    habit.trackingMode === 'duration' && isCompletedCheckIn(editEntry) && Boolean(onEditTime);
   const count = Object.keys(checkIns).filter((key) => {
     const cell = cells.find((item) => item.key === key);
     return cell?.inPeriod && isCompletedCheckIn(checkIns[key]);
@@ -78,7 +95,11 @@ export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, on
                 }),
               )}
               tabIndex={cell.key === focusedKey ? 0 : -1}
-              onClick={() => onToggle(cell.key)}
+              onClick={() => {
+                setFocusedKey(cell.key);
+                onToggle(cell.key);
+              }}
+              onFocus={() => setFocusedKey(cell.key)}
               onKeyDown={(event) => {
                 const moves: Record<string, number> = {
                   ArrowLeft: -1,
@@ -103,6 +124,20 @@ export const MonthView = ({ habit, habits, anchorDate, checkIns, allCheckIns, on
         {count} completed days in {format(start, 'MMMM')}
         <span className="sr-only">, from {format(start, 'MMMM d')} to {format(end, 'MMMM d, yyyy')}</span>
       </p>
+      {canEditTime ? (
+        <button
+          className="button button--quiet time-edit-trigger"
+          type="button"
+          aria-label={`Edit time for ${habit.name}`}
+          onClick={() => onEditTime?.(editKey)}
+        >
+          <Icon name="edit" />
+          Edit time
+          <span>
+            {editDuration ? formatMinutes(editDuration) : 'Unknown time'}
+          </span>
+        </button>
+      ) : null}
     </section>
   );
 };

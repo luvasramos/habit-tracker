@@ -3,8 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getWeekDays } from '../utils/calendar';
 import { isFutureDay } from '../utils/dates';
-import { isCompletedCheckIn } from '../utils/duration';
+import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
+import { Icon } from './Icon';
 import { DateButton } from './DateButton';
 
 type ViewProps = {
@@ -14,9 +15,18 @@ type ViewProps = {
   checkIns: Record<LocalDateKey, CheckInEntry>;
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
+  onEditTime?: (dateKey: LocalDateKey) => void;
 };
 
-export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: ViewProps) => {
+export const WeekView = ({
+  habit,
+  habits,
+  anchorDate,
+  checkIns,
+  allCheckIns,
+  onToggle,
+  onEditTime,
+}: ViewProps) => {
   const days = useMemo(() => getWeekDays(anchorDate), [anchorDate]);
   const enabledKeys = useMemo(
     () => days.filter((day) => !isFutureDay(day.date)).map((day) => day.key),
@@ -25,6 +35,13 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
   const [focusedKey, setFocusedKey] = useState(enabledKeys[0] ?? '');
   const count = days.filter((day) => isCompletedCheckIn(checkIns[day.key])).length;
   const habitColor = getHabitColorVar(habit.id, habits);
+  const fallbackEditKey =
+    days.find((day) => isCompletedCheckIn(checkIns[day.key]))?.key ?? '';
+  const editKey = isCompletedCheckIn(checkIns[focusedKey]) ? focusedKey : fallbackEditKey;
+  const editEntry = checkIns[editKey];
+  const editDuration = getCheckInDurationMinutes(editEntry);
+  const canEditTime =
+    habit.trackingMode === 'duration' && isCompletedCheckIn(editEntry) && Boolean(onEditTime);
 
   useEffect(() => {
     if (!enabledKeys.includes(focusedKey)) {
@@ -74,7 +91,11 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
               }),
             )}
             tabIndex={day.key === focusedKey ? 0 : -1}
-            onClick={() => onToggle(day.key)}
+            onClick={() => {
+              setFocusedKey(day.key);
+              onToggle(day.key);
+            }}
+            onFocus={() => setFocusedKey(day.key)}
             onKeyDown={(event) => {
               const moves: Record<string, number> = {
                 ArrowLeft: -1,
@@ -101,6 +122,20 @@ export const WeekView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
         ))}
       </div>
       <p className="summary">{count} completed days this week</p>
+      {canEditTime ? (
+        <button
+          className="button button--quiet time-edit-trigger"
+          type="button"
+          aria-label={`Edit time for ${habit.name}`}
+          onClick={() => onEditTime?.(editKey)}
+        >
+          <Icon name="edit" />
+          Edit time
+          <span>
+            {editDuration ? formatMinutes(editDuration) : 'Unknown time'}
+          </span>
+        </button>
+      ) : null}
     </section>
   );
 };

@@ -1,10 +1,11 @@
 import { format } from 'date-fns';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
-import { isCompletedCheckIn } from '../utils/duration';
+import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { DateButton } from './DateButton';
+import { Icon } from './Icon';
 
 type YearViewProps = {
   habit: Habit;
@@ -13,20 +14,39 @@ type YearViewProps = {
   checkIns: Record<LocalDateKey, CheckInEntry>;
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
+  onEditTime?: (dateKey: LocalDateKey) => void;
 };
 
 const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
-export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onToggle }: YearViewProps) => {
+export const YearView = ({
+  habit,
+  habits,
+  anchorDate,
+  checkIns,
+  allCheckIns,
+  onToggle,
+  onEditTime,
+}: YearViewProps) => {
   const months = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
     [anchorDate],
   );
+  const [activeKey, setActiveKey] = useState<LocalDateKey>('');
   const year = anchorDate.getFullYear();
   const habitColor = getHabitColorVar(habit.id, habits);
   const count = Object.entries(checkIns).filter(
     ([key, entry]) => key.startsWith(`${year}-`) && isCompletedCheckIn(entry),
   ).length;
+  const fallbackEditKey =
+    Object.entries(checkIns).find(
+      ([key, entry]) => key.startsWith(`${year}-`) && isCompletedCheckIn(entry),
+    )?.[0] ?? '';
+  const editKey = isCompletedCheckIn(checkIns[activeKey]) ? activeKey : fallbackEditKey;
+  const editEntry = checkIns[editKey];
+  const editDuration = getCheckInDurationMinutes(editEntry);
+  const canEditTime =
+    habit.trackingMode === 'duration' && isCompletedCheckIn(editEntry) && Boolean(onEditTime);
 
   return (
     <section className="calendar-section" aria-label="Year calendar">
@@ -59,7 +79,11 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
                       }),
                     )}
                     compact
-                    onClick={() => onToggle(cell.key)}
+                    onClick={() => {
+                      setActiveKey(cell.key);
+                      onToggle(cell.key);
+                    }}
+                    onFocus={() => setActiveKey(cell.key)}
                   >
                     <span className="sr-only">{format(cell.date, 'MMM d')}</span>
                   </DateButton>
@@ -72,6 +96,20 @@ export const YearView = ({ habit, habits, anchorDate, checkIns, allCheckIns, onT
         ))}
       </div>
       <p className="summary">{count} completed days in {year}</p>
+      {canEditTime ? (
+        <button
+          className="button button--quiet time-edit-trigger"
+          type="button"
+          aria-label={`Edit time for ${habit.name}`}
+          onClick={() => onEditTime?.(editKey)}
+        >
+          <Icon name="edit" />
+          Edit time
+          <span>
+            {editDuration ? formatMinutes(editDuration) : 'Unknown time'}
+          </span>
+        </button>
+      ) : null}
     </section>
   );
 };

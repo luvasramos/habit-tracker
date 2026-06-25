@@ -617,6 +617,14 @@ h2 {
   gap: 14px;
 }
 
+.checkin-log-note {
+  min-height: 20px;
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+
 .checkin-action {
   display: grid;
   place-items: center;
@@ -1191,7 +1199,7 @@ h2 {
 
 .stat-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto;
+  grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto auto;
   justify-content: space-between;
   min-height: var(--control-size);
   padding: 0 12px;
@@ -1222,6 +1230,12 @@ h2 {
 .stat-row__count {
   color: var(--soft);
   font-weight: 500;
+}
+
+.stat-row__time {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-row__bar {
@@ -1441,6 +1455,10 @@ h2 {
   overflow: auto;
 }
 
+.dialog--small {
+  width: min(420px, calc(100vw - 32px));
+}
+
 .dialog[open] {
   animation: dialog-in 150ms ease both;
 }
@@ -1508,6 +1526,39 @@ h2 {
   color: var(--muted);
   font-size: 0.82rem;
   line-height: 1.4;
+}
+
+.time-edit-trigger {
+  width: fit-content;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.time-edit-trigger span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.time-editor {
+  gap: 12px;
+}
+
+.time-editor__current {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.time-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.time-editor__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .appearance-editor {
@@ -1907,6 +1958,10 @@ h2 {
     min-width: 0;
   }
 
+  .stat-row__time {
+    justify-self: end;
+  }
+
   .comparison-legend {
     font-size: 0.78rem;
   }
@@ -2064,6 +2119,14 @@ h2 {
   }
 
   .tracking-settings__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .time-preset-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .time-editor__fields {
     grid-template-columns: 1fr;
   }
 }

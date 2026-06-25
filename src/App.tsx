@@ -6,13 +6,21 @@ import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
 import { Icon } from './components/Icon';
 import { StatisticsView } from './components/StatisticsView';
+import { TimeEditDialog } from './components/TimeEditDialog';
 import { WeekView } from './components/WeekView';
 import { YearView } from './components/YearView';
 import { loadDailyCheckInAnswers } from './data/dailyCheckInStore';
 import { useHabits } from './state/HabitProvider';
 import type { Habit, LocalDateKey, ViewMode } from './state/types';
-import { isFutureDay, movePeriod, periodLabel, toLocalDateKey } from './utils/dates';
-import { isCompletedCheckIn } from './utils/duration';
+import {
+  fromLocalDateKey,
+  fullDateLabel,
+  isFutureDay,
+  movePeriod,
+  periodLabel,
+  toLocalDateKey,
+} from './utils/dates';
+import { getCheckInDurationMinutes, isCompletedCheckIn } from './utils/duration';
 import { getHabitColorVar, HabitIconView } from './utils/habitAppearance';
 import { calculateActivityStreak } from './utils/streak';
 
@@ -170,12 +178,21 @@ export const App = () => {
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
+  const [timeEditTarget, setTimeEditTarget] = useState<{
+    habitId: string;
+    dateKey: LocalDateKey;
+  } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const reminderButtonRef = useRef<HTMLButtonElement>(null);
   const reminderPopoverRef = useRef<HTMLDivElement>(null);
   const selectedHabit = state.habits.find((habit) => habit.id === state.selectedHabitId) ?? null;
   const selectedCheckIns = selectedHabit ? state.checkIns[selectedHabit.id] ?? {} : {};
+  const timeEditHabit =
+    state.habits.find((habit) => habit.id === timeEditTarget?.habitId) ?? null;
+  const timeEditEntry = timeEditTarget
+    ? state.checkIns[timeEditTarget.habitId]?.[timeEditTarget.dateKey]
+    : undefined;
   const label = useMemo(() => periodLabel(view, anchorDate), [view, anchorDate]);
   const activityStreak = useMemo(
     () => calculateActivityStreak(state.checkIns),
@@ -239,6 +256,14 @@ export const App = () => {
     toggleCheckIn(selectedHabit.id, dateKey);
   };
 
+  const openTimeEdit = (dateKey: LocalDateKey) => {
+    if (!selectedHabit) {
+      return;
+    }
+
+    setTimeEditTarget({ habitId: selectedHabit.id, dateKey });
+  };
+
   return (
     <div className="app">
       <main className="shell">
@@ -292,6 +317,7 @@ export const App = () => {
                 checkIns={selectedCheckIns}
                 allCheckIns={state.checkIns}
                 onToggle={handleToggle}
+                onEditTime={openTimeEdit}
               />
             ) : null}
             {selectedHabit && view === 'month' ? (
@@ -302,6 +328,7 @@ export const App = () => {
                 checkIns={selectedCheckIns}
                 allCheckIns={state.checkIns}
                 onToggle={handleToggle}
+                onEditTime={openTimeEdit}
               />
             ) : null}
             {selectedHabit && view === 'year' ? (
@@ -312,6 +339,7 @@ export const App = () => {
                 checkIns={selectedCheckIns}
                 allCheckIns={state.checkIns}
                 onToggle={handleToggle}
+                onEditTime={openTimeEdit}
               />
             ) : null}
           </>
@@ -366,6 +394,22 @@ export const App = () => {
           isDuplicate={(name) => isDuplicateName(name, selectedHabit.id)}
         />
       ) : null}
+
+      <TimeEditDialog
+        isOpen={Boolean(timeEditTarget && timeEditHabit)}
+        habit={timeEditHabit}
+        dateLabel={
+          timeEditTarget ? fullDateLabel(fromLocalDateKey(timeEditTarget.dateKey)) : ''
+        }
+        initialMinutes={getCheckInDurationMinutes(timeEditEntry)}
+        onClose={() => setTimeEditTarget(null)}
+        onSave={(durationMinutes) => {
+          if (!timeEditTarget) {
+            return;
+          }
+          setCheckIn(timeEditTarget.habitId, timeEditTarget.dateKey, true, durationMinutes);
+        }}
+      />
     </div>
   );
 };
