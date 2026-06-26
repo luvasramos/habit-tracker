@@ -198,6 +198,48 @@ describe('StatisticsView time goal card', () => {
     expect(screen.queryByRole('button', { name: 'Show no activity' })).not.toBeInTheDocument();
   });
 
+  it('shows a selected-habit donut when no eligible days were missed', () => {
+    renderStats({
+      habit: makeHabit({
+        createdAt: '2026-06-22',
+        trackingMode: 'completion',
+        yearlyGoalMinutes: undefined,
+      }),
+      checkIns: {
+        '2026-06-22': true,
+        '2026-06-23': true,
+        '2026-06-24': true,
+        '2026-06-25': true,
+      },
+    });
+
+    const donut = screen.getByLabelText('100 percent consistency. Japanese completed 4 days and missed 0 days.');
+    expect(within(donut).getAllByText('100%')[0]).toBeInTheDocument();
+    expect(within(donut).getByText('Days done')).toBeInTheDocument();
+    expect(within(donut).getByText('4')).toBeInTheDocument();
+    expect(within(donut).getByText('Days missed')).toBeInTheDocument();
+    expect(within(donut).getByText('0')).toBeInTheDocument();
+    expect(screen.queryByText('completions')).not.toBeInTheDocument();
+  });
+
+  it('shows a selected-habit donut when no eligible days were completed', () => {
+    renderStats({
+      habit: makeHabit({
+        createdAt: '2026-06-22',
+        trackingMode: 'completion',
+        yearlyGoalMinutes: undefined,
+      }),
+    });
+
+    const donut = screen.getByLabelText('0 percent consistency. Japanese completed 0 days and missed 4 days.');
+    expect(within(donut).getAllByText('0%')[0]).toBeInTheDocument();
+    expect(within(donut).getByText('Days done')).toBeInTheDocument();
+    expect(within(donut).getByText('0')).toBeInTheDocument();
+    expect(within(donut).getByText('Days missed')).toBeInTheDocument();
+    expect(within(donut).getByText('4')).toBeInTheDocument();
+    expect(screen.queryByText('Total completions')).not.toBeInTheDocument();
+  });
+
   it('renders the Year statistics calendar as twelve mini-months', () => {
     renderStats({
       checkIns: { '2026-06-25': { completed: true, durationMinutes: 60 } },
