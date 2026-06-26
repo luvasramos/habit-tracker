@@ -755,32 +755,36 @@ export const StatisticsView = ({
       </div>
 
       <>
-        <div
-          className="stats-summary-grid"
-          data-count={summaryMetrics.length}
-        >
-          {summaryMetrics.map((metric) => (
+        <div className={`stats-overview${!selectedHabit ? ' stats-overview--with-donut' : ''}`}>
+          <div className="stats-overview__summary">
             <div
-              className={`metric${metric.className ? ` ${metric.className}` : ''}`}
-              key={metric.label}
-              aria-label={`${metric.label}: ${metric.description}`}
-              title={metric.description}
+              className="stats-summary-grid"
+              data-count={summaryMetrics.length}
             >
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
+              {summaryMetrics.map((metric) => (
+                <div
+                  className={`metric${metric.className ? ` ${metric.className}` : ''}`}
+                  key={metric.label}
+                  aria-label={`${metric.label}: ${metric.description}`}
+                  title={metric.description}
+                >
+                  <span>{metric.label}</span>
+                  <strong>{metric.value}</strong>
+                </div>
+              ))}
             </div>
-          ))}
+
+            {!selectedHabit && activeDays === 0 ? (
+              <p className="stats-note">No activity recorded in this period.</p>
+            ) : null}
+
+            {!selectedHabit && totalDurationMinutes === 0 ? (
+              <p className="stats-note">No time has been logged in this period.</p>
+            ) : null}
+          </div>
+
+          {!selectedHabit ? <CompletionDonut stats={habitStats} /> : null}
         </div>
-
-        {!selectedHabit && activeDays === 0 ? (
-          <p className="stats-note">No activity recorded in this period.</p>
-        ) : null}
-
-        {!selectedHabit && totalDurationMinutes === 0 ? (
-          <p className="stats-note">No time has been logged in this period.</p>
-        ) : null}
-
-        {!selectedHabit ? <CompletionDonut stats={habitStats} /> : null}
 
         {selectedHabit?.trackingMode === 'duration' &&
         !selectedHasYearlyGoal &&
