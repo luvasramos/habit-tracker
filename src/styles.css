@@ -54,6 +54,16 @@
   --space-page: clamp(12px, 2.5vw, 24px);
   --space-shell: clamp(14px, 2.4vw, 22px);
   --control-size: 44px;
+  --pill-height: 44px;
+  --pill-height-large: 52px;
+  --pill-radius: 999px;
+  --pill-padding-x: 14px;
+  --pill-gap: 8px;
+  --pill-surface: var(--surface-2);
+  --pill-surface-hover: var(--surface-3);
+  --pill-surface-selected: color-mix(in srgb, var(--soft) 8%, var(--surface-3));
+  --pill-border: var(--border);
+  --pill-border-selected: var(--soft);
   --date-radius: var(--radius);
   --date-gap: 6px;
   --date-padding: 6px;
@@ -121,11 +131,11 @@ input:focus-visible {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  min-height: 52px;
-  padding: 0 14px;
+  gap: var(--pill-gap);
+  min-height: var(--pill-height-large);
+  padding: 0 var(--pill-padding-x);
   border: 1px solid color-mix(in srgb, var(--habit-orange) 38%, var(--border));
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
   background: color-mix(in srgb, var(--habit-orange) 9%, var(--surface));
   color: color-mix(in srgb, var(--habit-orange) 72%, var(--soft));
   font-size: 0.9rem;
@@ -239,10 +249,10 @@ h2 {
 .floating-nav__reminder,
 .floating-nav__item,
 .floating-nav__indicator {
-  min-height: 38px;
+  min-height: var(--pill-height);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface-2);
+  background: var(--pill-surface);
   color: var(--text);
   transition:
     transform 120ms ease,
@@ -261,7 +271,7 @@ h2 {
 .floating-nav__reminder:hover,
 .floating-nav__item:hover {
   border-color: var(--border-strong);
-  background: var(--surface-3);
+  background: var(--pill-surface-hover);
 }
 
 @media (hover: hover) {
@@ -283,8 +293,9 @@ h2 {
 
 .button {
   justify-content: center;
-  min-height: var(--control-size);
-  padding: 0 14px;
+  min-height: var(--pill-height);
+  padding: 0 var(--pill-padding-x);
+  border-radius: var(--pill-radius);
   white-space: nowrap;
 }
 
@@ -334,6 +345,7 @@ h2 {
   width: var(--control-size);
   min-height: var(--control-size);
   padding: 0;
+  border-radius: var(--pill-radius);
 }
 
 .floating-nav {
@@ -826,16 +838,16 @@ h2 {
 
 .habit-tabs__edit {
   position: relative;
-  width: 52px;
-  min-height: 52px;
-  border-radius: 50%;
+  width: var(--pill-height-large);
+  min-height: var(--pill-height-large);
+  border-radius: var(--pill-radius);
 }
 
 .habit-tabs__add {
-  min-height: 52px;
-  gap: 8px;
-  padding-inline: 14px;
-  border-radius: 999px;
+  min-height: var(--pill-height-large);
+  gap: var(--pill-gap);
+  padding-inline: var(--pill-padding-x);
+  border-radius: var(--pill-radius);
 }
 
 .habit-tabs__add .icon {
@@ -874,22 +886,25 @@ h2 {
 .habit-tabs__scroller {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--pill-gap);
   min-width: 0;
 }
 
 .habit-tab {
-  min-height: var(--control-size);
+  flex: 0 0 auto;
+  min-height: var(--pill-height);
+  min-width: 0;
   max-width: 260px;
   overflow: hidden;
-  padding: 0 14px;
+  padding: 0 var(--pill-padding-x);
+  border-radius: var(--pill-radius);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .habit-tab[aria-selected='true'],
 .segmented__button[aria-pressed='true'] {
-  border-color: var(--soft);
+  border-color: var(--pill-border-selected);
   color: var(--soft);
 }
 
@@ -921,8 +936,8 @@ h2 {
   flex: 0 1 auto;
   gap: 3px;
   padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  border-radius: var(--pill-radius);
   background: #0d0d0d;
 }
 
@@ -930,16 +945,16 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: var(--control-size);
+  min-height: var(--pill-height);
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
   border-color: transparent;
   line-height: 1;
   text-align: center;
 }
 
 .segmented__button[aria-pressed='true'] {
-  background: var(--surface-3);
+  background: var(--pill-surface-selected);
 }
 
 .period-controls {
@@ -949,15 +964,15 @@ h2 {
   min-width: 0;
   width: fit-content;
   padding: 4px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
+  border: 1px solid var(--pill-border);
+  border-radius: var(--pill-radius);
   background: #0d0d0d;
 }
 
 .period-controls .icon-button,
 .period-controls .button {
   border-color: transparent;
-  border-radius: 999px;
+  border-radius: var(--pill-radius);
   background: transparent;
 }
 
@@ -1276,14 +1291,14 @@ h2 {
 .filter-pill {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  min-height: var(--control-size);
+  gap: var(--pill-gap);
+  min-height: var(--pill-height);
   min-width: 112px;
   max-width: min(280px, 100%);
-  padding: 0 11px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
+  padding: 0 var(--pill-padding-x);
+  border: 1px solid var(--pill-border);
+  border-radius: var(--pill-radius);
+  background: var(--pill-surface);
   color: var(--muted);
   white-space: nowrap;
   flex: 0 0 auto;
@@ -1304,7 +1319,7 @@ h2 {
 
 .filter-pill:hover {
   border-color: var(--border-strong);
-  background: var(--surface-3);
+  background: var(--pill-surface-hover);
 }
 
 .filter-pill:active {
@@ -1313,7 +1328,7 @@ h2 {
 
 .filter-pill[aria-pressed='true'] {
   border-color: color-mix(in srgb, var(--habit-color) 55%, var(--border));
-  background: color-mix(in srgb, var(--habit-color) 10%, var(--surface-2));
+  background: color-mix(in srgb, var(--habit-color) 10%, var(--pill-surface));
   color: var(--text);
 }
 
@@ -3019,13 +3034,13 @@ h2 {
   }
 
   .stats-selector {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: hidden;
   }
 
   .stats-selector .filter-pill {
-    flex: 0 0 auto;
-    max-width: 240px;
+    flex: 0 0 calc(50% - 4px);
+    max-width: none;
   }
 
   .stats-year-months {
@@ -3087,11 +3102,12 @@ h2 {
   }
 
   .habit-tabs__scroller {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .habit-tab {
+    flex: 0 0 calc(50% - 4px);
     justify-content: center;
     max-width: none;
   }
@@ -3181,24 +3197,18 @@ h2 {
   }
 
   .stats-selector {
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: hidden;
   }
 
   .stats-selector .filter-pill {
-    flex: 0 0 auto;
-    max-width: 240px;
-  }
-
-  .filter-pill {
-    flex: 1 1 132px;
-    justify-content: center;
+    flex: 0 0 calc(50% - 4px);
     max-width: none;
   }
 
-  .stats-selector .filter-pill {
-    flex: 0 0 auto;
-    max-width: 220px;
+  .filter-pill {
+    justify-content: center;
+    min-width: 0;
   }
 
   .stats-summary-grid {
@@ -3443,6 +3453,13 @@ h2 {
 
   .time-editor__fields {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 390px) {
+  .habit-tab,
+  .stats-selector .filter-pill {
+    flex-basis: 100%;
   }
 }
 

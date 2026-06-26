@@ -102,6 +102,7 @@ export const HabitTabs = ({
               aria-selected={habit.id === selectedHabitId}
               tabIndex={habit.id === selectedHabitId ? 0 : -1}
               data-habit-tab={habit.id}
+              title={habit.name}
               style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
               onClick={() => onSelect(habit.id)}
             >
