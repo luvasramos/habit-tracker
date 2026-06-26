@@ -1730,9 +1730,9 @@ h2 {
 .stats-date-cell--year {
   aspect-ratio: 1;
   min-height: 0;
-  padding: 0;
+  padding: 3px;
   border-radius: 4px;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
 }
 
 .stats-date-cell__weekday {
@@ -1749,7 +1749,12 @@ h2 {
 }
 
 .stats-date-cell--year .stats-date-cell__number {
-  font-size: 0;
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  color: var(--soft);
+  font-size: clamp(0.52rem, 1.05vw, 0.68rem);
+  line-height: 1;
 }
 
 .stats-date-cell__number {
@@ -1800,18 +1805,48 @@ h2 {
 
 .stats-date-cell.is-unavailable,
 .stats-date-cell.is-outside {
-  opacity: 0.32;
+  opacity: 0.46;
 }
 
 .stats-date-cell.is-outside {
-  background: #0c0c0c;
+  background: var(--surface);
 }
 
 .stats-date-cell--future,
 .stats-date-cell--before-habit-creation,
 .stats-date-cell--before-all-relevant-habits-existed {
   border-color: color-mix(in srgb, var(--border) 54%, transparent);
-  background: #0c0c0c;
+  background: var(--surface);
+}
+
+.stats-date-cell--future .stats-date-cell__number,
+.stats-date-cell--before-habit-creation .stats-date-cell__number,
+.stats-date-cell--before-all-relevant-habits-existed .stats-date-cell__number {
+  color: var(--muted);
+}
+
+.stats-date-cell__indicator {
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--habit-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--habit-color) 42%, var(--surface));
+  transform: translateX(-50%);
+}
+
+.stats-date-cell--week .stats-date-cell__indicator {
+  bottom: 12px;
+  width: 8px;
+  height: 8px;
+}
+
+.stats-date-cell--month .stats-date-cell__indicator {
+  left: 7px;
+  bottom: 7px;
+  transform: none;
 }
 
 .stats-date-cell__dots {
@@ -1830,6 +1865,14 @@ h2 {
   justify-content: center;
 }
 
+.stats-date-cell--year .stats-date-cell__dots {
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  justify-content: center;
+  gap: 2px;
+}
+
 .stats-date-cell__dot {
   width: 6px;
   height: 6px;
@@ -1844,10 +1887,19 @@ h2 {
   height: 8px;
 }
 
+.stats-date-cell--year .stats-date-cell__dot {
+  width: 4px;
+  height: 4px;
+}
+
 .stats-date-cell__more {
   color: var(--muted);
   font-size: 0.6rem;
   line-height: 1;
+}
+
+.stats-date-cell--year .stats-date-cell__more {
+  font-size: 0.48rem;
 }
 
 .stats-year-months .stats-date-cell--year.is-completed,

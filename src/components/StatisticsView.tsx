@@ -151,10 +151,11 @@ const StatisticsDateCell = ({
   outside?: boolean;
   onSelect: (model: StatisticsDateModel, trigger: HTMLButtonElement) => void;
 }) => {
-  const visibleDots = selectedHabit ? [] : model.completions.slice(0, size === 'year' ? 0 : 4);
+  const visibleDots = selectedHabit ? [] : model.completions.slice(0, size === 'year' ? 3 : 4);
   const hiddenCount = selectedHabit ? 0 : Math.max(model.completions.length - visibleDots.length, 0);
   const durationLabel =
     selectedHabit && model.durationMinutes !== undefined ? formatMinutes(model.durationMinutes) : null;
+  const showHabitIndicator = selectedHabit && model.isCompleted;
 
   return (
     <button
@@ -181,6 +182,7 @@ const StatisticsDateCell = ({
           ) : null}
         </>
       )}
+      {showHabitIndicator ? <span className="stats-date-cell__indicator" aria-hidden="true" /> : null}
       {visibleDots.length > 0 ? (
         <span className="stats-date-cell__dots" aria-hidden="true">
           {visibleDots.map((completion) => (
@@ -194,7 +196,7 @@ const StatisticsDateCell = ({
         </span>
       ) : null}
       {hiddenCount > 0 ? (
-        <span className="sr-only">{hiddenCount} additional completed habits</span>
+        <span className="sr-only">{pluralize(hiddenCount, 'additional completed habit')}</span>
       ) : null}
     </button>
   );

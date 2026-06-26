@@ -206,10 +206,36 @@ describe('StatisticsView time goal card', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Year' }));
 
     expect(screen.getByLabelText('Yearly statistics calendar')).toBeInTheDocument();
-    expect(screen.getByLabelText('Yearly activity overview')).toBeInTheDocument();
-    expect(screen.getByLabelText('January')).toBeInTheDocument();
+    expect(screen.getByLabelText('Yearly activity overview')).toHaveClass('stats-year-months');
+    const january = screen.getByLabelText('January');
+    const february = screen.getByLabelText('February');
     expect(screen.getByLabelText('December')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Thursday, June 25, 2026, Japanese completed, 1h logged/ })).toBeInTheDocument();
+    expect(within(january).getByText('1')).toBeInTheDocument();
+    expect(within(january).getByText('31')).toBeInTheDocument();
+    expect(within(february).getByText('1')).toBeInTheDocument();
+    expect(within(february).getByText('28')).toBeInTheDocument();
+    expect(within(february).queryByText('29')).not.toBeInTheDocument();
+    expect(february.querySelectorAll('.is-outside')).toHaveLength(14);
+
+    const completedDay = screen.getByRole('button', { name: /Thursday, June 25, 2026, Japanese completed, 1h logged/ });
+    expect(completedDay).toHaveTextContent('25');
+    expect(completedDay.querySelector('.stats-date-cell__indicator')).not.toBeNull();
+
+    const futureDay = screen.getByRole('button', { name: /Friday, June 26, 2026, future date/ });
+    expect(futureDay).toHaveTextContent('26');
+    expect(futureDay).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('shows leap-year February date numbers in the Year calendar', () => {
+    renderStats({
+      habit: makeHabit({ createdAt: '2024-01-01' }),
+      today: new Date(2024, 11, 31),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Year' }));
+
+    const february = screen.getByLabelText('February');
+    expect(within(february).getByText('29')).toBeInTheDocument();
   });
 
   it('shows All habits indicators and date details without treating no activity as a habit', () => {
@@ -240,6 +266,54 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Japanese');
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('1h');
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Gym');
+  });
+
+  it('caps All habits Year indicators at three colors with an additional count', () => {
+    const habits = [
+      makeHabit({ id: 'habit-1', name: 'Japanese', yearlyGoalMinutes: 180 }),
+      makeHabit({
+        id: 'habit-2',
+        name: 'Gym',
+        color: 'green',
+        icon: { type: 'svg', name: 'fitness' },
+        trackingMode: 'completion',
+      }),
+      makeHabit({
+        id: 'habit-3',
+        name: 'Reading',
+        color: 'lavender',
+        icon: { type: 'svg', name: 'book' },
+        trackingMode: 'completion',
+      }),
+      makeHabit({
+        id: 'habit-4',
+        name: 'Music',
+        color: 'rose',
+        icon: { type: 'svg', name: 'music' },
+        trackingMode: 'completion',
+      }),
+    ];
+    renderStats({
+      habits,
+      selectedHabitId: null,
+      allCheckIns: {
+        'habit-1': { '2026-06-25': { completed: true, durationMinutes: 60 } },
+        'habit-2': { '2026-06-25': true },
+        'habit-3': { '2026-06-25': true },
+        'habit-4': { '2026-06-25': true },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Year' }));
+
+    const activeDay = screen.getByRole('button', {
+      name: /Thursday, June 25, 2026, active: Japanese, 1h, Gym, Reading, Music/,
+    });
+    expect(activeDay).toHaveTextContent('25');
+    expect(activeDay.querySelectorAll('.stats-date-cell__dot')).toHaveLength(3);
+    expect(activeDay).toHaveTextContent('+1');
+    expect(screen.getByText('1 additional completed habit')).toBeInTheDocument();
   });
 
   it('shows All habits donut and compact time goal cards', () => {
