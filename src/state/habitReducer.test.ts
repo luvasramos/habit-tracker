@@ -555,4 +555,118 @@ describe('habitReducer', () => {
       durationMinutes: 60,
     });
   });
+
+  it('keeps past distance empty when distance migration is not applied', () => {
+    const updated = habitReducer(migratedState(), {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: distanceDraft('Study Japanese', 5000),
+      options: { historicalDistanceMigration: 'keep-empty', todayKey: '2026-06-25' },
+    });
+
+    expect(updated.habits[0].trackingMode).toBe('distance');
+    expect(updated.checkIns['habit-1']['2026-06-20']).toBe(true);
+  });
+
+  it('applies default distance only to past completed days with missing distance', () => {
+    const state = {
+      ...migratedState(),
+      checkIns: {
+        'habit-1': {
+          '2026-06-19': { completed: true as const, distanceMeters: 3000 },
+          '2026-06-20': true as const,
+          '2026-06-21': { completed: true as const, durationMinutes: 30 },
+          '2026-06-25': true as const,
+        },
+      },
+    };
+    const updated = habitReducer(state, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: distanceDraft('Study Japanese', 5000),
+      options: { historicalDistanceMigration: 'apply-default', todayKey: '2026-06-25' },
+    });
+
+    expect(updated.checkIns['habit-1']['2026-06-19']).toEqual({
+      completed: true,
+      distanceMeters: 3000,
+    });
+    expect(updated.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+    expect(updated.checkIns['habit-1']['2026-06-21']).toEqual({
+      completed: true,
+      durationMinutes: 30,
+      distanceMeters: 5000,
+    });
+    expect(updated.checkIns['habit-1']['2026-06-25']).toBe(true);
+  });
+
+  it('changing default distance later does not rewrite logged distance', () => {
+    const state = {
+      ...migratedState(),
+      habits: [
+        {
+          ...migratedState().habits[0],
+          trackingMode: 'distance' as const,
+          defaultDistanceMeters: 5000,
+          distanceUnitPreference: 'km' as const,
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-20': { completed: true as const, distanceMeters: 5000 },
+        },
+      },
+    };
+    const updated = habitReducer(state, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: distanceDraft('Study Japanese', 10000),
+    });
+
+    expect(updated.habits[0].defaultDistanceMeters).toBe(10000);
+    expect(updated.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
+
+  it('switching away from distance does not lose logged distance data', () => {
+    const state = {
+      ...migratedState(),
+      habits: [
+        {
+          ...migratedState().habits[0],
+          trackingMode: 'distance' as const,
+          defaultDistanceMeters: 5000,
+          distanceUnitPreference: 'km' as const,
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-20': { completed: true as const, distanceMeters: 5000 },
+        },
+      },
+    };
+    const completionOnly = habitReducer(state, {
+      type: 'renameHabit',
+      habitId: 'habit-1',
+      habit: { ...draft('Study Japanese'), trackingMode: 'completion' },
+    });
+
+    expect(completionOnly.habits[0]).toEqual(
+      expect.objectContaining({
+        trackingMode: 'completion',
+        defaultDistanceMeters: undefined,
+        yearlyDistanceGoalMeters: undefined,
+        distanceUnitPreference: undefined,
+      }),
+    );
+    expect(completionOnly.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
 });

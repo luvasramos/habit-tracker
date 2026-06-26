@@ -18,6 +18,7 @@ import type {
   HabitTrackingMode,
   CheckInEntry,
   LocalDateKey,
+  DistanceUnitPreference,
 } from '../state/types';
 import {
   defaultHabitColor,
@@ -37,6 +38,14 @@ import {
   isCompletedCheckIn,
   isValidDurationMinutes,
 } from '../utils/duration';
+import {
+  formatDistance,
+  getCheckInDistanceMeters,
+  isDistanceUnitPreference,
+  isValidDistanceMeters,
+  metersFromKilometers,
+  metersFromMiles,
+} from '../utils/distance';
 import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
 import { IconPicker } from './FullIconBrowser';
@@ -207,6 +216,10 @@ type PendingMigration =
   | {
       type: 'disable-duration';
       draft: HabitDraft;
+    }
+  | {
+      type: 'enable-distance';
+      draft: HabitDraft;
     };
 
 const formatSessionInput = (minutes?: number) =>
@@ -214,6 +227,19 @@ const formatSessionInput = (minutes?: number) =>
 
 const formatGoalInput = (minutes?: number) =>
   isValidDurationMinutes(minutes) && minutes % 60 === 0 ? String(minutes / 60) : '';
+
+const formatDistanceInput = (meters: number | undefined, unit: DistanceUnitPreference) => {
+  if (!isValidDistanceMeters(meters)) {
+    return '';
+  }
+
+  if (unit === 'm') {
+    return String(meters);
+  }
+
+  const value = unit === 'mi' ? meters / 1609.344 : meters / 1000;
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+};
 
 const parseSessionDuration = (value: string) => {
   const input = value.trim().toLocaleLowerCase();
@@ -255,6 +281,28 @@ const parseYearlyGoal = (value: string) => {
   return hours > 0 ? hours * 60 : null;
 };
 
+const parseDistanceMeters = (value: string, unit: DistanceUnitPreference) => {
+  const input = value.trim();
+  if (!input) {
+    return undefined;
+  }
+
+  if (!/^\d+(?:[.,]\d+)?$/.test(input)) {
+    return null;
+  }
+
+  const numericValue = Number(input.replace(',', '.'));
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return null;
+  }
+
+  if (unit === 'm') {
+    return Math.round(numericValue);
+  }
+
+  return unit === 'mi' ? metersFromMiles(numericValue) : metersFromKilometers(numericValue);
+};
+
 export const HabitEditorPage = ({
   mode,
   initialName = '',
@@ -287,11 +335,18 @@ export const HabitEditorPage = ({
   const [trackingMode, setTrackingMode] = useState<HabitTrackingMode>('completion');
   const [defaultSessionInput, setDefaultSessionInput] = useState('');
   const [yearlyGoalInput, setYearlyGoalInput] = useState('');
+  const [defaultDistanceInput, setDefaultDistanceInput] = useState('');
+  const [yearlyDistanceGoalInput, setYearlyDistanceGoalInput] = useState('');
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnitPreference>('km');
+  const [yearlyDistanceGoalUnit, setYearlyDistanceGoalUnit] =
+    useState<DistanceUnitPreference>('km');
   const [pendingMigration, setPendingMigration] = useState<PendingMigration | null>(null);
   const errorId = useId();
   const colorErrorId = useId();
   const defaultSessionErrorId = useId();
   const yearlyGoalErrorId = useId();
+  const defaultDistanceErrorId = useId();
+  const yearlyDistanceGoalErrorId = useId();
   const titleId = useId();
   const descriptionId = useId();
   const customColorPanelRef = useRef<HTMLDivElement>(null);
@@ -323,6 +378,20 @@ export const HabitEditorPage = ({
     trackingMode === 'duration' && yearlyGoalMinutes === null
       ? 'Enter whole hours greater than zero.'
       : '';
+  const defaultDistanceMeters =
+    trackingMode === 'distance' ? parseDistanceMeters(defaultDistanceInput, distanceUnit) : undefined;
+  const yearlyDistanceGoalMeters =
+    trackingMode === 'distance'
+      ? parseDistanceMeters(yearlyDistanceGoalInput, yearlyDistanceGoalUnit)
+      : undefined;
+  const defaultDistanceError =
+    trackingMode === 'distance' && !defaultDistanceMeters
+      ? 'Enter a distance greater than zero.'
+      : '';
+  const yearlyDistanceGoalError =
+    trackingMode === 'distance' && yearlyDistanceGoalMeters === null
+      ? 'Enter a goal distance greater than zero.'
+      : '';
   const durationSummary =
     trackingMode === 'duration' && defaultDurationMinutes
       ? [
@@ -332,13 +401,36 @@ export const HabitEditorPage = ({
           .filter(Boolean)
           .join(' · ')
       : '';
-  const formError = error || colorError || defaultSessionError || yearlyGoalError;
+  const distanceSummary =
+    trackingMode === 'distance' && defaultDistanceMeters
+      ? [
+          `${formatDistance(defaultDistanceMeters, distanceUnit)} per completed day`,
+          yearlyDistanceGoalMeters
+            ? `${formatDistance(yearlyDistanceGoalMeters, yearlyDistanceGoalUnit)} yearly goal`
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')
+      : '';
+  const formError =
+    error ||
+    colorError ||
+    defaultSessionError ||
+    yearlyGoalError ||
+    defaultDistanceError ||
+    yearlyDistanceGoalError;
   const todayKey = toLocalDateKey(new Date());
   const historicalCompletionsWithoutDuration = Object.entries(initialCheckIns).filter(
     ([dateKey, entry]) =>
       dateKey < todayKey &&
       isCompletedCheckIn(entry) &&
       getCheckInDurationMinutes(entry) === undefined,
+  );
+  const historicalCompletionsWithoutDistance = Object.entries(initialCheckIns).filter(
+    ([dateKey, entry]) =>
+      dateKey < todayKey &&
+      isCompletedCheckIn(entry) &&
+      getCheckInDistanceMeters(entry) === undefined,
   );
 
   const suggestedIcons = popularIconNames
@@ -372,9 +464,19 @@ export const HabitEditorPage = ({
     );
     setEmoji(initialIcon.type === 'emoji' ? initialIcon.value : '');
     setConfirmDelete(false);
-    setTrackingMode(initialHabit?.trackingMode ?? 'completion');
+    const initialTrackingMode = initialHabit?.trackingMode ?? 'completion';
+    const initialDistanceUnit = initialHabit?.distanceUnitPreference ?? 'km';
+    setTrackingMode(initialTrackingMode);
     setDefaultSessionInput(formatSessionInput(initialHabit?.defaultDurationMinutes));
     setYearlyGoalInput(formatGoalInput(initialHabit?.yearlyGoalMinutes));
+    setDistanceUnit(initialDistanceUnit);
+    setYearlyDistanceGoalUnit(initialDistanceUnit);
+    setDefaultDistanceInput(
+      formatDistanceInput(initialHabit?.defaultDistanceMeters, initialDistanceUnit),
+    );
+    setYearlyDistanceGoalInput(
+      formatDistanceInput(initialHabit?.yearlyDistanceGoalMeters, initialDistanceUnit),
+    );
     setPendingMigration(null);
     window.setTimeout(() => inputRef.current?.focus(), 0);
   }, [defaultColorIndex, initialHabit, initialName]);
@@ -393,6 +495,13 @@ export const HabitEditorPage = ({
       trackingMode === 'duration' && defaultDurationMinutes ? defaultDurationMinutes : undefined,
     yearlyGoalMinutes:
       trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
+    defaultDistanceMeters:
+      trackingMode === 'distance' && defaultDistanceMeters ? defaultDistanceMeters : undefined,
+    yearlyDistanceGoalMeters:
+      trackingMode === 'distance' && yearlyDistanceGoalMeters
+        ? yearlyDistanceGoalMeters
+        : undefined,
+    distanceUnitPreference: trackingMode === 'distance' ? distanceUnit : undefined,
   });
   const saveDraft = (draft: HabitDraft, options?: HabitSaveOptions) => {
     onSave(draft, options);
@@ -414,6 +523,16 @@ export const HabitEditorPage = ({
       historicalCompletionsWithoutDuration.length > 0
     ) {
       setPendingMigration({ type: 'enable-duration', draft });
+      return;
+    }
+
+    if (
+      mode === 'edit' &&
+      initialTrackingMode !== 'distance' &&
+      trackingMode === 'distance' &&
+      historicalCompletionsWithoutDistance.length > 0
+    ) {
+      setPendingMigration({ type: 'enable-distance', draft });
       return;
     }
 
@@ -445,6 +564,13 @@ export const HabitEditorPage = ({
       trackingMode === 'duration' && defaultDurationMinutes ? defaultDurationMinutes : undefined,
     yearlyGoalMinutes:
       trackingMode === 'duration' && yearlyGoalMinutes ? yearlyGoalMinutes : undefined,
+    defaultDistanceMeters:
+      trackingMode === 'distance' && defaultDistanceMeters ? defaultDistanceMeters : undefined,
+    yearlyDistanceGoalMeters:
+      trackingMode === 'distance' && yearlyDistanceGoalMeters
+        ? yearlyDistanceGoalMeters
+        : undefined,
+    distanceUnitPreference: trackingMode === 'distance' ? distanceUnit : undefined,
   };
   const previewColor = getHabitColorValue(previewHabit);
 
@@ -558,6 +684,59 @@ export const HabitEditorPage = ({
           </section>
         ) : null}
 
+        {pendingMigration?.type === 'enable-distance' ? (
+          <section className="migration-prompt" aria-label="Historical distance migration">
+            <div>
+              <h3>Past completed days</h3>
+              <p className="muted">
+                {historicalCompletionsWithoutDistance.length} completed day
+                {historicalCompletionsWithoutDistance.length === 1
+                  ? ' does'
+                  : 's do'} not have distance logged.
+              </p>
+            </div>
+            <button
+              className="migration-choice migration-choice--recommended"
+              type="button"
+              onClick={() =>
+                saveDraft(pendingMigration.draft, {
+                  historicalDistanceMigration: 'keep-empty',
+                  todayKey,
+                })
+              }
+            >
+              <span>Keep past distance empty</span>
+              <span>
+                Past completed days will still count as completed days, but they will not contribute to distance totals.
+              </span>
+            </button>
+            <button
+              className="migration-choice"
+              type="button"
+              onClick={() =>
+                saveDraft(pendingMigration.draft, {
+                  historicalDistanceMigration: 'apply-default',
+                  todayKey,
+                })
+              }
+            >
+              <span>Apply default distance to past completed days</span>
+              <span>
+                Every past completed day without distance will receive the current default distance.
+              </span>
+            </button>
+            <button
+              className="button button--quiet migration-cancel"
+              type="button"
+              onClick={() => setPendingMigration(null)}
+            >
+              <Icon name="close" />
+              Cancel
+              <span>Return to the habit editor without changing the tracking mode.</span>
+            </button>
+          </section>
+        ) : null}
+
         <label className="field">
           <span>Name</span>
           <input
@@ -593,6 +772,14 @@ export const HabitEditorPage = ({
               onClick={() => setTrackingMode('duration')}
             >
               Completion + time
+            </button>
+            <button
+              className="segmented__button"
+              type="button"
+              aria-pressed={trackingMode === 'distance'}
+              onClick={() => setTrackingMode('distance')}
+            >
+              Completion + distance
             </button>
           </div>
 
@@ -632,6 +819,88 @@ export const HabitEditorPage = ({
                 </p>
               ) : null}
               {durationSummary ? <p className="tracking-summary">{durationSummary}</p> : null}
+            </div>
+          ) : null}
+
+          {trackingMode === 'distance' ? (
+            <div className="tracking-settings__details">
+              <div className="tracking-settings__fields">
+                <div className="tracking-distance-field">
+                  <label className="field field--compact">
+                    <span>Default distance</span>
+                    <input
+                      value={defaultDistanceInput}
+                      placeholder="5"
+                      inputMode="decimal"
+                      aria-invalid={Boolean(defaultDistanceError)}
+                      aria-describedby={
+                        defaultDistanceError ? defaultDistanceErrorId : undefined
+                      }
+                      onChange={(event) => setDefaultDistanceInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field field--compact tracking-unit-field">
+                    <span>Unit</span>
+                    <select
+                      value={distanceUnit}
+                      aria-label="Default distance unit"
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (isDistanceUnitPreference(value)) {
+                          setDistanceUnit(value);
+                        }
+                      }}
+                    >
+                      <option value="km">km</option>
+                      <option value="m">m</option>
+                      <option value="mi">mi</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="tracking-distance-field">
+                  <label className="field field--compact">
+                    <span>Yearly distance goal</span>
+                    <input
+                      value={yearlyDistanceGoalInput}
+                      placeholder="500"
+                      inputMode="decimal"
+                      aria-invalid={Boolean(yearlyDistanceGoalError)}
+                      aria-describedby={
+                        yearlyDistanceGoalError ? yearlyDistanceGoalErrorId : undefined
+                      }
+                      onChange={(event) => setYearlyDistanceGoalInput(event.target.value)}
+                    />
+                  </label>
+                  <label className="field field--compact tracking-unit-field">
+                    <span>Unit</span>
+                    <select
+                      value={yearlyDistanceGoalUnit}
+                      aria-label="Yearly distance goal unit"
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        if (isDistanceUnitPreference(value)) {
+                          setYearlyDistanceGoalUnit(value);
+                        }
+                      }}
+                    >
+                      <option value="km">km</option>
+                      <option value="m">m</option>
+                      <option value="mi">mi</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+              {defaultDistanceError ? (
+                <p className="form-error" id={defaultDistanceErrorId}>
+                  {defaultDistanceError}
+                </p>
+              ) : null}
+              {yearlyDistanceGoalError ? (
+                <p className="form-error" id={yearlyDistanceGoalErrorId}>
+                  {yearlyDistanceGoalError}
+                </p>
+              ) : null}
+              {distanceSummary ? <p className="tracking-summary">{distanceSummary}</p> : null}
             </div>
           ) : null}
         </section>

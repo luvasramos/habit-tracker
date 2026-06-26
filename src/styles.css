@@ -2447,7 +2447,8 @@ h2 {
   color: var(--muted);
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: var(--control-size);
   border: 1px solid var(--border);
@@ -2455,6 +2456,11 @@ h2 {
   background: #0d0d0d;
   color: var(--text);
   padding: 0 10px;
+}
+
+.field select {
+  appearance: none;
+  cursor: pointer;
 }
 
 .field--compact {
@@ -2487,6 +2493,17 @@ h2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.tracking-distance-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 0.32fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.tracking-unit-field {
+  min-width: 72px;
 }
 
 .tracking-summary {

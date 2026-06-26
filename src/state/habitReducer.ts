@@ -3,6 +3,8 @@ import { toLocalDateKey } from '../utils/dates';
 import {
   createCompletedDistanceCheckIn,
   getDefaultDistanceMeters,
+  getCheckInDistanceMeters,
+  isValidDistanceMeters,
 } from '../utils/distance';
 import {
   createCompletedCheckIn,
@@ -176,32 +178,69 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
 
       const migrationTodayKey = action.options?.todayKey;
       const migrationDurationMinutes = action.habit.defaultDurationMinutes;
-      if (
-        action.options?.historicalDurationMigration !== 'apply-default' ||
-        action.habit.trackingMode !== 'duration' ||
-        !isValidDurationMinutes(migrationDurationMinutes) ||
-        !migrationTodayKey
-      ) {
+      const migrationDistanceMeters = action.habit.defaultDistanceMeters;
+      if (!migrationTodayKey) {
         return updatedState;
       }
 
-      const habitCheckIns = updatedState.checkIns[action.habitId] ?? {};
-      return {
-        ...updatedState,
-        checkIns: {
-          ...updatedState.checkIns,
-          [action.habitId]: Object.fromEntries(
-            Object.entries(habitCheckIns).map(([dateKey, entry]) => [
-              dateKey,
-              dateKey < migrationTodayKey &&
-              isCompletedCheckIn(entry) &&
-              getCheckInDurationMinutes(entry) === undefined
-                ? createCompletedCheckIn(migrationDurationMinutes)
-                : entry,
-            ]),
-          ),
-        },
-      };
+      if (
+        action.options?.historicalDurationMigration === 'apply-default' &&
+        action.habit.trackingMode === 'duration' &&
+        isValidDurationMinutes(migrationDurationMinutes)
+      ) {
+        const habitCheckIns = updatedState.checkIns[action.habitId] ?? {};
+        return {
+          ...updatedState,
+          checkIns: {
+            ...updatedState.checkIns,
+            [action.habitId]: Object.fromEntries(
+              Object.entries(habitCheckIns).map(([dateKey, entry]) => [
+                dateKey,
+                dateKey < migrationTodayKey &&
+                isCompletedCheckIn(entry) &&
+                getCheckInDurationMinutes(entry) === undefined
+                  ? createCompletedCheckIn(migrationDurationMinutes)
+                  : entry,
+              ]),
+            ),
+          },
+        };
+      }
+
+      if (
+        action.options?.historicalDistanceMigration === 'apply-default' &&
+        action.habit.trackingMode === 'distance' &&
+        isValidDistanceMeters(migrationDistanceMeters)
+      ) {
+        const habitCheckIns = updatedState.checkIns[action.habitId] ?? {};
+        return {
+          ...updatedState,
+          checkIns: {
+            ...updatedState.checkIns,
+            [action.habitId]: Object.fromEntries(
+              Object.entries(habitCheckIns).map(([dateKey, entry]) => {
+                if (
+                  dateKey >= migrationTodayKey ||
+                  !isCompletedCheckIn(entry) ||
+                  getCheckInDistanceMeters(entry) !== undefined
+                ) {
+                  return [dateKey, entry];
+                }
+
+                return [
+                  dateKey,
+                  {
+                    ...(entry === true ? { completed: true as const } : entry),
+                    distanceMeters: migrationDistanceMeters,
+                  },
+                ];
+              }),
+            ),
+          },
+        };
+      }
+
+      return updatedState;
     }
 
     case 'deleteHabit': {

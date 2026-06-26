@@ -111,9 +111,11 @@ export type HabitDraft = {
 };
 
 export type HistoricalDurationMigration = 'keep-empty' | 'apply-default';
+export type HistoricalDistanceMigration = 'keep-empty' | 'apply-default';
 
 export type HabitSaveOptions = {
   historicalDurationMigration?: HistoricalDurationMigration;
+  historicalDistanceMigration?: HistoricalDistanceMigration;
   todayKey?: LocalDateKey;
 };
 

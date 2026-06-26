@@ -460,6 +460,203 @@ describe('Habit Grid app', () => {
     expect(screen.getByText('1h')).toBeInTheDocument();
   });
 
+  it('validates and saves distance tracking settings in meters', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Running');
+    await user.click(screen.getByRole('button', { name: 'Completion + distance' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByText('Enter a distance greater than zero.')).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Default distance'), '5');
+    await user.type(screen.getByLabelText('Yearly distance goal'), '500');
+
+    expect(screen.getByText('5 km per completed day · 500 km yearly goal')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0]).toEqual(
+      expect.objectContaining({
+        name: 'Running',
+        trackingMode: 'distance',
+        defaultDistanceMeters: 5000,
+        yearlyDistanceGoalMeters: 500000,
+        distanceUnitPreference: 'km',
+      }),
+    );
+    await finishDailyCheckIn(user);
+  });
+
+  it('saves distance settings from miles and meters', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Walk');
+    await user.click(screen.getByRole('button', { name: 'Completion + distance' }));
+    await user.selectOptions(screen.getByLabelText('Default distance unit'), 'mi');
+    await user.type(screen.getByLabelText('Default distance'), '3.1');
+    await user.selectOptions(screen.getByLabelText('Yearly distance goal unit'), 'm');
+    await user.type(screen.getByLabelText('Yearly distance goal'), '5000');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0]).toEqual(
+      expect.objectContaining({
+        trackingMode: 'distance',
+        defaultDistanceMeters: 4989,
+        yearlyDistanceGoalMeters: 5000,
+        distanceUnitPreference: 'mi',
+      }),
+    );
+    await finishDailyCheckIn(user);
+  });
+
+  it('edits distance habits without rewriting historical distance', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Run',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'running' },
+            trackingMode: 'distance',
+            defaultDistanceMeters: 5000,
+            yearlyDistanceGoalMeters: 500000,
+            distanceUnitPreference: 'km',
+          },
+        ],
+        checkIns: {
+          'habit-1': {
+            '2026-06-20': { completed: true, distanceMeters: 5000 },
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+
+    expect(screen.getByRole('button', { name: 'Completion + distance' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByLabelText('Default distance')).toHaveValue('5');
+    expect(screen.getByLabelText('Yearly distance goal')).toHaveValue('500');
+
+    await user.clear(screen.getByLabelText('Default distance'));
+    await user.type(screen.getByLabelText('Default distance'), '10');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].defaultDistanceMeters).toBe(10000);
+    expect(state.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
+
+  it('applies default distance to historical completions only when confirmed', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Running',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'running' },
+            trackingMode: 'completion',
+          },
+        ],
+        checkIns: {
+          'habit-1': {
+            '2026-06-20': true,
+            '2026-06-21': { completed: true, distanceMeters: 3000 },
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+    await user.click(screen.getByRole('button', { name: 'Completion + distance' }));
+    await user.type(screen.getByLabelText('Default distance'), '5');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByText('Past completed days')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Apply default distance/ }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+    expect(state.checkIns['habit-1']['2026-06-21']).toEqual({
+      completed: true,
+      distanceMeters: 3000,
+    });
+  });
+
+  it('keeps historical distance when switching away from distance tracking', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Run',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'running' },
+            trackingMode: 'distance',
+            defaultDistanceMeters: 5000,
+            distanceUnitPreference: 'km',
+          },
+        ],
+        checkIns: {
+          'habit-1': {
+            '2026-06-20': { completed: true, distanceMeters: 5000 },
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+    await user.click(screen.getByRole('button', { name: 'Completion only' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.habits[0].trackingMode).toBe('completion');
+    expect(state.checkIns['habit-1']['2026-06-20']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
+
   it('logs the default duration from the Today remaining popover', async () => {
     const user = userEvent.setup();
     const todayKey = toLocalDateKey(new Date());
