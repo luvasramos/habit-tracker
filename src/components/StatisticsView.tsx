@@ -54,6 +54,63 @@ const metricDescriptions = {
   timeLogged: 'Known duration recorded in the selected period.',
 };
 
+const CompletionDonut = ({ stats }: { stats: HabitStat[] }) => {
+  const slices = stats.filter((stat) => stat.count > 0);
+  const total = slices.reduce((sum, stat) => sum + stat.count, 0);
+  let offset = 0;
+
+  if (total === 0) {
+    return null;
+  }
+
+  return (
+    <section className="completion-donut" aria-label="Habit completion share">
+      <div className="completion-donut__chart">
+        <svg viewBox="0 0 120 120" role="img" aria-label={`${total} total individual completions`}>
+          <circle className="completion-donut__track" cx="60" cy="60" r="44" pathLength="100" />
+          {slices.map((stat) => {
+            const percent = (stat.count / total) * 100;
+            const dashOffset = -offset;
+            offset += percent;
+
+            return (
+              <circle
+                className="completion-donut__slice"
+                cx="60"
+                cy="60"
+                key={stat.id}
+                r="44"
+                pathLength="100"
+                stroke={stat.color}
+                strokeDasharray={`${percent} ${100 - percent}`}
+                strokeDashoffset={dashOffset}
+                tabIndex={0}
+                role="img"
+                aria-label={`${stat.name}: ${pluralize(stat.count, 'completion')}`}
+              >
+                <title>
+                  {stat.name}: {pluralize(stat.count, 'completion')}
+                </title>
+              </circle>
+            );
+          })}
+        </svg>
+        <div className="completion-donut__center">
+          <strong>{total}</strong>
+          <span>completions</span>
+        </div>
+      </div>
+      <ul className="sr-only" aria-label="Habit completion counts">
+        {slices.map((stat) => (
+          <li key={stat.id}>
+            {stat.name}: {pluralize(stat.count, 'completion')}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 const getDateStateClass = (model: StatisticsDateModel) => {
   const classes = [
     'stats-date-cell',
@@ -721,6 +778,8 @@ export const StatisticsView = ({
           <p className="stats-note">No time has been logged in this period.</p>
         ) : null}
 
+        {!selectedHabit ? <CompletionDonut stats={habitStats} /> : null}
+
         {selectedHabit?.trackingMode === 'duration' &&
         !selectedHasYearlyGoal &&
         selectedDurationSummary &&
@@ -849,38 +908,58 @@ export const StatisticsView = ({
           ) : null}
 
           {!selectedHabit && allHabitYearGoalStats.length > 0 ? (
-            <section className="time-goals time-goals--compact" aria-label="Time goals">
+            <section className="time-goals time-goals--cards" aria-label="Time goals">
               <div className="time-goals__compact-header">
                 <h2>Time goals</h2>
               </div>
-              <div className="time-goal-rows">
+              <div className="time-goal-cards">
                 {allHabitYearGoalStats.map(({ habit, color, summary }) => {
                   const progressPercent = Math.round(summary.progressPercent * 100);
                   const visualPercent = Math.round(summary.visualProgressPercent * 100);
+                  const defaultSessionLabel =
+                    habit.defaultDurationMinutes && habit.defaultDurationMinutes > 0
+                      ? formatMinutes(habit.defaultDurationMinutes)
+                      : null;
 
                   return (
                     <button
-                      className="time-goal-row-button"
+                      className="time-goal-card time-goal-card--button"
                       key={habit.id}
                       type="button"
                       style={{ '--habit-color': color } as CSSProperties}
                       onClick={() => setSelectedStatsId(habit.id)}
                     >
-                      <span className="time-goal-row-button__habit">
+                      <span className="time-goal-card__title">
                         <span className="filter-pill__dot" />
                         <HabitIconView habit={habit} />
                         <span>{habit.name}</span>
                       </span>
-                      <span className="time-goal-row-button__value">
-                        {formatMinutes(summary.loggedMinutes)} / {formatMinutes(summary.goalMinutes)}
+                      <span className="time-goal-card__main">
+                        <strong>
+                          {formatMinutes(summary.loggedMinutes)} / {formatMinutes(summary.goalMinutes)}
+                        </strong>
+                        <span>{progressPercent}%</span>
                       </span>
                       <span
-                        className="time-goal-row-button__bar"
+                        className="time-goal-card__bar"
                         aria-hidden="true"
                       >
                         <span style={{ width: `${visualPercent}%` }} />
                       </span>
-                      <span className="time-goal-row-button__percent">{progressPercent}%</span>
+                      <span className="time-goal-card__remaining">
+                        {summary.goalReached ? 'Goal reached' : `${formatMinutes(summary.remainingMinutes)} remaining`}
+                      </span>
+                      {defaultSessionLabel ? (
+                        <span className="time-goal-card__subtle">
+                          Approximately {summary.remainingSessions} sessions at {defaultSessionLabel} each
+                        </span>
+                      ) : null}
+                      {summary.unknownDurationDays > 0 ? (
+                        <span className="time-goal-row__note">
+                          {pluralize(summary.unknownDurationDays, 'completed day')}{' '}
+                          {summary.unknownDurationDays === 1 ? 'has' : 'have'} no time recorded
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}

@@ -242,7 +242,7 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByRole('dialog', { name: 'June 25, 2026' })).toHaveTextContent('Gym');
   });
 
-  it('shows compact All habits time goals and selects a focused habit from a row', () => {
+  it('shows All habits donut and compact time goal cards', () => {
     const habits = [
       makeHabit({ id: 'habit-1', name: 'Japanese', yearlyGoalMinutes: 180 }),
       makeHabit({
@@ -270,17 +270,28 @@ describe('StatisticsView time goal card', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    const donut = screen.getByLabelText('Habit completion share');
+    expect(within(donut).getByText('3')).toBeInTheDocument();
+    expect(within(donut).getByText('completions')).toBeInTheDocument();
+    expect(screen.getByLabelText('Japanese: 1 completion')).toBeInTheDocument();
+    expect(screen.getByLabelText('Painting: 1 completion')).toBeInTheDocument();
+    expect(screen.getByLabelText('Walking: 1 completion')).toBeInTheDocument();
+    expect(within(donut).queryByText('No activity')).not.toBeInTheDocument();
+
     const timeGoals = screen.getByLabelText('Time goals');
+    expect(timeGoals.querySelector('.time-goal-cards')).not.toBeNull();
     expect(timeGoals).toHaveTextContent('Japanese');
     expect(timeGoals).toHaveTextContent('1h / 3h');
     expect(timeGoals).toHaveTextContent('33%');
+    expect(timeGoals).toHaveTextContent('2h remaining');
     expect(timeGoals).toHaveTextContent('Painting');
+    expect(timeGoals).toHaveTextContent('4h remaining');
     expect(timeGoals).not.toHaveTextContent('Walking');
-    expect(timeGoals).not.toHaveTextContent('remaining');
 
     fireEvent.click(within(timeGoals).getByRole('button', { name: /Painting/ }));
     expect(screen.getByRole('button', { name: 'Painting' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByLabelText('Time goal')).toHaveTextContent('Painting');
+    expect(screen.queryByLabelText('Habit completion share')).not.toBeInTheDocument();
   });
 
   it('opens and closes date details while restoring focus to the date cell', () => {
