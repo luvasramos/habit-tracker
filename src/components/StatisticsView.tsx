@@ -11,6 +11,7 @@ import {
 import { formatMinutes } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import {
+  calculateAllHabitsActiveDayBreakdown,
   calculateAllHabitsStatistics,
   calculateHabitStatistics,
   getRangeDays,
@@ -47,6 +48,9 @@ type DonutSegment = {
   name: string;
   count: number;
   color: string;
+  ariaLabel?: string;
+  legendValue?: string;
+  title?: string;
 };
 
 const allHabitsId = '__all_habits__';
@@ -65,16 +69,21 @@ const metricDescriptions = {
 const formatPercent = (value: number, total: number) =>
   total > 0 ? `${Math.round((value / total) * 100)}%` : '0%';
 
+const formatShareValue = (value: number) =>
+  Number.isInteger(value) ? String(value) : value.toFixed(1).replace(/\.0$/, '');
+
 const ConsistencyDonut = ({
   segments,
   centerValue,
   label,
   description,
+  note,
 }: {
   segments: DonutSegment[];
   centerValue: string;
   label: string;
   description: string;
+  note?: string;
 }) => {
   const slices = segments.filter((segment) => segment.count > 0);
   const total = segments.reduce((sum, segment) => sum + segment.count, 0);
@@ -107,11 +116,9 @@ const ConsistencyDonut = ({
                 strokeDashoffset={dashOffset}
                 tabIndex={0}
                 role="img"
-                aria-label={`${segment.name}: ${pluralize(segment.count, 'day')}`}
+                aria-label={segment.ariaLabel ?? `${segment.name}: ${pluralize(segment.count, 'day')}`}
               >
-                <title>
-                  {segment.name}: {pluralize(segment.count, 'day')}
-                </title>
+                <title>{segment.title ?? `${segment.name}: ${pluralize(segment.count, 'day')}`}</title>
               </circle>
             );
           })}
@@ -130,14 +137,15 @@ const ConsistencyDonut = ({
               aria-hidden="true"
             />
             <span>{segment.name}</span>
-            <span>{segment.count}</span>
+            <span title={segment.title}>{segment.legendValue ?? formatShareValue(segment.count)}</span>
           </li>
         ))}
       </ul>
+      {note ? <p className="completion-donut__note">{note}</p> : null}
       <ul className="sr-only" aria-label={`${label} breakdown`}>
         {slices.map((stat) => (
           <li key={stat.id}>
-            {stat.name}: {pluralize(stat.count, 'day')}
+            {stat.ariaLabel ?? `${stat.name}: ${pluralize(stat.count, 'day')}`}
           </li>
         ))}
       </ul>
@@ -624,6 +632,14 @@ export const StatisticsView = ({
   const inactiveDays = allHabitStats.inactiveDateKeys.length;
   const eligibleDays = allHabitStats.eligibleDateKeys.length;
   const consistencyLabel = formatPercent(activeDays, eligibleDays);
+  const activeDayBreakdown = selectedHabit
+    ? []
+    : calculateAllHabitsActiveDayBreakdown(
+        selectedHabits,
+        checkIns,
+        allHabitStats.eligibleDateKeys,
+        today,
+      ).filter(({ activeDayShare }) => activeDayShare > 0);
   const hasSelectedTimeTracking = selectedHabits.some((habit) => habit.trackingMode === 'duration');
   const selectedDurationSummary = selectedHabit
     ? durationGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
@@ -738,17 +754,28 @@ export const StatisticsView = ({
         },
       ]
     : [
-        {
-          id: 'active',
-          name: 'Active days',
-          count: activeDays,
-          color: 'var(--soft)',
-        },
+        ...activeDayBreakdown.map(({ habit, activeDayShare, completedDays }) => {
+          const shareLabel = formatShareValue(activeDayShare);
+          const completedLabel = pluralize(completedDays, 'completed day');
+
+          return {
+            id: habit.id,
+            name: habit.name,
+            count: activeDayShare,
+            color: getHabitColorVar(habit.id, habits),
+            legendValue: `${shareLabel} share`,
+            ariaLabel: `${habit.name}: ${shareLabel} active-day share, ${completedLabel}`,
+            title: `${habit.name}\n${shareLabel} active-day share\n${completedLabel}`,
+          };
+        }),
         {
           id: 'inactive',
-          name: 'Days with no activity',
+          name: 'No activity',
           count: inactiveDays,
           color: 'var(--inactive)',
+          legendValue: pluralize(inactiveDays, 'day'),
+          ariaLabel: `No activity: ${pluralize(inactiveDays, 'day')}`,
+          title: `No activity\n${pluralize(inactiveDays, 'day')}`,
         },
       ];
   const donutLabel = selectedHabit
@@ -756,7 +783,16 @@ export const StatisticsView = ({
     : 'All habits consistency';
   const donutDescription = selectedHabit
     ? `${consistencyLabel.replace('%', ' percent')} consistency. ${selectedHabit.name} completed ${activeDays} ${activeDays === 1 ? 'day' : 'days'} and missed ${inactiveDays} ${inactiveDays === 1 ? 'day' : 'days'}.`
-    : `${consistencyLabel.replace('%', ' percent')} consistency. ${activeDays} active ${activeDays === 1 ? 'day' : 'days'} and ${inactiveDays} ${inactiveDays === 1 ? 'day' : 'days'} with no activity.`;
+    : `${consistencyLabel.replace('%', ' percent')} consistency. ${inactiveDays} ${inactiveDays === 1 ? 'day' : 'days'} with no activity. Active days are divided by habit contribution: ${
+        activeDayBreakdown.length > 0
+          ? activeDayBreakdown
+              .map(({ habit, activeDayShare }) => `${habit.name} ${formatShareValue(activeDayShare)}`)
+              .join(', ')
+          : 'none'
+      }.`;
+  const donutNote = selectedHabit
+    ? undefined
+    : 'Active-day share splits days with multiple completed habits so the donut does not double-count days.';
 
   if (habits.length === 0) {
     return (
@@ -883,6 +919,7 @@ export const StatisticsView = ({
             centerValue={consistencyLabel}
             label={donutLabel}
             description={donutDescription}
+            note={donutNote}
           />
         </div>
 

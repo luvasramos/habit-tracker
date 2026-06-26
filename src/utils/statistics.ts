@@ -128,3 +128,39 @@ export const calculateAllHabitsStatistics = (
     totalLoggedMinutes: habitStatistics.reduce((sum, stat) => sum + stat.loggedMinutes, 0),
   };
 };
+
+export const calculateAllHabitsActiveDayBreakdown = (
+  habits: Habit[],
+  checkIns: CheckInsByHabit,
+  eligibleDateKeys: LocalDateKey[],
+  today = new Date(),
+) =>
+  habits.map((habit) => {
+    let activeDayShare = 0;
+    let completedDays = 0;
+
+    eligibleDateKeys.forEach((dateKey) => {
+      if (!isHabitEligibleOnDate(habit, dateKey, today)) {
+        return;
+      }
+
+      const completedHabitsForDate = habits.filter(
+        (candidate) =>
+          isHabitEligibleOnDate(candidate, dateKey, today) &&
+          isCompletedCheckIn(checkIns[candidate.id]?.[dateKey]),
+      );
+
+      if (!completedHabitsForDate.some((candidate) => candidate.id === habit.id)) {
+        return;
+      }
+
+      completedDays += 1;
+      activeDayShare += 1 / completedHabitsForDate.length;
+    });
+
+    return {
+      habit,
+      activeDayShare,
+      completedDays,
+    };
+  });

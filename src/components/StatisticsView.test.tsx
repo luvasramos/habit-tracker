@@ -386,12 +386,19 @@ describe('StatisticsView time goal card', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
-    const donut = screen.getByLabelText('25 percent consistency. 1 active day and 3 days with no activity.');
+    const donut = screen.getByLabelText(
+      '25 percent consistency. 3 days with no activity. Active days are divided by habit contribution: Japanese 0.3, Painting 0.3, Walking 0.3.',
+    );
     expect(within(donut).getAllByText('25%')[0]).toBeInTheDocument();
     expect(within(donut).getByText('Consistency')).toBeInTheDocument();
-    expect(screen.getByLabelText('Active days: 1 day')).toBeInTheDocument();
-    expect(screen.getByLabelText('Days with no activity: 3 days')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Japanese: 1 completion')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Active days: Elapsed days when at least one habit was completed.')).toHaveTextContent('1');
+    expect(screen.getByLabelText('Days with no activity: Elapsed days without any habit completion.')).toHaveTextContent('3');
+    expect(screen.getByLabelText('Japanese: 0.3 active-day share, 1 completed day')).toBeInTheDocument();
+    expect(screen.getByLabelText('Painting: 0.3 active-day share, 1 completed day')).toBeInTheDocument();
+    expect(screen.getByLabelText('Walking: 0.3 active-day share, 1 completed day')).toBeInTheDocument();
+    expect(screen.getByLabelText('No activity: 3 days')).toBeInTheDocument();
+    expect(screen.getByText('Active-day share splits days with multiple completed habits so the donut does not double-count days.')).toBeInTheDocument();
+    expect(within(donut).queryByText('Active days')).not.toBeInTheDocument();
 
     const timeGoals = screen.getByLabelText('Time goals');
     expect(timeGoals.querySelector('.time-goal-cards')).not.toBeNull();
@@ -409,6 +416,60 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByLabelText('25 percent consistency. Painting completed 1 day and missed 3 days.')).toBeInTheDocument();
     expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('1');
     expect(screen.getByLabelText('Days missed: Eligible elapsed days when the selected habit was not completed.')).toHaveTextContent('3');
+  });
+
+  it('shows All habits donut shares for one, two, and three completed habits per day', () => {
+    const habits = [
+      makeHabit({ id: 'habit-1', name: 'Japanese', createdAt: '2026-06-22', trackingMode: 'completion' }),
+      makeHabit({
+        id: 'habit-2',
+        name: 'Gym',
+        createdAt: '2026-06-22',
+        color: 'green',
+        icon: { type: 'svg', name: 'fitness' },
+        trackingMode: 'completion',
+      }),
+      makeHabit({
+        id: 'habit-3',
+        name: 'Reading',
+        createdAt: '2026-06-22',
+        color: 'lavender',
+        icon: { type: 'svg', name: 'book' },
+        trackingMode: 'completion',
+      }),
+    ];
+    renderStats({
+      habits,
+      selectedHabitId: null,
+      allCheckIns: {
+        'habit-1': {
+          '2026-06-22': true,
+          '2026-06-23': true,
+          '2026-06-24': true,
+        },
+        'habit-2': {
+          '2026-06-23': true,
+          '2026-06-24': true,
+        },
+        'habit-3': {
+          '2026-06-24': true,
+        },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    const donut = screen.getByLabelText(
+      '75 percent consistency. 1 day with no activity. Active days are divided by habit contribution: Japanese 1.8, Gym 0.8, Reading 0.3.',
+    );
+
+    expect(within(donut).getByLabelText('Japanese: 1.8 active-day share, 3 completed days')).toBeInTheDocument();
+    expect(within(donut).getByLabelText('Gym: 0.8 active-day share, 2 completed days')).toBeInTheDocument();
+    expect(within(donut).getByLabelText('Reading: 0.3 active-day share, 1 completed day')).toBeInTheDocument();
+    expect(within(donut).getByLabelText('No activity: 1 day')).toBeInTheDocument();
+    expect(within(donut).getByText('1.8 share')).toBeInTheDocument();
+    expect(within(donut).getByText('0.8 share')).toBeInTheDocument();
+    expect(within(donut).getByText('0.3 share')).toBeInTheDocument();
+    expect(within(donut).getByText('1 day')).toBeInTheDocument();
   });
 
   it('opens and closes date details while restoring focus to the date cell', () => {

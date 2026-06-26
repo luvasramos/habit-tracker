@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { CheckInsByHabit, Habit } from '../state/types';
 import {
+  calculateAllHabitsActiveDayBreakdown,
   calculateAllHabitsStatistics,
   calculateHabitStatistics,
   getHabitCreatedDate,
@@ -156,6 +157,89 @@ describe('statistics utilities', () => {
     expect(stats.inactiveDateKeys).toHaveLength(13);
     expect(stats.eligibleDateKeys[0]).toBe('2026-06-10');
     expect(stats.eligibleDateKeys[stats.eligibleDateKeys.length - 1]).toBe('2026-06-25');
+  });
+
+  it('splits all-habits active-day share without double-counting active days', () => {
+    const habits = [
+      habit({ id: 'habit-1', name: 'Japanese', createdAt: '2026-06-20' }),
+      habit({ id: 'habit-2', name: 'Gym', createdAt: '2026-06-20' }),
+      habit({ id: 'habit-3', name: 'Reading', createdAt: '2026-06-20' }),
+    ];
+    const checkIns: CheckInsByHabit = {
+      'habit-1': {
+        '2026-06-20': true,
+        '2026-06-21': true,
+        '2026-06-22': true,
+      },
+      'habit-2': {
+        '2026-06-21': true,
+        '2026-06-22': true,
+      },
+      'habit-3': {
+        '2026-06-22': true,
+      },
+    };
+    const allStats = calculateAllHabitsStatistics(
+      habits,
+      checkIns,
+      getRangeDays('month', today),
+      today,
+    );
+
+    const breakdown = calculateAllHabitsActiveDayBreakdown(
+      habits,
+      checkIns,
+      allStats.eligibleDateKeys,
+      today,
+    );
+
+    expect(breakdown.map(({ activeDayShare }) => activeDayShare)).toEqual([
+      1 + 1 / 2 + 1 / 3,
+      1 / 2 + 1 / 3,
+      1 / 3,
+    ]);
+    expect(breakdown.map(({ completedDays }) => completedDays)).toEqual([3, 2, 1]);
+    const totalActiveDayShare = breakdown.reduce((sum, item) => sum + item.activeDayShare, 0);
+    expect(totalActiveDayShare).toBeCloseTo(allStats.activeDateKeys.length);
+    expect(totalActiveDayShare + allStats.inactiveDateKeys.length).toBeCloseTo(
+      allStats.eligibleDateKeys.length,
+    );
+  });
+
+  it('excludes future dates and dates before habit creation from active-day share', () => {
+    const fixedToday = new Date(2026, 5, 25);
+    const habits = [
+      habit({ id: 'habit-1', name: 'Japanese', createdAt: '2026-06-20' }),
+      habit({ id: 'habit-2', name: 'Gym', createdAt: '2026-06-24' }),
+    ];
+    const checkIns: CheckInsByHabit = {
+      'habit-1': {
+        '2026-06-19': true,
+        '2026-06-24': true,
+        '2026-06-26': true,
+      },
+      'habit-2': {
+        '2026-06-23': true,
+        '2026-06-24': true,
+        '2026-06-26': true,
+      },
+    };
+    const allStats = calculateAllHabitsStatistics(
+      habits,
+      checkIns,
+      getRangeDays('month', fixedToday),
+      fixedToday,
+    );
+
+    const breakdown = calculateAllHabitsActiveDayBreakdown(
+      habits,
+      checkIns,
+      allStats.eligibleDateKeys,
+      fixedToday,
+    );
+
+    expect(breakdown.map(({ activeDayShare }) => activeDayShare)).toEqual([0.5, 0.5]);
+    expect(breakdown.map(({ completedDays }) => completedDays)).toEqual([1, 1]);
   });
 
   it('calculates one activity day in a full year range without counting future dates', () => {

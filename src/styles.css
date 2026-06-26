@@ -1545,6 +1545,15 @@ h2 {
   background: var(--dot-color);
 }
 
+.completion-donut__note {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .time-goals {
   display: grid;
   gap: 10px;
