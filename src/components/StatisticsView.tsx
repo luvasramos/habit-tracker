@@ -53,13 +53,13 @@ const metricDescriptions = {
   timeLogged: 'Known duration recorded in the selected period.',
 };
 
-const getDateStateClass = (model: StatisticsDateModel, showNoActivity: boolean) => {
+const getDateStateClass = (model: StatisticsDateModel) => {
   const classes = [
     'stats-date-cell',
     `stats-date-cell--${model.state}`,
     model.isToday ? 'is-today' : '',
     model.isCompleted ? 'is-completed' : '',
-    model.isMissed && showNoActivity ? 'is-missed-visible' : '',
+    model.isMissed ? 'is-missed-visible' : '',
     model.isUnavailable ? 'is-unavailable' : '',
   ];
 
@@ -73,7 +73,6 @@ type StatisticsCalendarProps = {
   checkIns: CheckInsByHabit;
   selectedHabit: Habit | null;
   selectedColor: string;
-  showNoActivity: boolean;
   today: Date;
   onSetCheckIn?: StatisticsViewProps['onSetCheckIn'];
   onEditTime?: StatisticsViewProps['onEditTime'];
@@ -83,7 +82,6 @@ const StatisticsDateCell = ({
   model,
   selectedHabit,
   selectedColor,
-  showNoActivity,
   size,
   outside = false,
   onSelect,
@@ -91,7 +89,6 @@ const StatisticsDateCell = ({
   model: StatisticsDateModel;
   selectedHabit: Habit | null;
   selectedColor: string;
-  showNoActivity: boolean;
   size: 'week' | 'month' | 'year';
   outside?: boolean;
   onSelect: (model: StatisticsDateModel, trigger: HTMLButtonElement) => void;
@@ -103,7 +100,7 @@ const StatisticsDateCell = ({
 
   return (
     <button
-      className={`${getDateStateClass(model, showNoActivity)} stats-date-cell--${size}${outside ? ' is-outside' : ''}`}
+      className={`${getDateStateClass(model)} stats-date-cell--${size}${outside ? ' is-outside' : ''}`}
       type="button"
       aria-label={getStatisticsDateLabel(model, selectedHabit)}
       aria-disabled={model.isUnavailable}
@@ -296,7 +293,6 @@ const StatisticsCalendar = ({
   checkIns,
   selectedHabit,
   selectedColor,
-  showNoActivity,
   today,
   onSetCheckIn,
   onEditTime,
@@ -385,7 +381,6 @@ const StatisticsCalendar = ({
               model={getModel(cell.date)}
               selectedHabit={selectedHabit}
               selectedColor={selectedColor}
-              showNoActivity={showNoActivity}
               size="week"
               onSelect={selectModel}
             />
@@ -412,7 +407,6 @@ const StatisticsCalendar = ({
                 model={getModel(cell.date)}
                 selectedHabit={selectedHabit}
                 selectedColor={selectedColor}
-                showNoActivity={showNoActivity}
                 size="month"
                 outside={!cell.inPeriod}
                 onSelect={selectModel}
@@ -446,7 +440,6 @@ const StatisticsCalendar = ({
                     model={getModel(cell.date)}
                     selectedHabit={selectedHabit}
                     selectedColor={selectedColor}
-                    showNoActivity={showNoActivity}
                     size="year"
                     onSelect={selectModel}
                   />
@@ -478,7 +471,6 @@ export const StatisticsView = ({
       ? selectedHabitId
       : allHabitsId,
   );
-  const [showNoActivity, setShowNoActivity] = useState(true);
 
   useEffect(() => {
     setSelectedStatsId((current) => {
@@ -628,18 +620,6 @@ export const StatisticsView = ({
     <section className="stats-panel" aria-label="Statistics">
       <div className="stats-top">
         <div className="stats-toolbar">
-          <button
-            className="activity-toggle"
-            type="button"
-            aria-pressed={showNoActivity}
-            onClick={() => setShowNoActivity((value) => !value)}
-          >
-            <span className="activity-toggle__box" aria-hidden="true">
-              {showNoActivity ? <Icon name="check" /> : null}
-            </span>
-            Show no activity
-          </button>
-
           <div className="segmented" aria-label="Statistics range">
             {(['week', 'month', 'year'] as ViewMode[]).map((item) => (
               <button
@@ -680,7 +660,11 @@ export const StatisticsView = ({
           </div>
         </div>
 
-        <div className="stats-selector" aria-label="Statistics habit selector">
+        <div
+          className="stats-selector"
+          aria-label="Statistics habit selector"
+          data-selected-scope={selectedStatsId === allHabitsId ? 'all' : 'habit'}
+        >
           <button
             className="filter-pill"
             type="button"
@@ -689,7 +673,7 @@ export const StatisticsView = ({
             style={{ '--habit-color': 'var(--soft)' } as CSSProperties}
           >
             <span className="filter-pill__dot" />
-            All habits
+            <span title="All habits">All habits</span>
           </button>
           {habits.map((habit) => (
             <button
@@ -699,28 +683,14 @@ export const StatisticsView = ({
               aria-pressed={selectedStatsId === habit.id}
               onClick={() => setSelectedStatsId(habit.id)}
               style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
+              title={habit.name}
             >
               <span className="filter-pill__dot" />
               <HabitIconView habit={habit} />
-              {habit.name}
+              <span>{habit.name}</span>
             </button>
           ))}
         </div>
-      </div>
-
-      <div
-        className="stats-context"
-        style={{ '--habit-color': selectedColor } as CSSProperties}
-      >
-        {selectedHabit ? (
-          <>
-            <span className="filter-pill__dot" />
-            <HabitIconView habit={selectedHabit} />
-            <h2>{selectedHabit.name}</h2>
-          </>
-        ) : (
-          <h2>All habits</h2>
-        )}
       </div>
 
       <>
@@ -923,7 +893,6 @@ export const StatisticsView = ({
             checkIns={checkIns}
             selectedHabit={selectedHabit}
             selectedColor={selectedColor}
-            showNoActivity={showNoActivity}
             today={today}
             onSetCheckIn={onSetCheckIn}
             onEditTime={onEditTime}

@@ -403,6 +403,7 @@ export const App = () => {
             <HabitTabs
               habits={state.habits}
               selectedHabitId={state.selectedHabitId}
+              showHabitList={page !== 'statistics'}
               onSelect={selectHabit}
               onEdit={() => {
                 if (selectedHabit) {

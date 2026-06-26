@@ -6,6 +6,7 @@ import { Icon } from './Icon';
 type HabitTabsProps = {
   habits: Habit[];
   selectedHabitId: string | null;
+  showHabitList?: boolean;
   onSelect: (habitId: string) => void;
   onEdit: () => void;
   onAdd: () => void;
@@ -16,6 +17,7 @@ type HabitTabsProps = {
 export const HabitTabs = ({
   habits,
   selectedHabitId,
+  showHabitList = true,
   onSelect,
   onEdit,
   onAdd,
@@ -78,7 +80,7 @@ export const HabitTabs = ({
           </button>
         </div>
       </div>
-      {habits.length > 0 ? (
+      {showHabitList && habits.length > 0 ? (
         <div
           className="habit-tabs__scroller"
           role="tablist"

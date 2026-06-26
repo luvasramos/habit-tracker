@@ -178,7 +178,7 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByText('1h')).toBeInTheDocument();
   });
 
-  it('renders a Monday-first Month statistics calendar and respects Show no activity', () => {
+  it('renders a Monday-first Month statistics calendar with missed dates visible', () => {
     renderStats({
       habit: makeHabit({ createdAt: '2026-06-10' }),
       checkIns: { '2026-06-25': { completed: true, durationMinutes: 60 } },
@@ -192,9 +192,7 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByRole('button', { name: /Wednesday, July 1, 2026, future date/ })).toHaveClass('is-outside');
     expect(screen.getByRole('button', { name: /Tuesday, June 9, 2026, before Japanese was created/ })).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ })).toHaveClass('is-missed-visible');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Show no activity' }));
-    expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ })).not.toHaveClass('is-missed-visible');
+    expect(screen.queryByRole('button', { name: 'Show no activity' })).not.toBeInTheDocument();
   });
 
   it('renders the Year statistics calendar as twelve mini-months', () => {

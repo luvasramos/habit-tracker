@@ -1217,18 +1217,18 @@ h2 {
   display: grid;
   gap: 10px;
   padding: 2px 0 4px;
-  background: color-mix(in srgb, #000000 88%, transparent);
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
 }
 
 .stats-toolbar {
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto minmax(260px, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
   align-items: center;
   gap: 12px;
 }
 
 .stats-toolbar .segmented {
-  justify-self: center;
+  justify-self: start;
 }
 
 .stats-toolbar .period-controls {
@@ -1238,77 +1238,12 @@ h2 {
 .stats-selector {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding-bottom: 2px;
   scrollbar-width: thin;
-}
-
-.stats-context {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  max-width: 100%;
-  min-height: var(--control-size);
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--habit-color) 42%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--habit-color) 8%, var(--surface-2));
-  color: var(--soft);
-}
-
-.stats-context h2 {
-  margin: 0;
-  overflow: hidden;
-  font-size: 0.98rem;
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stats-context .habit-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.activity-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  min-height: var(--control-size);
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-}
-
-.activity-toggle:hover {
-  border-color: var(--border-strong);
-  background: var(--surface-3);
-  color: var(--soft);
-}
-
-.activity-toggle[aria-pressed='true'] {
-  color: var(--text);
-}
-
-.activity-toggle__box {
-  display: grid;
-  width: 18px;
-  height: 18px;
-  place-items: center;
-  border: 1px solid var(--border-strong);
-  border-radius: 5px;
-  color: var(--soft);
-}
-
-.activity-toggle__box .icon {
-  width: 13px;
-  height: 13px;
 }
 
 .filter-pill {
@@ -1316,7 +1251,8 @@ h2 {
   align-items: center;
   gap: 8px;
   min-height: var(--control-size);
-  max-width: 220px;
+  min-width: 112px;
+  max-width: min(280px, 100%);
   padding: 0 11px;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -1330,6 +1266,13 @@ h2 {
     background 120ms ease,
     color 120ms ease,
     opacity 120ms ease;
+}
+
+.filter-pill > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .filter-pill:hover {
@@ -1351,12 +1294,11 @@ h2 {
   border-color: var(--border-strong);
 }
 
-.filter-pill[aria-pressed='false'] {
-  opacity: 0.62;
+.stats-selector[data-selected-scope='habit'] .filter-pill[aria-pressed='false'] {
+  opacity: 0.72;
 }
 
-.filter-pill__dot,
-.legend-dot {
+.filter-pill__dot {
   width: 9px;
   height: 9px;
   flex: 0 0 auto;
@@ -1364,14 +1306,12 @@ h2 {
   background: var(--habit-color);
 }
 
-.filter-pill .habit-icon,
-.comparison-legend .habit-icon {
+.filter-pill .habit-icon {
   width: 15px;
   height: 15px;
 }
 
-.filter-pill .habit-icon--emoji,
-.comparison-legend .habit-icon--emoji {
+.filter-pill .habit-icon--emoji {
   font-size: 0.88rem;
 }
 
@@ -1619,26 +1559,6 @@ h2 {
 
 .stats-empty--compact {
   min-height: 180px;
-}
-
-.comparison-section {
-  display: grid;
-  gap: 14px;
-  padding-top: 4px;
-}
-
-.comparison-legend {
-  display: flex;
-  gap: 10px 14px;
-  flex-wrap: wrap;
-  color: var(--muted);
-  font-size: 0.82rem;
-}
-
-.comparison-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
 }
 
 .stats-calendar {
@@ -2875,15 +2795,10 @@ h2 {
     align-items: stretch;
   }
 
-  .stats-toolbar .activity-toggle,
   .stats-toolbar .segmented,
   .stats-toolbar .period-controls {
     justify-self: stretch;
     width: 100%;
-  }
-
-  .stats-toolbar .activity-toggle {
-    justify-content: flex-start;
   }
 
   .stats-toolbar .segmented {
@@ -2896,11 +2811,12 @@ h2 {
 
   .stats-selector {
     flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .stats-selector .filter-pill {
     flex: 0 0 auto;
-    max-width: 220px;
+    max-width: 240px;
   }
 
   .stats-year-months {
@@ -3004,14 +2920,9 @@ h2 {
   }
 
   .stats-toolbar .segmented,
-  .stats-toolbar .period-controls,
-  .stats-toolbar .activity-toggle {
+  .stats-toolbar .period-controls {
     justify-self: stretch;
     width: 100%;
-  }
-
-  .stats-toolbar .activity-toggle {
-    justify-content: flex-start;
   }
 
   .stats-toolbar .segmented {
@@ -3024,11 +2935,12 @@ h2 {
 
   .stats-selector {
     flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .stats-selector .filter-pill {
     flex: 0 0 auto;
-    max-width: 220px;
+    max-width: 240px;
   }
 
   .filter-pill {
@@ -3074,10 +2986,6 @@ h2 {
 
   .stats-date-details__row-actions .button {
     flex: 1;
-  }
-
-  .comparison-legend {
-    font-size: 0.78rem;
   }
 
   .year-months {

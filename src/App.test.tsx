@@ -338,14 +338,13 @@ describe('Habit Grid app', () => {
     expect(screen.getByLabelText(/Days done: Eligible days/)).toBeInTheDocument();
     expect(screen.queryByText('Completion rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Habit completions')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Show no activity' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: 'Show no activity' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'No activity' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tablist', { name: 'Habit list' })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Year' }));
     expect(screen.getByLabelText('Yearly activity overview')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Show no activity' }));
-    expect(screen.getByRole('button', { name: 'Show no activity' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByText('Days missed')).toBeInTheDocument();
   });
 
