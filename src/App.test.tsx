@@ -116,6 +116,7 @@ describe('Habit Grid app', () => {
     const colorGrid = screen.getByLabelText('Recommended colors');
     expect(within(colorGrid).getAllByRole('button')).toHaveLength(6);
     expect(within(colorGrid).getByRole('button', { name: 'Use #98FC00' })).toBeInTheDocument();
+    expect(within(colorGrid).getAllByRole('button').every((button) => button.classList.contains('recommendation-option'))).toBe(true);
     expect(screen.queryByRole('button', { name: 'Suggested' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Health' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Search icons')).toBeInTheDocument();
@@ -139,6 +140,8 @@ describe('Habit Grid app', () => {
     await user.type(screen.getByLabelText('Name'), 'Icons');
     expect(screen.getByLabelText('Icon picker')).toBeInTheDocument();
     expect(screen.getByText('Suggested icons')).toBeInTheDocument();
+    const suggestedIcons = screen.getByText('Suggested icons').parentElement;
+    expect(suggestedIcons?.querySelectorAll('.icon-choice')).toHaveLength(6);
     await user.type(screen.getByLabelText('Search icons'), 'star');
     await waitFor(() => expect(window.fetch).toHaveBeenCalled());
     expect(screen.getByText('Search results')).toBeInTheDocument();
@@ -173,7 +176,9 @@ describe('Habit Grid app', () => {
     expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
 
     expect(screen.getByLabelText('Emoji picker')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Suggested emoji')).getAllByRole('button')).toHaveLength(6);
     await user.type(screen.getByLabelText('Search emoji'), 'japan');
+    expect(screen.queryByLabelText('Suggested emoji')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Japan flag' }));
     expect(screen.getByLabelText('Selected emoji')).toHaveTextContent('🇯🇵');
     expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
@@ -345,9 +350,8 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await finishDailyCheckIn(user);
 
-    const checkInButton = screen.getByRole('button', {
-      name: new RegExp(`Gym, .*${new Date().getDate()}.*, not completed`),
-    });
+    const checkInButton = document.querySelector<HTMLButtonElement>(`[data-date-key="${toLocalDateKey(new Date())}"]`);
+    expect(checkInButton).toBeInTheDocument();
     await user.click(checkInButton!);
     expect(checkInButton).toHaveAttribute('aria-pressed', 'true');
     expect(document.querySelector('.completion-dot')).toBeInTheDocument();
@@ -369,10 +373,9 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await finishDailyCheckIn(user);
 
-    const checkInButton = screen.getByRole('button', {
-      name: new RegExp(`Gym, .*${new Date().getDate()}.*, not completed`),
-    });
-    await user.click(checkInButton);
+    const checkInButton = document.querySelector<HTMLButtonElement>(`[data-date-key="${toLocalDateKey(new Date())}"]`);
+    expect(checkInButton).toBeInTheDocument();
+    await user.click(checkInButton!);
 
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 

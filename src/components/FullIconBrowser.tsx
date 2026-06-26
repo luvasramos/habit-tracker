@@ -3,6 +3,7 @@ import { Icon as IconifyIcon } from '@iconify/react';
 import type { Habit, HabitIconName } from '../state/types';
 import { habitIconOptions, HabitIconView } from '../utils/habitAppearance';
 import { Icon } from './Icon';
+import { RecommendationOption } from './RecommendationOption';
 
 type IconSearchResult = {
   icons?: string[];
@@ -124,6 +125,10 @@ export const IconPicker = ({
   const pageCount = Math.max(1, Math.ceil(displayedIcons.length / resultPageSize));
   const fallbackIcons = habitIconOptions.slice(0, 12);
   const hasSearch = debouncedQuery.length > 0;
+  const getIconLabel = (iconId: string) =>
+    iconId.startsWith('tabler:')
+      ? iconId.replace('tabler:', '').split('-').join(' ')
+      : habitIconOptions.find((option) => option.name === iconId)?.label ?? iconId;
 
   return (
     <section className="icon-picker" aria-label="Icon picker">
@@ -144,12 +149,11 @@ export const IconPicker = ({
       {visibleIcons.length > 0 ? (
         <div className="selector-grid icon-choice-grid">
           {visibleIcons.map((iconId) => (
-            <button
-              className="selector-card icon-choice"
-              type="button"
+            <RecommendationOption
+              className="icon-choice"
               key={iconId}
-              aria-label={iconId.replace('tabler:', '').split('-').join(' ')}
-              aria-pressed={selectedIconId === iconId}
+              accessibleName={getIconLabel(iconId)}
+              isSelected={selectedIconId === iconId}
               style={{ '--habit-color': previewColor } as CSSProperties}
               onClick={() => {
                 if (iconId.startsWith('tabler:')) {
@@ -164,24 +168,23 @@ export const IconPicker = ({
               ) : (
                 <HabitIconView habit={{ ...fallbackHabit, icon: { type: 'svg', name: iconId as HabitIconName } }} />
               )}
-            </button>
+            </RecommendationOption>
           ))}
         </div>
       ) : null}
       {status === 'error' || visibleIcons.length === 0 ? (
         <div className="selector-grid icon-choice-grid" aria-label="Built-in fallback icons">
           {fallbackIcons.map((option) => (
-            <button
-              className="selector-card icon-choice"
-              type="button"
+            <RecommendationOption
+              className="icon-choice"
               key={option.name}
-              aria-label={option.label}
-              aria-pressed={selectedIconId === option.name}
+              accessibleName={option.label}
+              isSelected={selectedIconId === option.name}
               style={{ '--habit-color': previewColor } as CSSProperties}
               onClick={() => onSelectLocal(option.name)}
             >
               <HabitIconView habit={{ ...fallbackHabit, icon: { type: 'svg', name: option.name } }} />
-            </button>
+            </RecommendationOption>
           ))}
         </div>
       ) : null}

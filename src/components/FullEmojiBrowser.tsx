@@ -1,4 +1,5 @@
 import { createElement, useEffect, useMemo, useRef, useState } from 'react';
+import { RecommendationOption } from './RecommendationOption';
 
 type FullEmojiBrowserProps = {
   selectedEmoji: string;
@@ -94,7 +95,7 @@ export const FullEmojiBrowser = ({
             );
 
     if (!normalized) {
-      return base.slice(0, 36);
+      return base.slice(0, 6);
     }
 
     return base
@@ -110,7 +111,10 @@ export const FullEmojiBrowser = ({
   const recentOptions = recentEmoji
     .map((emoji) => suggestions.find((option) => option.emoji === emoji))
     .filter((option): option is (typeof suggestions)[number] => Boolean(option))
-    .slice(0, 12);
+    .slice(0, 6);
+  const recommendationOptions = (recentOptions.length > 0 ? recentOptions : suggestions).slice(0, 6);
+  const recommendationLabel = recentOptions.length > 0 ? 'Recent emoji' : 'Suggested emoji';
+  const isSearching = query.trim().length > 0;
 
   return (
     <section className="emoji-picker" aria-label="Emoji picker">
@@ -118,19 +122,18 @@ export const FullEmojiBrowser = ({
         <span>{selectedEmoji || '•'}</span>
         <span>{selectedEmoji ? 'Selected emoji' : 'No emoji selected'}</span>
       </div>
-      {recentOptions.length > 0 ? (
-        <div className="emoji-picker__recent" aria-label="Recent emoji">
-          {recentOptions.map((option) => (
-            <button
-              className="selector-card emoji-choice"
-              type="button"
+      {recommendationOptions.length > 0 && !isSearching ? (
+        <div className="emoji-picker__recent" aria-label={recommendationLabel}>
+          {recommendationOptions.map((option) => (
+            <RecommendationOption
+              className="emoji-choice"
               key={`${option.label}-${option.emoji}`}
-              aria-label={option.label}
-              aria-pressed={selectedEmoji === option.emoji}
+              accessibleName={option.label}
+              isSelected={selectedEmoji === option.emoji}
               onClick={() => onSelect(option.emoji)}
             >
               <span>{option.emoji}</span>
-            </button>
+            </RecommendationOption>
           ))}
         </div>
       ) : null}
@@ -167,16 +170,15 @@ export const FullEmojiBrowser = ({
               </div>
               <div className="selector-grid emoji-grid" aria-label="Emoji search results">
                 {filteredSuggestions.map((option) => (
-                  <button
-                    className="selector-card emoji-choice"
-                    type="button"
+                  <RecommendationOption
+                    className="emoji-choice"
                     key={`${option.label}-${option.emoji}`}
-                    aria-label={option.label}
-                    aria-pressed={selectedEmoji === option.emoji}
+                    accessibleName={option.label}
+                    isSelected={selectedEmoji === option.emoji}
                     onClick={() => onSelect(option.emoji)}
                   >
                     <span>{option.emoji}</span>
-                  </button>
+                  </RecommendationOption>
                 ))}
               </div>
               {filteredSuggestions.length === 0 ? <p className="muted">No exact match.</p> : null}

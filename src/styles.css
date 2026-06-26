@@ -2533,9 +2533,16 @@ h2 {
 }
 
 .swatch-grid--recommended {
-  width: min(100%, 176px);
+  width: min(100%, 160px);
   grid-template-columns: repeat(3, 48px);
   gap: 8px;
+}
+
+.swatch-grid--recommended,
+.icon-choice-grid,
+.emoji-grid,
+.emoji-picker__recent {
+  justify-content: start;
 }
 
 .selector-card {
@@ -2582,6 +2589,32 @@ h2 {
   transform: rotate(42deg);
 }
 
+.recommendation-option {
+  width: 48px;
+  min-width: 48px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: var(--pill-radius);
+  overflow: hidden;
+}
+
+.recommendation-option:hover {
+  transform: translateY(-1px);
+}
+
+.recommendation-option:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.recommendation-option[aria-pressed='true']::after {
+  top: 7px;
+  right: 10px;
+  width: 4px;
+  height: 7px;
+  border-right-width: 1.4px;
+  border-bottom-width: 1.4px;
+}
+
 .selector-card--empty {
   pointer-events: none;
   border-color: transparent;
@@ -2590,14 +2623,12 @@ h2 {
 
 .swatch-button {
   --habit-color: var(--swatch-color);
-  min-height: 48px;
-  padding: 0;
-  border-radius: 999px;
+  min-height: 44px;
 }
 
 .swatch-button__mark {
-  width: 30px;
-  height: 30px;
+  width: 26px;
+  height: 26px;
   border-radius: 999px;
   background: var(--swatch-color);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--swatch-color) 48%, var(--surface));
@@ -2748,8 +2779,8 @@ h2 {
 
 .emoji-picker__recent {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 48px));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fill, 48px);
+  gap: 8px;
 }
 
 .emoji-picker__fallback {
@@ -2826,7 +2857,7 @@ h2 {
 
 .icon-choice,
 .emoji-choice {
-  padding: 0;
+  color: color-mix(in srgb, var(--habit-color, var(--soft)) 82%, var(--muted));
 }
 
 .icon-choice .habit-icon {
@@ -2836,6 +2867,12 @@ h2 {
 
 .emoji-choice {
   font-size: 1.12rem;
+  color: var(--text);
+}
+
+.icon-choice-grid,
+.emoji-grid {
+  grid-template-columns: repeat(auto-fill, 48px);
 }
 
 .selector-pagination {
@@ -3436,6 +3473,16 @@ h2 {
 
   .selector-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .swatch-grid--recommended {
+    grid-template-columns: repeat(3, 48px);
+  }
+
+  .icon-choice-grid,
+  .emoji-grid,
+  .emoji-picker__recent {
+    grid-template-columns: repeat(auto-fill, 48px);
   }
 
   .custom-color__fields {

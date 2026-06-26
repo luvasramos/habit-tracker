@@ -41,6 +41,7 @@ import { toLocalDateKey } from '../utils/dates';
 import { Icon } from './Icon';
 import { IconPicker } from './FullIconBrowser';
 import { FullEmojiBrowser } from './FullEmojiBrowser';
+import { RecommendationOption } from './RecommendationOption';
 
 type HabitEditorPageProps = {
   mode: 'add' | 'edit';
@@ -647,12 +648,11 @@ export const HabitEditorPage = ({
             <span className="appearance-label">Color</span>
             <div className="selector-grid swatch-grid swatch-grid--recommended" aria-label="Recommended colors">
               {recommendedColorOptions.map((option) => (
-                <button
+                <RecommendationOption
                   key={option.name}
-                  className="selector-card swatch-button"
-                  type="button"
-                  aria-label={`Use ${option.value}`}
-                  aria-pressed={colorMode === 'preset' && color === option.name}
+                  className="swatch-button"
+                  accessibleName={`Use ${option.value}`}
+                  isSelected={colorMode === 'preset' && color === option.name}
                   style={{ '--swatch-color': option.value } as CSSProperties}
                   onClick={() => {
                     setColor(option.name);
@@ -661,7 +661,7 @@ export const HabitEditorPage = ({
                   }}
                 >
                   <span className="swatch-button__mark" />
-                </button>
+                </RecommendationOption>
               ))}
             </div>
             <button
