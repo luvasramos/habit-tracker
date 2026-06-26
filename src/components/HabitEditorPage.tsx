@@ -24,7 +24,6 @@ import {
   defaultHabitIcon,
   getHabitColorValue,
   getHabitColorName,
-  habitColorOptions,
   habitIconOptions,
   HabitIconView,
   isPresetHabitColor,
@@ -190,10 +189,14 @@ const emojiOptions: EmojiOption[] = [
 
 const selectorPageSize = 6;
 
-const pageCountFor = (total: number) => Math.max(1, Math.ceil(total / selectorPageSize));
-
-const pageItems = <T,>(items: T[], page: number) =>
-  items.slice((page - 1) * selectorPageSize, page * selectorPageSize);
+const recommendedColorOptions = [
+  { name: 'neonLime', value: '#98FC00' },
+  { name: 'neonOrange', value: '#FF7135' },
+  { name: 'neonMagenta', value: '#FE01E8' },
+  { name: 'neonBlue', value: '#0163FF' },
+  { name: 'neonYellow', value: '#FFD400' },
+  { name: 'neonViolet', value: '#7C4DFF' },
+] as const;
 
 type PendingMigration =
   | {
@@ -251,44 +254,6 @@ const parseYearlyGoal = (value: string) => {
   return hours > 0 ? hours * 60 : null;
 };
 
-type SelectorPaginationProps = {
-  page: number;
-  pageCount: number;
-  label: string;
-  onPageChange: (page: number) => void;
-};
-
-const SelectorPagination = ({
-  page,
-  pageCount,
-  label,
-  onPageChange,
-}: SelectorPaginationProps) => (
-  <div className="selector-pagination" aria-label={`${label} pages`}>
-    <button
-      className="icon-button selector-pagination__button"
-      type="button"
-      aria-label={`Previous ${label} page`}
-      disabled={page <= 1}
-      onClick={() => onPageChange(Math.max(1, page - 1))}
-    >
-      <Icon name="previous" />
-    </button>
-    <span aria-live="polite">
-      {page} / {pageCount}
-    </span>
-    <button
-      className="icon-button selector-pagination__button"
-      type="button"
-      aria-label={`Next ${label} page`}
-      disabled={page >= pageCount}
-      onClick={() => onPageChange(Math.min(pageCount, page + 1))}
-    >
-      <Icon name="next" />
-    </button>
-  </div>
-);
-
 export const HabitEditorPage = ({
   mode,
   initialName = '',
@@ -317,7 +282,6 @@ export const HabitEditorPage = ({
   const [colorMode, setColorMode] = useState<'preset' | 'custom'>(() =>
     initialHabit?.color && !isPresetHabitColor(initialHabit.color) ? 'custom' : 'preset',
   );
-  const [colorPage, setColorPage] = useState(1);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [trackingMode, setTrackingMode] = useState<HabitTrackingMode>('completion');
   const [defaultSessionInput, setDefaultSessionInput] = useState('');
@@ -379,8 +343,6 @@ export const HabitEditorPage = ({
   const suggestedIcons = popularIconNames
     .map((name) => habitIconOptions.find((option) => option.name === name))
     .filter((option): option is (typeof habitIconOptions)[number] => Boolean(option));
-  const colorPageCount = pageCountFor(habitColorOptions.length);
-  const visibleColors = pageItems(habitColorOptions, colorPage);
   const defaultIconChoices = useMemo<IconChoice[]>(() => {
     const recent = recentIcons.filter((item): item is IconChoice =>
       item.startsWith('tabler:') || habitIconOptions.some((option) => option.name === item),
@@ -388,10 +350,6 @@ export const HabitEditorPage = ({
     const popular = suggestedIcons.map((option) => option.name);
     return Array.from(new Set([...recent, ...popular])).slice(0, selectorPageSize);
   }, [recentIcons, suggestedIcons]);
-  useEffect(() => {
-    setColorPage((page) => Math.min(page, colorPageCount));
-  }, [colorPageCount]);
-
   useEffect(() => {
     const initialIcon = normalizeHabitIcon(initialHabit?.icon ?? defaultHabitIcon);
     setName(initialName);
@@ -403,7 +361,6 @@ export const HabitEditorPage = ({
     setCustomColor(isPresetHabitColor(initialColor) ? '#7C8792' : initialColor);
     setCustomDraftColor(isPresetHabitColor(initialColor) ? '#7C8792' : initialColor);
     setCustomColorOpen(false);
-    setColorPage(1);
     setIconMode(initialIcon.type === 'emoji' ? 'emoji' : 'svg');
     setSvgIcon(
       initialIcon.type === 'iconify'
@@ -688,13 +645,13 @@ export const HabitEditorPage = ({
 
           <div className="appearance-group">
             <span className="appearance-label">Color</span>
-            <div className="selector-grid swatch-grid">
-              {visibleColors.map((option) => (
+            <div className="selector-grid swatch-grid swatch-grid--recommended" aria-label="Recommended colors">
+              {recommendedColorOptions.map((option) => (
                 <button
                   key={option.name}
                   className="selector-card swatch-button"
                   type="button"
-                  aria-label={`Use ${option.label}`}
+                  aria-label={`Use ${option.value}`}
                   aria-pressed={colorMode === 'preset' && color === option.name}
                   style={{ '--swatch-color': option.value } as CSSProperties}
                   onClick={() => {
@@ -706,16 +663,7 @@ export const HabitEditorPage = ({
                   <span className="swatch-button__mark" />
                 </button>
               ))}
-              {Array.from({ length: selectorPageSize - visibleColors.length }).map((_, index) => (
-                <span className="selector-card selector-card--empty" key={`color-empty-${index}`} />
-              ))}
             </div>
-            <SelectorPagination
-              page={colorPage}
-              pageCount={colorPageCount}
-              label="color"
-              onPageChange={setColorPage}
-            />
             <button
               ref={customColorButtonRef}
               className="custom-color-toggle"
@@ -850,38 +798,42 @@ export const HabitEditorPage = ({
           </div>
         </section>
 
-        {mode === 'edit' && onDelete ? (
-          <div className="delete-box">
-            <button
-              className="button button--danger"
-              type="button"
-              onClick={() => {
-                if (confirmDelete) {
-                  onDelete();
-                  onBack();
-                } else {
-                  setConfirmDelete(true);
-                }
-              }}
-            >
-              <Icon name="delete" />
-              {confirmDelete ? 'Confirm delete' : 'Delete habit'}
-            </button>
-            {confirmDelete ? (
-              <p className="muted">This removes the habit and all of its check-ins.</p>
-            ) : null}
-          </div>
+        {confirmDelete && initialHabit ? (
+          <p className="delete-confirmation" role="status">
+            Delete {initialHabit.name}? This will remove the habit and delete its check-in history.
+          </p>
         ) : null}
 
-        <div className="dialog__actions habit-editor-actions">
-          <button className="button" type="button" onClick={onBack}>
-            <Icon name="close" />
-            Cancel
-          </button>
-          <button className="button button--primary" type="submit" disabled={Boolean(formError)}>
-            <Icon name="check" />
-            Save
-          </button>
+        <div className="habit-editor-actions" data-mode={mode}>
+          <div className="habit-editor-actions__left">
+            {mode === 'edit' && onDelete ? (
+              <button
+                className="button button--danger habit-editor-delete"
+                type="button"
+                onClick={() => {
+                  if (confirmDelete) {
+                    onDelete();
+                    onBack();
+                  } else {
+                    setConfirmDelete(true);
+                  }
+                }}
+              >
+                <Icon name="delete" />
+                {confirmDelete ? 'Confirm delete' : 'Delete habit'}
+              </button>
+            ) : null}
+          </div>
+          <div className="habit-editor-actions__right">
+            <button className="button button--quiet" type="button" onClick={onBack}>
+              <Icon name="close" />
+              Cancel
+            </button>
+            <button className="button button--primary" type="submit" disabled={Boolean(formError)}>
+              <Icon name="check" />
+              Save
+            </button>
+          </div>
         </div>
       </form>
     </section>

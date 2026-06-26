@@ -310,9 +310,15 @@ h2 {
 }
 
 .button--danger {
-  color: var(--text);
-  border-color: var(--border-strong);
-  background: #1d1d1d;
+  color: #f1f1f1;
+  border-color: color-mix(in srgb, #d92d20 76%, var(--border));
+  background: #d92d20;
+}
+
+.button--danger:hover {
+  color: #f1f1f1;
+  border-color: color-mix(in srgb, #d92d20 86%, #f1f1f1);
+  background: color-mix(in srgb, #d92d20 88%, #000000);
 }
 
 .icon-button {
@@ -2216,20 +2222,14 @@ h2 {
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--surface) 96%, #202020);
-  overflow: clip;
 }
 
 .habit-editor-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: clamp(12px, 2vw, 16px) clamp(14px, 2.4vw, 20px);
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 94%, #202020);
+  padding: clamp(10px, 1.8vw, 14px) clamp(112px, 14vw, 132px) 4px clamp(14px, 2.4vw, 20px);
 }
 
 .habit-editor-header h1 {
@@ -2239,12 +2239,19 @@ h2 {
 }
 
 .habit-editor-back {
+  position: fixed;
+  top: calc(var(--space-page) + 4px);
+  right: calc(var(--space-page) + 4px);
+  z-index: 6;
   flex: 0 0 auto;
+  margin-left: auto;
+  background: color-mix(in srgb, var(--surface-2) 86%, transparent);
+  backdrop-filter: blur(10px);
 }
 
 .habit-editor-back,
 .habit-editor-actions .button,
-.delete-box .button {
+.habit-editor-delete {
   min-height: 48px;
   padding: 0 16px;
   border-radius: 999px;
@@ -2256,18 +2263,48 @@ h2 {
 .habit-editor-form {
   display: grid;
   gap: 16px;
-  padding: clamp(14px, 2.4vw, 22px);
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px) clamp(14px, 2.4vw, 22px);
 }
 
 .habit-editor-actions {
   position: sticky;
   bottom: 0;
   z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-inline: calc(clamp(14px, 2.4vw, 22px) * -1);
   margin-bottom: calc(clamp(14px, 2.4vw, 22px) * -1);
-  padding: 12px clamp(14px, 2.4vw, 22px);
+  padding: 12px clamp(14px, 2.4vw, 22px) calc(12px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 94%, #202020);
+}
+
+.habit-editor-actions__left,
+.habit-editor-actions__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.habit-editor-actions__left {
+  min-width: 0;
+}
+
+.habit-editor-actions__right {
+  margin-left: auto;
+}
+
+.delete-confirmation {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, #d92d20 42%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, #d92d20 13%, var(--surface-2));
+  color: #f1f1f1;
+  font-size: 0.86rem;
+  line-height: 1.4;
 }
 
 .field {
@@ -2458,6 +2495,12 @@ h2 {
   gap: 8px;
 }
 
+.swatch-grid--recommended {
+  width: min(100%, 176px);
+  grid-template-columns: repeat(3, 48px);
+  gap: 8px;
+}
+
 .selector-card {
   position: relative;
   display: grid;
@@ -2510,12 +2553,14 @@ h2 {
 
 .swatch-button {
   --habit-color: var(--swatch-color);
+  min-height: 48px;
   padding: 0;
+  border-radius: 999px;
 }
 
 .swatch-button__mark {
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
   background: var(--swatch-color);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--swatch-color) 48%, var(--surface));
@@ -2982,6 +3027,32 @@ h2 {
 
   .habit-tabs {
     margin-bottom: 18px;
+  }
+
+  .habit-editor-header {
+    padding-right: 96px;
+  }
+
+  .habit-editor-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .habit-editor-actions__left,
+  .habit-editor-actions__right {
+    width: 100%;
+  }
+
+  .habit-editor-actions__right {
+    margin-left: 0;
+  }
+
+  .habit-editor-actions__right .button {
+    flex: 1;
+  }
+
+  .habit-editor-delete {
+    width: 100%;
   }
 
   .habit-tabs__scroller {

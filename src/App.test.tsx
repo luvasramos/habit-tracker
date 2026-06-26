@@ -69,7 +69,7 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Reading');
-    await user.click(screen.getByRole('button', { name: 'Use Neon lime' }));
+    await user.click(screen.getByRole('button', { name: 'Use #98FC00' }));
     await user.click(screen.getByRole('button', { name: 'Custom color' }));
 
     expect(screen.getByLabelText('Custom color panel')).toBeInTheDocument();
@@ -98,12 +98,33 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
     await user.type(screen.getByLabelText('Name'), 'Reading');
-    await user.click(screen.getByRole('button', { name: 'Use Neon lime' }));
+    await user.click(screen.getByRole('button', { name: 'Use #98FC00' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
     expect(state.habits[0].color).toBe('neonLime');
     await finishDailyCheckIn(user);
+  });
+
+  it('keeps the habit editor controls compact and non-duplicated', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+
+    const editor = screen.getByRole('region', { name: 'Add habit' });
+    const colorGrid = screen.getByLabelText('Recommended colors');
+    expect(within(colorGrid).getAllByRole('button')).toHaveLength(6);
+    expect(within(colorGrid).getByRole('button', { name: 'Use #98FC00' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Suggested' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Health' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Search icons')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to habits' })).toHaveClass('habit-editor-back');
+    expect(screen.getByRole('heading', { name: 'Add habit' }).closest('.habit-editor-header')).not.toHaveClass('is-sticky');
+    expect(editor.querySelector('.habit-editor-actions')).toHaveAttribute('data-mode', 'add');
+    expect(editor.querySelector('.habit-editor-actions__right')).toContainElement(screen.getByRole('button', { name: 'Cancel' }));
+    expect(editor.querySelector('.habit-editor-actions__right')).toContainElement(screen.getByRole('button', { name: 'Save' }));
+    expect(screen.queryByRole('button', { name: 'Delete habit' })).not.toBeInTheDocument();
   });
 
   it('searches icons inline and selects an Iconify icon', async () => {
@@ -286,10 +307,33 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit habit' }));
     await user.click(screen.getByRole('button', { name: 'Delete habit' }));
+    expect(screen.getByText('Delete Training? This will remove the habit and delete its check-in history.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirm delete' })).toHaveClass('button--danger');
     await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
 
     expect(screen.queryByRole('tab', { name: 'Training' })).not.toBeInTheDocument();
     expect(screen.getByText('No habits yet')).toBeInTheDocument();
+  });
+
+  it('places edit footer actions on destructive and save sides', async () => {
+    const user = userEvent.setup();
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Gym');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await finishDailyCheckIn(user);
+    await user.click(screen.getByRole('button', { name: 'Edit habit' }));
+
+    const editor = screen.getByRole('region', { name: 'Edit habit' });
+    const actions = editor.querySelector('.habit-editor-actions');
+    const left = editor.querySelector('.habit-editor-actions__left');
+    const right = editor.querySelector('.habit-editor-actions__right');
+
+    expect(actions).toHaveAttribute('data-mode', 'edit');
+    expect(left).toContainElement(screen.getByRole('button', { name: 'Delete habit' }));
+    expect(right).toContainElement(screen.getByRole('button', { name: 'Cancel' }));
+    expect(right).toContainElement(screen.getByRole('button', { name: 'Save' }));
   });
 
   it('toggles the same check-in across week and month views', async () => {

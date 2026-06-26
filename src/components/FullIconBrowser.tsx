@@ -35,16 +35,6 @@ const popularTablerIcons = [
 
 const resultPageSize = 12;
 
-const iconCategories = [
-  { label: 'Suggested', query: '' },
-  { label: 'Health', query: 'health' },
-  { label: 'Fitness', query: 'fitness' },
-  { label: 'Learning', query: 'study' },
-  { label: 'Work', query: 'work' },
-  { label: 'Finance', query: 'finance' },
-  { label: 'Travel', query: 'travel' },
-] as const;
-
 const tablerAliasResults: Record<string, string[]> = {
   gym: ['tabler:barbell', 'tabler:run', 'tabler:stretching', 'tabler:heartbeat'],
   japan: ['tabler:flag', 'tabler:language', 'tabler:world', 'tabler:map-pin'],
@@ -134,7 +124,6 @@ export const IconPicker = ({
   const pageCount = Math.max(1, Math.ceil(displayedIcons.length / resultPageSize));
   const fallbackIcons = habitIconOptions.slice(0, 12);
   const hasSearch = debouncedQuery.length > 0;
-  const activeCategory = iconCategories.find((category) => category.query === query.trim().toLocaleLowerCase());
 
   return (
     <section className="icon-picker" aria-label="Icon picker">
@@ -142,19 +131,6 @@ export const IconPicker = ({
         <span>Search icons</span>
         <input value={query} placeholder="star, japan, study, gym" onChange={(event) => setQuery(event.target.value)} />
       </label>
-      <div className="icon-picker__categories" aria-label="Icon categories">
-        {iconCategories.map((category) => (
-          <button
-            className="icon-picker__category"
-            key={category.label}
-            type="button"
-            aria-pressed={activeCategory?.label === category.label || (!query.trim() && category.label === 'Suggested')}
-            onClick={() => setQuery(category.query)}
-          >
-            {category.label}
-          </button>
-        ))}
-      </div>
       <p className="icon-picker__label">{hasSearch ? 'Search results' : 'Suggested icons'}</p>
       {status === 'loading' ? <p className="muted">Loading icons...</p> : null}
       {status === 'error' ? (
