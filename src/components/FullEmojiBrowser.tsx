@@ -10,6 +10,8 @@ type FullEmojiBrowserProps = {
 
 type EmojiClickEvent = CustomEvent<{ unicode?: string; emoji?: { unicode?: string; string?: string } }>;
 
+const fallbackEmojiSuggestions = ['⭐', '🔥', '✅', '🏃', '📚', '💪'];
+
 const canUseNativeEmojiPicker = () => {
   if (typeof indexedDB === 'undefined') {
     return false;
@@ -112,7 +114,12 @@ export const FullEmojiBrowser = ({
     .map((emoji) => suggestions.find((option) => option.emoji === emoji))
     .filter((option): option is (typeof suggestions)[number] => Boolean(option))
     .slice(0, 6);
-  const recommendationOptions = (recentOptions.length > 0 ? recentOptions : suggestions).slice(0, 6);
+  const fallbackOptions = fallbackEmojiSuggestions
+    .map((emoji) => suggestions.find((option) => option.emoji === emoji))
+    .filter((option): option is (typeof suggestions)[number] => Boolean(option));
+  const recommendationOptions = Array.from(
+    new Map([...recentOptions, ...fallbackOptions].map((option) => [option.emoji, option])).values(),
+  ).slice(0, 6);
   const recommendationLabel = recentOptions.length > 0 ? 'Recent emoji' : 'Suggested emoji';
   const isSearching = query.trim().length > 0;
 

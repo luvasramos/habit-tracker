@@ -2630,8 +2630,9 @@ h2 {
 }
 
 .swatch-grid--recommended {
-  width: min(100%, 160px);
-  grid-template-columns: repeat(3, 48px);
+  width: fit-content;
+  max-width: 100%;
+  grid-template-columns: repeat(6, 48px);
   gap: 8px;
 }
 

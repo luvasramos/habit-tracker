@@ -177,7 +177,12 @@ describe('Habit Grid app', () => {
     expect(screen.queryByLabelText('Browse all emoji')).not.toBeInTheDocument();
 
     expect(screen.getByLabelText('Emoji picker')).toBeInTheDocument();
-    expect(within(screen.getByLabelText('Suggested emoji')).getAllByRole('button')).toHaveLength(6);
+    const suggestedEmoji = screen.getByLabelText('Suggested emoji');
+    expect(within(suggestedEmoji).getAllByRole('button')).toHaveLength(6);
+    ['Star', 'Flame', 'Check', 'Running', 'Books', 'Strength'].forEach((name) => {
+      expect(within(suggestedEmoji).getByRole('button', { name })).toBeInTheDocument();
+    });
+    expect(within(suggestedEmoji).queryByRole('button', { name: 'Japan flag' })).not.toBeInTheDocument();
     await user.type(screen.getByLabelText('Search emoji'), 'japan');
     expect(screen.queryByLabelText('Suggested emoji')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Japan flag' }));
@@ -189,6 +194,27 @@ describe('Habit Grid app', () => {
     expect(state.habits[0].icon).toEqual({ type: 'emoji', value: '🇯🇵' });
     expect(JSON.parse(localStorage.getItem('habit-grid:recent-emoji') ?? '[]')).toContain('🇯🇵');
     await finishDailyCheckIn(user);
+  });
+
+  it('shows recent emoji before fallback emoji suggestions', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('habit-grid:recent-emoji', JSON.stringify(['🇯🇵', '🔥']));
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: 'Add habit' }));
+    await user.click(screen.getByRole('button', { name: 'Emoji' }));
+
+    const recentEmoji = screen.getByLabelText('Recent emoji');
+    const buttons = within(recentEmoji).getAllByRole('button');
+    expect(buttons).toHaveLength(6);
+    expect(buttons.map((button) => button.getAttribute('aria-label'))).toEqual([
+      'Japan flag',
+      'Flame',
+      'Star',
+      'Check',
+      'Running',
+      'Books',
+    ]);
   });
 
   it('cancels custom color changes without changing the selected color', async () => {
