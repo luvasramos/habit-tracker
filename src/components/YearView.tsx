@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
+import { formatDistance, getCheckInDistanceMeters } from '../utils/distance';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { CalendarDateDetails } from './CalendarDateDetails';
@@ -15,6 +16,7 @@ type YearViewProps = {
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
   onEditTime?: (dateKey: LocalDateKey) => void;
+  onEditDistance?: (dateKey: LocalDateKey) => void;
 };
 
 const weekdayInitials = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -27,6 +29,7 @@ export const YearView = ({
   allCheckIns,
   onToggle,
   onEditTime,
+  onEditDistance,
 }: YearViewProps) => {
   const months = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
@@ -72,11 +75,18 @@ export const YearView = ({
                         const durationMinutes = getCheckInDurationMinutes(
                           allCheckIns[completedHabit.id]?.[cell.key],
                         );
+                        const distanceMeters = getCheckInDistanceMeters(
+                          allCheckIns[completedHabit.id]?.[cell.key],
+                        );
                         return {
                           id: completedHabit.id,
                           name: completedHabit.name,
                           color,
-                          durationLabel: durationMinutes ? formatMinutes(durationMinutes) : undefined,
+                          durationLabel: durationMinutes
+                            ? formatMinutes(durationMinutes)
+                            : distanceMeters
+                              ? formatDistance(distanceMeters, completedHabit.distanceUnitPreference ?? 'km')
+                              : undefined,
                         };
                       },
                     )}
@@ -103,6 +113,7 @@ export const YearView = ({
         dateKey={detailKey}
         entry={checkIns[detailKey]}
         onEditTime={onEditTime}
+        onEditDistance={onEditDistance}
       />
     </section>
   );

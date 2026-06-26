@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getWeekDays } from '../utils/calendar';
 import { isFutureDay } from '../utils/dates';
+import { formatDistance, getCheckInDistanceMeters } from '../utils/distance';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { CalendarDateDetails } from './CalendarDateDetails';
@@ -16,6 +17,7 @@ type ViewProps = {
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
   onEditTime?: (dateKey: LocalDateKey) => void;
+  onEditDistance?: (dateKey: LocalDateKey) => void;
 };
 
 export const WeekView = ({
@@ -26,6 +28,7 @@ export const WeekView = ({
   allCheckIns,
   onToggle,
   onEditTime,
+  onEditDistance,
 }: ViewProps) => {
   const days = useMemo(() => getWeekDays(anchorDate), [anchorDate]);
   const enabledKeys = useMemo(
@@ -77,18 +80,31 @@ export const WeekView = ({
               const durationMinutes = getCheckInDurationMinutes(
                 allCheckIns[completedHabit.id]?.[day.key],
               );
+              const distanceMeters = getCheckInDistanceMeters(
+                allCheckIns[completedHabit.id]?.[day.key],
+              );
               return {
                 id: completedHabit.id,
                 name: completedHabit.name,
                 color,
-                durationLabel: durationMinutes ? formatMinutes(durationMinutes) : undefined,
+                durationLabel: durationMinutes
+                  ? formatMinutes(durationMinutes)
+                  : distanceMeters
+                    ? formatDistance(distanceMeters, completedHabit.distanceUnitPreference ?? 'km')
+                    : undefined,
               };
             },
           );
           const selectedDuration = getCheckInDurationMinutes(checkIns[day.key]);
+          const selectedDistance = getCheckInDistanceMeters(checkIns[day.key]);
           const showDurationLabel =
             habit.trackingMode === 'duration' &&
             selectedDuration &&
+            isCompletedCheckIn(checkIns[day.key]) &&
+            completions.length <= 1;
+          const showDistanceLabel =
+            habit.trackingMode === 'distance' &&
+            selectedDistance &&
             isCompletedCheckIn(checkIns[day.key]) &&
             completions.length <= 1;
 
@@ -132,6 +148,11 @@ export const WeekView = ({
               {showDurationLabel ? (
                 <span className="week-duration-label">{formatMinutes(selectedDuration)}</span>
               ) : null}
+              {showDistanceLabel ? (
+                <span className="week-duration-label">
+                  {formatDistance(selectedDistance, habit.distanceUnitPreference ?? 'km')}
+                </span>
+              ) : null}
             </DateButton>
           );
         })}
@@ -142,6 +163,7 @@ export const WeekView = ({
         dateKey={detailKey}
         entry={checkIns[detailKey]}
         onEditTime={onEditTime}
+        onEditDistance={onEditDistance}
       />
     </section>
   );

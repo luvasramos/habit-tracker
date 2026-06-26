@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CheckInsByHabit, CheckInEntry, Habit, LocalDateKey } from '../state/types';
 import { getMonthCells } from '../utils/calendar';
 import { isFutureDay, monthBounds } from '../utils/dates';
+import { formatDistance, getCheckInDistanceMeters } from '../utils/distance';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from '../utils/duration';
 import { getDateCompletions, getHabitColorVar } from '../utils/habitColors';
 import { CalendarDateDetails } from './CalendarDateDetails';
@@ -16,6 +17,7 @@ type MonthViewProps = {
   allCheckIns: CheckInsByHabit;
   onToggle: (dateKey: LocalDateKey) => void;
   onEditTime?: (dateKey: LocalDateKey) => void;
+  onEditDistance?: (dateKey: LocalDateKey) => void;
 };
 
 const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -28,6 +30,7 @@ export const MonthView = ({
   allCheckIns,
   onToggle,
   onEditTime,
+  onEditDistance,
 }: MonthViewProps) => {
   const cells = useMemo(() => getMonthCells(anchorDate), [anchorDate]);
   const enabledKeys = cells
@@ -88,11 +91,18 @@ export const MonthView = ({
                   const durationMinutes = getCheckInDurationMinutes(
                     allCheckIns[completedHabit.id]?.[cell.key],
                   );
+                  const distanceMeters = getCheckInDistanceMeters(
+                    allCheckIns[completedHabit.id]?.[cell.key],
+                  );
                   return {
                     id: completedHabit.id,
                     name: completedHabit.name,
                     color,
-                    durationLabel: durationMinutes ? formatMinutes(durationMinutes) : undefined,
+                    durationLabel: durationMinutes
+                      ? formatMinutes(durationMinutes)
+                      : distanceMeters
+                        ? formatDistance(distanceMeters, completedHabit.distanceUnitPreference ?? 'km')
+                        : undefined,
                   };
                 },
               )}
@@ -131,6 +141,7 @@ export const MonthView = ({
         dateKey={detailKey}
         entry={checkIns[detailKey]}
         onEditTime={onEditTime}
+        onEditDistance={onEditDistance}
       />
     </section>
   );

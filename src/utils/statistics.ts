@@ -14,6 +14,7 @@ import {
   getDurationHabitSummary,
   isCompletedCheckIn,
 } from './duration';
+import { getCheckInDistanceMeters, getDistanceHabitSummary } from './distance';
 
 const localDateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
 const leadingLocalDateKeyPattern = /^(\d{4}-\d{2}-\d{2})/;
@@ -86,6 +87,14 @@ export const calculateHabitStatistics = (
     const entry = habitCheckIns?.[dateKey];
     return isCompletedCheckIn(entry) && getCheckInDurationMinutes(entry) === undefined;
   }).length;
+  const loggedMeters = eligibleDateKeys.reduce(
+    (sum, dateKey) => sum + (getCheckInDistanceMeters(habitCheckIns?.[dateKey]) ?? 0),
+    0,
+  );
+  const completedDaysWithoutDistance = eligibleDateKeys.filter((dateKey) => {
+    const entry = habitCheckIns?.[dateKey];
+    return isCompletedCheckIn(entry) && getCheckInDistanceMeters(entry) === undefined;
+  }).length;
 
   return {
     habit,
@@ -94,7 +103,10 @@ export const calculateHabitStatistics = (
     daysMissed: Math.max(eligibleDateKeys.length - daysDone, 0),
     loggedMinutes,
     completedDaysWithoutTime,
+    loggedMeters,
+    completedDaysWithoutDistance,
     durationSummary: getDurationHabitSummary(habit, habitCheckIns, eligibleDateKeys),
+    distanceSummary: getDistanceHabitSummary(habit, habitCheckIns, eligibleDateKeys),
   };
 };
 
@@ -126,6 +138,7 @@ export const calculateAllHabitsStatistics = (
     activeDateKeys,
     inactiveDateKeys,
     totalLoggedMinutes: habitStatistics.reduce((sum, stat) => sum + stat.loggedMinutes, 0),
+    totalLoggedMeters: habitStatistics.reduce((sum, stat) => sum + stat.loggedMeters, 0),
   };
 };
 

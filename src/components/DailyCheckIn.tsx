@@ -7,6 +7,7 @@ import {
 } from '../data/dailyCheckInStore';
 import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
 import { toLocalDateKey } from '../utils/dates';
+import { formatDistance, getDefaultDistanceMeters } from '../utils/distance';
 import {
   formatMinutes,
   getDefaultDurationMinutes,
@@ -33,7 +34,7 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
   const [leaving, setLeaving] = useState<DailyCheckInAnswer | null>(null);
   const [done, setDone] = useState(false);
   const [loggedMessage, setLoggedMessage] = useState('');
-  const [summary, setSummary] = useState({ completedCount: 0, loggedMinutes: 0 });
+  const [summary, setSummary] = useState({ completedCount: 0, loggedMinutes: 0, loggedMeters: 0 });
   const startXRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
   const loggedTimerRef = useRef<number | null>(null);
@@ -87,18 +88,26 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
 
     const completed = answer === 'yes';
     const loggedMinutes = completed ? getDefaultDurationMinutes(currentHabit) : undefined;
+    const loggedMeters = completed ? getDefaultDistanceMeters(currentHabit) : undefined;
     setLeaving(answer);
     if (loggedTimerRef.current) {
       window.clearTimeout(loggedTimerRef.current);
     }
-    setLoggedMessage(loggedMinutes ? `${formatMinutes(loggedMinutes)} logged` : '');
+    setLoggedMessage(
+      loggedMinutes
+        ? `${formatMinutes(loggedMinutes)} logged`
+        : loggedMeters
+          ? `${formatDistance(loggedMeters, currentHabit.distanceUnitPreference ?? 'km')} logged`
+          : '',
+    );
     if (completed) {
       setSummary((current) => ({
         completedCount: current.completedCount + 1,
         loggedMinutes: current.loggedMinutes + (loggedMinutes ?? 0),
+        loggedMeters: current.loggedMeters + (loggedMeters ?? 0),
       }));
     }
-    if (loggedMinutes) {
+    if (loggedMinutes || loggedMeters) {
       loggedTimerRef.current = window.setTimeout(() => setLoggedMessage(''), 900);
     }
     saveDailyCheckInAnswer(todayKey, currentHabit.id, answer);
@@ -178,6 +187,9 @@ export const DailyCheckIn = ({ habits, checkIns, onAnswer, onComplete }: DailyCh
             </span>
             {summary.loggedMinutes > 0 ? (
               <span>{formatMinutes(summary.loggedMinutes)} logged</span>
+            ) : null}
+            {summary.loggedMeters > 0 ? (
+              <span>{formatDistance(summary.loggedMeters)} logged</span>
             ) : null}
           </p>
           {loggedMessage ? <p className="checkin-log-note">{loggedMessage}</p> : null}

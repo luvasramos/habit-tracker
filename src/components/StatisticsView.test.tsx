@@ -25,6 +25,7 @@ const renderStats = ({
   onEditHabit = vi.fn(),
   onSetCheckIn,
   onEditTime,
+  onEditDistance,
 }: {
   habit?: Habit;
   habits?: Habit[];
@@ -38,8 +39,10 @@ const renderStats = ({
     dateKey: LocalDateKey,
     completed: boolean,
     durationMinutes?: number,
+    distanceMeters?: number,
   ) => void;
   onEditTime?: (habitId: string, dateKey: LocalDateKey) => void;
+  onEditDistance?: (habitId: string, dateKey: LocalDateKey) => void;
 } = {}) =>
   render(
     <StatisticsView
@@ -50,6 +53,7 @@ const renderStats = ({
       onEditHabit={onEditHabit}
       onSetCheckIn={onSetCheckIn}
       onEditTime={onEditTime}
+      onEditDistance={onEditDistance}
     />,
   );
 
@@ -587,5 +591,118 @@ describe('StatisticsView time goal card', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
     expect(onSetCheckIn).toHaveBeenCalledWith('habit-2', '2026-06-25', true);
+  });
+
+  it('shows selected distance habit statistics and yearly goal progress', () => {
+    renderStats({
+      habit: makeHabit({
+        trackingMode: 'distance',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+        defaultDistanceMeters: 5000,
+        yearlyDistanceGoalMeters: 500000,
+        distanceUnitPreference: 'km',
+      }),
+      checkIns: {
+        '2026-06-24': true,
+        '2026-06-25': { completed: true, distanceMeters: 120000 },
+      },
+    });
+
+    expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('2');
+    expect(screen.getByLabelText('Days missed: Eligible elapsed days when the selected habit was not completed.')).toHaveTextContent('2');
+    expect(screen.getByLabelText('Distance logged: Known distance recorded in the selected period.')).toHaveTextContent('120 km');
+    const goal = screen.getByLabelText('Distance goal');
+    expect(goal).toHaveTextContent('120 km / 500 km');
+    expect(goal).toHaveTextContent('24%');
+    expect(goal).toHaveTextContent('380 km remaining');
+    expect(goal).toHaveTextContent('Approximately 76 sessions at 5 km each');
+    expect(goal).toHaveTextContent('1 completed day has no distance recorded');
+  });
+
+  it('shows a compact distance summary when a distance habit has no goal', () => {
+    const onEditHabit = vi.fn();
+    renderStats({
+      habit: makeHabit({
+        trackingMode: 'distance',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+        defaultDistanceMeters: 5000,
+        yearlyDistanceGoalMeters: undefined,
+        distanceUnitPreference: 'km',
+      }),
+      checkIns: { '2026-06-25': { completed: true, distanceMeters: 5000 } },
+      onEditHabit,
+    });
+
+    expect(screen.getByLabelText('Distance summary')).toHaveTextContent('5 km logged in 2026');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add yearly goal' }));
+    expect(onEditHabit).toHaveBeenCalledWith('habit-1');
+  });
+
+  it('shows All habits total distance and compact distance goal cards', () => {
+    const habits = [
+      makeHabit({
+        id: 'habit-1',
+        name: 'Running',
+        trackingMode: 'distance',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+        defaultDistanceMeters: 5000,
+        yearlyDistanceGoalMeters: 500000,
+        distanceUnitPreference: 'km',
+      }),
+      makeHabit({
+        id: 'habit-2',
+        name: 'Walking',
+        trackingMode: 'distance',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+        defaultDistanceMeters: 3000,
+        yearlyDistanceGoalMeters: 300000,
+        distanceUnitPreference: 'km',
+      }),
+    ];
+    renderStats({
+      habits,
+      selectedHabitId: null,
+      allCheckIns: {
+        'habit-1': { '2026-06-25': { completed: true, distanceMeters: 5000 } },
+        'habit-2': { '2026-06-25': { completed: true, distanceMeters: 3000 } },
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
+    expect(screen.getByLabelText('Total distance logged: Known distance recorded in the selected period.')).toHaveTextContent('8 km');
+    const goals = screen.getByLabelText('Distance goals');
+    expect(goals).toHaveTextContent('Running');
+    expect(goals).toHaveTextContent('5 km / 500 km');
+    expect(goals).toHaveTextContent('495 km remaining');
+    expect(goals).toHaveTextContent('Walking');
+    expect(goals).toHaveTextContent('3 km / 300 km');
+  });
+
+  it('offers Edit distance for known and unknown distance completions', () => {
+    const onEditDistance = vi.fn();
+    renderStats({
+      habit: makeHabit({
+        trackingMode: 'distance',
+        defaultDurationMinutes: undefined,
+        yearlyGoalMinutes: undefined,
+        defaultDistanceMeters: 5000,
+        distanceUnitPreference: 'km',
+      }),
+      checkIns: {
+        '2026-06-24': true,
+        '2026-06-25': { completed: true, distanceMeters: 5000 },
+      },
+      onEditDistance,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Wednesday, June 24, 2026, Japanese completed, no distance recorded/ }));
+    expect(screen.getByRole('dialog', { name: 'June 24, 2026' })).toHaveTextContent('No distance recorded');
+    fireEvent.click(screen.getByRole('button', { name: 'Edit distance' }));
+    expect(onEditDistance).toHaveBeenCalledWith('habit-1', '2026-06-24');
   });
 });

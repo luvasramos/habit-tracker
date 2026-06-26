@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -460,6 +460,34 @@ describe('Habit Grid app', () => {
     expect(screen.getByText('1h')).toBeInTheDocument();
   });
 
+  it('logs the default distance from the daily check-in flow', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    renderApp();
+
+    await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
+    await user.type(screen.getByLabelText('Name'), 'Running');
+    await user.click(screen.getByRole('button', { name: 'Completion + distance' }));
+    await user.type(screen.getByLabelText('Default distance'), '5');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByRole('group', { name: 'Running. Did you complete this today?' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Yes' }));
+    expect(await screen.findByText('5 km logged')).toBeInTheDocument();
+    expect(screen.getByText('1 habit completed')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: 'Daily check-in' })).not.toBeInTheDocument();
+    }, { timeout: 2400 });
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    const habitId = state.habits[0].id;
+    expect(state.checkIns[habitId][todayKey]).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+    expect(screen.getByText('5 km')).toBeInTheDocument();
+  });
+
   it('validates and saves distance tracking settings in meters', async () => {
     const user = userEvent.setup();
     renderApp();
@@ -691,6 +719,88 @@ describe('Habit Grid app', () => {
       durationMinutes: 45,
     });
     expect(screen.getByRole('button', { name: '0 habits remaining today' })).toBeInTheDocument();
+  });
+
+  it('logs the default distance from the Today remaining popover', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Running',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'running' },
+            trackingMode: 'distance',
+            defaultDistanceMeters: 5000,
+            distanceUnitPreference: 'km',
+          },
+        ],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'no');
+    renderApp();
+
+    await user.click(screen.getByRole('button', { name: '1 habits remaining today' }));
+    await user.click(screen.getByRole('button', { name: 'Mark Running complete today' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.checkIns['habit-1'][todayKey]).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+    expect(screen.getByRole('button', { name: '0 habits remaining today' })).toBeInTheDocument();
+  });
+
+  it('edits and replaces distance from calendar date details', async () => {
+    const user = userEvent.setup();
+    const todayKey = toLocalDateKey(new Date());
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Running',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            color: 'blue',
+            icon: { type: 'svg', name: 'running' },
+            trackingMode: 'distance',
+            defaultDistanceMeters: 5000,
+            distanceUnitPreference: 'km',
+          },
+        ],
+        checkIns: { 'habit-1': { [todayKey]: { completed: true, distanceMeters: 5000 } } },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+    saveDailyCheckInAnswer(todayKey, 'habit-1', 'yes');
+    renderApp();
+
+    const completedDay = screen.getByRole('button', { name: /5 km/ });
+    expect(completedDay).toBeInTheDocument();
+    fireEvent.focus(completedDay);
+    await user.click(screen.getByRole('button', { name: /Edit distance for Running/ }));
+    expect(screen.getByRole('heading', { name: 'Edit distance' })).toBeInTheDocument();
+    expect(screen.getByText('Current distance: 5 km')).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText('Distance'));
+    await user.type(screen.getByLabelText('Distance'), '10');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
+    expect(state.checkIns['habit-1'][todayKey]).toEqual({
+      completed: true,
+      distanceMeters: 10000,
+    });
+    expect(screen.getByRole('button', { name: /10 km/ })).toBeInTheDocument();
   });
 
   it('returns to the habit editor when historical time migration is cancelled', async () => {

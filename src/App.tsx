@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { CalendarControls } from './components/CalendarControls';
 import { DailyCheckIn } from './components/DailyCheckIn';
+import { DistanceEditDialog } from './components/DistanceEditDialog';
 import { HabitEditorPage } from './components/HabitEditorPage';
 import { HabitTabs } from './components/HabitTabs';
 import { MonthView } from './components/MonthView';
@@ -22,6 +23,7 @@ import {
   toLocalDateKey,
 } from './utils/dates';
 import { getCheckInDurationMinutes, isCompletedCheckIn } from './utils/duration';
+import { getCheckInDistanceMeters } from './utils/distance';
 import { getHabitColorVar, HabitIconView } from './utils/habitAppearance';
 import { calculateActivityStreak } from './utils/streak';
 
@@ -211,6 +213,10 @@ export const App = () => {
     habitId: string;
     dateKey: LocalDateKey;
   } | null>(null);
+  const [distanceEditTarget, setDistanceEditTarget] = useState<{
+    habitId: string;
+    dateKey: LocalDateKey;
+  } | null>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const editButtonRef = useRef<HTMLButtonElement>(null);
   const reminderButtonRef = useRef<HTMLButtonElement>(null);
@@ -226,6 +232,11 @@ export const App = () => {
     state.habits.find((habit) => habit.id === timeEditTarget?.habitId) ?? null;
   const timeEditEntry = timeEditTarget
     ? state.checkIns[timeEditTarget.habitId]?.[timeEditTarget.dateKey]
+    : undefined;
+  const distanceEditHabit =
+    state.habits.find((habit) => habit.id === distanceEditTarget?.habitId) ?? null;
+  const distanceEditEntry = distanceEditTarget
+    ? state.checkIns[distanceEditTarget.habitId]?.[distanceEditTarget.dateKey]
     : undefined;
   const label = useMemo(() => periodLabel(view, anchorDate), [view, anchorDate]);
   const activityStreak = useMemo(
@@ -328,6 +339,18 @@ export const App = () => {
     setTimeEditTarget({ habitId, dateKey });
   };
 
+  const openDistanceEdit = (dateKey: LocalDateKey) => {
+    if (!selectedHabit) {
+      return;
+    }
+
+    setDistanceEditTarget({ habitId: selectedHabit.id, dateKey });
+  };
+
+  const openDistanceEditForHabit = (habitId: string, dateKey: LocalDateKey) => {
+    setDistanceEditTarget({ habitId, dateKey });
+  };
+
   const closeEditor = () => {
     if (window.location.hash) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
@@ -426,6 +449,7 @@ export const App = () => {
                   }}
                   onSetCheckIn={setCheckIn}
                   onEditTime={openTimeEditForHabit}
+                  onEditDistance={openDistanceEditForHabit}
                 />
               ) : state.habits.length === 0 ? (
                 <section className="empty-state">
@@ -457,6 +481,7 @@ export const App = () => {
                       allCheckIns={state.checkIns}
                       onToggle={handleToggle}
                       onEditTime={openTimeEdit}
+                      onEditDistance={openDistanceEdit}
                     />
                   ) : null}
                   {selectedHabit && view === 'month' ? (
@@ -468,6 +493,7 @@ export const App = () => {
                       allCheckIns={state.checkIns}
                       onToggle={handleToggle}
                       onEditTime={openTimeEdit}
+                      onEditDistance={openDistanceEdit}
                     />
                   ) : null}
                   {selectedHabit && view === 'year' ? (
@@ -479,6 +505,7 @@ export const App = () => {
                       allCheckIns={state.checkIns}
                       onToggle={handleToggle}
                       onEditTime={openTimeEdit}
+                      onEditDistance={openDistanceEdit}
                     />
                   ) : null}
                 </>
@@ -520,6 +547,28 @@ export const App = () => {
             return;
           }
           setCheckIn(timeEditTarget.habitId, timeEditTarget.dateKey, true, durationMinutes);
+        }}
+      />
+
+      <DistanceEditDialog
+        isOpen={Boolean(distanceEditTarget && distanceEditHabit)}
+        habit={distanceEditHabit}
+        dateLabel={
+          distanceEditTarget ? fullDateLabel(fromLocalDateKey(distanceEditTarget.dateKey)) : ''
+        }
+        initialMeters={getCheckInDistanceMeters(distanceEditEntry)}
+        onClose={() => setDistanceEditTarget(null)}
+        onSave={(distanceMeters) => {
+          if (!distanceEditTarget) {
+            return;
+          }
+          setCheckIn(
+            distanceEditTarget.habitId,
+            distanceEditTarget.dateKey,
+            true,
+            undefined,
+            distanceMeters,
+          );
         }}
       />
     </div>

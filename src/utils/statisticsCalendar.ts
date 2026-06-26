@@ -1,4 +1,5 @@
 import type { CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
+import { formatDistance, getCheckInDistanceMeters } from './distance';
 import { formatMinutes, getCheckInDurationMinutes, isCompletedCheckIn } from './duration';
 import { fullDateLabel, fromLocalDateKey, isFutureDay, isSameLocalDay, toLocalDateKey } from './dates';
 import { getHabitColorVar } from './habitAppearance';
@@ -26,6 +27,8 @@ export type StatisticsDateCompletion = {
   color: string;
   durationMinutes?: number;
   unknownDuration: boolean;
+  distanceMeters?: number;
+  unknownDistance: boolean;
 };
 
 export type StatisticsDateModel = {
@@ -40,6 +43,8 @@ export type StatisticsDateModel = {
   isMissed: boolean;
   durationMinutes?: number;
   unknownDuration: boolean;
+  distanceMeters?: number;
+  unknownDistance: boolean;
   completions: StatisticsDateCompletion[];
 };
 
@@ -68,6 +73,7 @@ export const getStatisticsDateState = ({
     const entry = checkIns[selectedHabit.id]?.[dateKey];
     const completed = isCompletedCheckIn(entry);
     const durationMinutes = getCheckInDurationMinutes(entry);
+    const distanceMeters = getCheckInDistanceMeters(entry);
     const beforeCreation = dateKey < createdKey;
     const unknownDuration =
       selectedHabit.trackingMode === 'duration' &&
@@ -77,13 +83,21 @@ export const getStatisticsDateState = ({
       selectedHabit.trackingMode === 'duration' &&
       completed &&
       durationMinutes !== undefined;
+    const unknownDistance =
+      selectedHabit.trackingMode === 'distance' &&
+      completed &&
+      distanceMeters === undefined;
+    const completedWithKnownDistance =
+      selectedHabit.trackingMode === 'distance' &&
+      completed &&
+      distanceMeters !== undefined;
     const state: IndividualStatisticsDateState = isFuture
       ? 'future'
       : beforeCreation
         ? 'before-habit-creation'
-        : completedWithKnownDuration
+        : completedWithKnownDuration || completedWithKnownDistance
           ? 'completed-known-duration'
-          : unknownDuration
+          : unknownDuration || unknownDistance
             ? 'completed-unknown-duration'
             : completed
               ? 'completed'
@@ -103,6 +117,8 @@ export const getStatisticsDateState = ({
       isMissed: state === 'missed' || state === 'today',
       durationMinutes,
       unknownDuration,
+      distanceMeters,
+      unknownDistance,
       completions: completed
         ? [
             {
@@ -111,6 +127,8 @@ export const getStatisticsDateState = ({
               color: getHabitColorVar(selectedHabit.id, habits),
               durationMinutes,
               unknownDuration,
+              distanceMeters,
+              unknownDistance,
             },
           ]
         : [],
@@ -123,6 +141,7 @@ export const getStatisticsDateState = ({
     .map((habit) => {
       const entry = checkIns[habit.id]?.[dateKey];
       const durationMinutes = getCheckInDurationMinutes(entry);
+      const distanceMeters = getCheckInDistanceMeters(entry);
       return {
         id: habit.id,
         name: habit.name,
@@ -132,6 +151,11 @@ export const getStatisticsDateState = ({
           habit.trackingMode === 'duration' &&
           isCompletedCheckIn(entry) &&
           durationMinutes === undefined,
+        distanceMeters,
+        unknownDistance:
+          habit.trackingMode === 'distance' &&
+          isCompletedCheckIn(entry) &&
+          distanceMeters === undefined,
       };
     });
   const noRelevantHabits = eligibleHabits.length === 0;
@@ -156,6 +180,7 @@ export const getStatisticsDateState = ({
     isCompleted: completions.length > 0 && !isFuture,
     isMissed: state === 'no-activity' || state === 'today',
     unknownDuration: completions.some((completion) => completion.unknownDuration),
+    unknownDistance: completions.some((completion) => completion.unknownDistance),
     completions,
   };
 };
@@ -186,7 +211,13 @@ export const getStatisticsDateLabel = (
         : model.unknownDuration
             ? ', no time recorded'
             : '';
-      return `${dateLabel}, ${selectedHabit.name} completed${timeLabel}`;
+      const distanceLabel =
+        model.distanceMeters !== undefined
+          ? `, ${formatDistance(model.distanceMeters, selectedHabit.distanceUnitPreference ?? 'km')} logged`
+          : model.unknownDistance
+            ? ', no distance recorded'
+            : '';
+      return `${dateLabel}, ${selectedHabit.name} completed${timeLabel}${distanceLabel}`;
     }
 
     return `${dateLabel}, ${selectedHabit.name} not completed`;
@@ -197,8 +228,12 @@ export const getStatisticsDateLabel = (
       .map((completion) =>
         completion.durationMinutes !== undefined
           ? `${completion.name}, ${formatMinutes(completion.durationMinutes)}`
+          : completion.distanceMeters !== undefined
+            ? `${completion.name}, ${formatDistance(completion.distanceMeters)}`
           : completion.unknownDuration
             ? `${completion.name}, no time recorded`
+            : completion.unknownDistance
+              ? `${completion.name}, no distance recorded`
             : completion.name,
       )
       .join(', ');

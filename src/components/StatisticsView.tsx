@@ -8,6 +8,7 @@ import {
   fromLocalDateKey,
   toLocalDateKey,
 } from '../utils/dates';
+import { formatDistance } from '../utils/distance';
 import { formatMinutes } from '../utils/duration';
 import { getHabitColorVar, HabitIconView } from '../utils/habitAppearance';
 import {
@@ -30,8 +31,10 @@ type StatisticsViewProps = {
     dateKey: LocalDateKey,
     completed: boolean,
     durationMinutes?: number,
+    distanceMeters?: number,
   ) => void;
   onEditTime?: (habitId: string, dateKey: LocalDateKey) => void;
+  onEditDistance?: (habitId: string, dateKey: LocalDateKey) => void;
 };
 
 type HabitStat = {
@@ -39,6 +42,7 @@ type HabitStat = {
   name: string;
   count: number;
   durationMinutes: number;
+  distanceMeters: number;
   color: string;
   habit?: Habit;
 };
@@ -64,6 +68,7 @@ const metricDescriptions = {
   activeDays: 'Elapsed days when at least one habit was completed.',
   noActivity: 'Elapsed days without any habit completion.',
   timeLogged: 'Known duration recorded in the selected period.',
+  distanceLogged: 'Known distance recorded in the selected period.',
 };
 
 const formatPercent = (value: number, total: number) =>
@@ -176,6 +181,7 @@ type StatisticsCalendarProps = {
   today: Date;
   onSetCheckIn?: StatisticsViewProps['onSetCheckIn'];
   onEditTime?: StatisticsViewProps['onEditTime'];
+  onEditDistance?: StatisticsViewProps['onEditDistance'];
 };
 
 const StatisticsDateCell = ({
@@ -197,6 +203,11 @@ const StatisticsDateCell = ({
   const hiddenCount = selectedHabit ? 0 : Math.max(model.completions.length - visibleDots.length, 0);
   const durationLabel =
     selectedHabit && model.durationMinutes !== undefined ? formatMinutes(model.durationMinutes) : null;
+  const distanceLabel =
+    selectedHabit && model.distanceMeters !== undefined
+      ? formatDistance(model.distanceMeters, selectedHabit.distanceUnitPreference ?? 'km')
+      : null;
+  const measureLabel = durationLabel ?? distanceLabel;
   const showHabitIndicator = selectedHabit && model.isCompleted;
 
   return (
@@ -214,13 +225,13 @@ const StatisticsDateCell = ({
         <>
           <span className="stats-date-cell__weekday">{format(model.date, 'EEE')}</span>
           <span className="stats-date-cell__number">{format(model.date, 'd')}</span>
-          {durationLabel ? <span className="stats-date-cell__duration">{durationLabel}</span> : null}
+          {measureLabel ? <span className="stats-date-cell__duration">{measureLabel}</span> : null}
         </>
       ) : (
         <>
           <span className="stats-date-cell__number">{format(model.date, 'd')}</span>
-          {durationLabel && size === 'month' ? (
-            <span className="stats-date-cell__duration stats-date-cell__duration--compact">{durationLabel}</span>
+          {measureLabel && size === 'month' ? (
+            <span className="stats-date-cell__duration stats-date-cell__duration--compact">{measureLabel}</span>
           ) : null}
         </>
       )}
@@ -252,6 +263,7 @@ const StatisticsDateDetails = ({
   today,
   onSetCheckIn,
   onEditTime,
+  onEditDistance,
   onClose,
 }: {
   model: StatisticsDateModel;
@@ -261,10 +273,13 @@ const StatisticsDateDetails = ({
   today: Date;
   onSetCheckIn?: StatisticsViewProps['onSetCheckIn'];
   onEditTime?: StatisticsViewProps['onEditTime'];
+  onEditDistance?: StatisticsViewProps['onEditDistance'];
   onClose: () => void;
 }) => {
   const title = format(model.date, 'MMMM d, yyyy');
-  const canEdit = (Boolean(onSetCheckIn) || Boolean(onEditTime)) && !model.isFuture;
+  const canEdit =
+    (Boolean(onSetCheckIn) || Boolean(onEditTime) || Boolean(onEditDistance)) &&
+    !model.isFuture;
   const canChangeCompletion = Boolean(onSetCheckIn) && !model.isFuture;
 
   return (
@@ -295,6 +310,10 @@ const StatisticsDateDetails = ({
             <span>{model.isCompleted ? 'Completed' : model.isUnavailable ? 'Unavailable' : 'Missed'}</span>
             {model.durationMinutes !== undefined ? <span>{formatMinutes(model.durationMinutes)} logged</span> : null}
             {model.unknownDuration ? <span>No time recorded</span> : null}
+            {model.distanceMeters !== undefined ? (
+              <span>{formatDistance(model.distanceMeters, selectedHabit.distanceUnitPreference ?? 'km')} logged</span>
+            ) : null}
+            {model.unknownDistance ? <span>No distance recorded</span> : null}
           </div>
           {canEdit && !model.isUnavailable ? (
             <div className="stats-date-details__actions">
@@ -326,6 +345,16 @@ const StatisticsDateDetails = ({
                   Edit time
                 </button>
               ) : null}
+              {selectedHabit.trackingMode === 'distance' && model.isCompleted && onEditDistance ? (
+                <button
+                  className="button button--quiet"
+                  type="button"
+                  onClick={() => onEditDistance(selectedHabit.id, model.dateKey)}
+                >
+                  <Icon name="edit" />
+                  Edit distance
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -340,6 +369,7 @@ const StatisticsDateDetails = ({
               today,
             });
             const durationMinutes = habitModel.durationMinutes;
+            const distanceMeters = habitModel.distanceMeters;
             const canChangeHabit = canChangeCompletion && !habitModel.isUnavailable;
 
             return (
@@ -356,7 +386,9 @@ const StatisticsDateDetails = ({
                 <span className="stats-date-details__status">
                   {habitModel.isCompleted ? 'Completed' : habitModel.isUnavailable ? 'Unavailable' : 'Incomplete'}
                   {durationMinutes !== undefined ? `, ${formatMinutes(durationMinutes)}` : ''}
+                  {distanceMeters !== undefined ? `, ${formatDistance(distanceMeters, habit.distanceUnitPreference ?? 'km')}` : ''}
                   {habitModel.unknownDuration ? ', no time recorded' : ''}
+                  {habitModel.unknownDistance ? ', no distance recorded' : ''}
                 </span>
                 {canChangeHabit ? (
                   <span className="stats-date-details__row-actions">
@@ -373,6 +405,16 @@ const StatisticsDateDetails = ({
                         type="button"
                         aria-label={`Edit time for ${habit.name}`}
                         onClick={() => onEditTime(habit.id, model.dateKey)}
+                      >
+                        <Icon name="edit" />
+                      </button>
+                    ) : null}
+                    {habit.trackingMode === 'distance' && habitModel.isCompleted && onEditDistance ? (
+                      <button
+                        className="icon-button"
+                        type="button"
+                        aria-label={`Edit distance for ${habit.name}`}
+                        onClick={() => onEditDistance(habit.id, model.dateKey)}
                       >
                         <Icon name="edit" />
                       </button>
@@ -398,6 +440,7 @@ const StatisticsCalendar = ({
   today,
   onSetCheckIn,
   onEditTime,
+  onEditDistance,
 }: StatisticsCalendarProps) => {
   const months = useMemo(
     () => Array.from({ length: 12 }, (_, month) => new Date(anchorDate.getFullYear(), month, 1)),
@@ -468,6 +511,7 @@ const StatisticsCalendar = ({
         today={today}
         onSetCheckIn={onSetCheckIn}
         onEditTime={onEditTime}
+        onEditDistance={onEditDistance}
         onClose={closeDetails}
       />
     </div>
@@ -566,6 +610,7 @@ export const StatisticsView = ({
   onEditHabit,
   onSetCheckIn,
   onEditTime,
+  onEditDistance,
 }: StatisticsViewProps) => {
   const today = todayProp ?? new Date();
   const [range, setRange] = useState<ViewMode>('week');
@@ -610,12 +655,17 @@ export const StatisticsView = ({
       name: habit.name,
       count: habitSummary.daysDone,
       durationMinutes: habitSummary.loggedMinutes,
+      distanceMeters: habitSummary.loggedMeters,
       color: getHabitColorVar(habit.id, habits),
       habit,
     };
   });
   const totalDurationMinutes = habitStats.reduce(
     (sum, stat) => sum + stat.durationMinutes,
+    0,
+  );
+  const totalDistanceMeters = habitStats.reduce(
+    (sum, stat) => sum + stat.distanceMeters,
     0,
   );
   const durationGoalStats = selectedHabits
@@ -628,6 +678,16 @@ export const StatisticsView = ({
         calculateHabitStatistics(habit, checkIns[habit.id], rangeDays, today)
           .durationSummary,
   }));
+  const distanceGoalStats = selectedHabits
+    .filter((habit) => habit.trackingMode === 'distance')
+    .map((habit) => ({
+      habit,
+      color: getHabitColorVar(habit.id, habits),
+      summary:
+        habitStatById.get(habit.id)?.distanceSummary ??
+        calculateHabitStatistics(habit, checkIns[habit.id], rangeDays, today)
+          .distanceSummary,
+    }));
   const activeDays = allHabitStats.activeDateKeys.length;
   const inactiveDays = allHabitStats.inactiveDateKeys.length;
   const eligibleDays = allHabitStats.eligibleDateKeys.length;
@@ -641,8 +701,12 @@ export const StatisticsView = ({
         today,
       ).filter(({ activeDayShare }) => activeDayShare > 0);
   const hasSelectedTimeTracking = selectedHabits.some((habit) => habit.trackingMode === 'duration');
+  const hasSelectedDistanceTracking = selectedHabits.some((habit) => habit.trackingMode === 'distance');
   const selectedDurationSummary = selectedHabit
     ? durationGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
+    : null;
+  const selectedDistanceSummary = selectedHabit
+    ? distanceGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
     : null;
   const selectedYearDurationSummary =
     selectedHabit?.trackingMode === 'duration'
@@ -653,8 +717,20 @@ export const StatisticsView = ({
           today,
         ).durationSummary
       : null;
+  const selectedYearDistanceSummary =
+    selectedHabit?.trackingMode === 'distance'
+      ? calculateHabitStatistics(
+          selectedHabit,
+          checkIns[selectedHabit.id],
+          yearDays,
+          today,
+        ).distanceSummary
+      : null;
   const selectedHasYearlyGoal = Boolean(
     selectedYearDurationSummary && selectedYearDurationSummary.goalMinutes > 0,
+  );
+  const selectedHasYearlyDistanceGoal = Boolean(
+    selectedYearDistanceSummary && selectedYearDistanceSummary.goalMeters > 0,
   );
   const allHabitYearGoalStats = selectedHabit
     ? []
@@ -671,6 +747,21 @@ export const StatisticsView = ({
           ).durationSummary,
         }))
         .filter(({ summary }) => summary.goalMinutes > 0);
+  const allHabitYearDistanceGoalStats = selectedHabit
+    ? []
+    : habits
+        .filter((habit) => habit.trackingMode === 'distance' && (habit.yearlyDistanceGoalMeters ?? 0) > 0)
+        .map((habit) => ({
+          habit,
+          color: getHabitColorVar(habit.id, habits),
+          summary: calculateHabitStatistics(
+            habit,
+            checkIns[habit.id],
+            yearDays,
+            today,
+          ).distanceSummary,
+        }))
+        .filter(({ summary }) => summary.goalMeters > 0);
   const visibleDurationGoalStats = selectedHabit
     ? selectedHabit.trackingMode === 'duration' && selectedDurationSummary && selectedYearDurationSummary
       ? [
@@ -679,6 +770,18 @@ export const StatisticsView = ({
             color: selectedColor,
             periodSummary: selectedDurationSummary,
             yearSummary: selectedYearDurationSummary,
+          },
+        ]
+      : []
+    : [];
+  const visibleDistanceGoalStats = selectedHabit
+    ? selectedHabit.trackingMode === 'distance' && selectedDistanceSummary && selectedYearDistanceSummary
+      ? [
+          {
+            habit: selectedHabit,
+            color: selectedColor,
+            periodSummary: selectedDistanceSummary,
+            yearSummary: selectedYearDistanceSummary,
           },
         ]
       : []
@@ -710,6 +813,15 @@ export const StatisticsView = ({
               },
             ]
           : []),
+        ...(selectedHabit.trackingMode === 'distance'
+          ? [
+              {
+                label: 'Distance logged',
+                value: formatDistance(totalDistanceMeters, selectedHabit.distanceUnitPreference ?? 'km'),
+                description: metricDescriptions.distanceLogged,
+              },
+            ]
+          : []),
       ]
     : [
         {
@@ -734,6 +846,15 @@ export const StatisticsView = ({
                 label: 'Total time logged',
                 value: formatMinutes(totalDurationMinutes),
                 description: metricDescriptions.timeLogged,
+              },
+            ]
+          : []),
+        ...(hasSelectedDistanceTracking
+          ? [
+              {
+                label: 'Total distance logged',
+                value: formatDistance(totalDistanceMeters),
+                description: metricDescriptions.distanceLogged,
               },
             ]
           : []),
@@ -912,6 +1033,10 @@ export const StatisticsView = ({
             {!selectedHabit && totalDurationMinutes === 0 ? (
               <p className="stats-note">No time has been logged in this period.</p>
             ) : null}
+
+            {!selectedHabit && hasSelectedDistanceTracking && totalDistanceMeters === 0 ? (
+              <p className="stats-note">No distance has been logged in this period.</p>
+            ) : null}
           </div>
 
           <ConsistencyDonut
@@ -930,6 +1055,16 @@ export const StatisticsView = ({
           <p className="stats-note">
             {pluralize(selectedDurationSummary.unknownDurationDays, 'completed day')}{' '}
             {selectedDurationSummary.unknownDurationDays === 1 ? 'has' : 'have'} no time recorded
+          </p>
+        ) : null}
+
+        {selectedHabit?.trackingMode === 'distance' &&
+        !selectedHasYearlyDistanceGoal &&
+        selectedDistanceSummary &&
+        selectedDistanceSummary.unknownDistanceDays > 0 ? (
+          <p className="stats-note">
+            {pluralize(selectedDistanceSummary.unknownDistanceDays, 'completed day')}{' '}
+            {selectedDistanceSummary.unknownDistanceDays === 1 ? 'has' : 'have'} no distance recorded
           </p>
         ) : null}
 
@@ -1050,6 +1185,124 @@ export const StatisticsView = ({
             </section>
           ) : null}
 
+          {visibleDistanceGoalStats.length > 0 ? (
+            <section
+              className="time-goals"
+              aria-label={selectedHasYearlyDistanceGoal ? 'Distance goal' : 'Distance summary'}
+            >
+              {visibleDistanceGoalStats.map(({ habit, color, periodSummary, yearSummary }) => {
+                const progressPercent = Math.round(yearSummary.progressPercent * 100);
+                const visualPercent = Math.round(yearSummary.visualProgressPercent * 100);
+                const year = anchorDate.getFullYear();
+                const unit = habit.distanceUnitPreference ?? 'km';
+                const periodContributionLabel =
+                  range === 'week'
+                    ? 'This week'
+                    : range === 'month'
+                      ? 'This month'
+                      : null;
+                const defaultSessionLabel =
+                  habit.defaultDistanceMeters && habit.defaultDistanceMeters > 0
+                    ? formatDistance(habit.defaultDistanceMeters, unit)
+                    : null;
+
+                if (yearSummary.goalMeters === 0) {
+                  return (
+                    <article
+                      className="time-goal-card time-goal-card--simple"
+                      key={habit.id}
+                      style={{ '--habit-color': color } as CSSProperties}
+                    >
+                      <div className="time-goal-card__title">
+                        <span className="filter-pill__dot" />
+                        <HabitIconView habit={habit} />
+                        <div>
+                          <h2>{habit.name}</h2>
+                          <p>{year} distance</p>
+                        </div>
+                      </div>
+                      <p className="time-goal-card__summary">
+                        {formatDistance(yearSummary.loggedMeters, unit)} logged in {year}
+                      </p>
+                      {periodContributionLabel ? (
+                        <p className="time-goal-card__subtle">
+                          {periodContributionLabel}: {formatDistance(periodSummary.loggedMeters, unit)}
+                        </p>
+                      ) : null}
+                      {onEditHabit ? (
+                        <button
+                          className="button button--quiet time-goal-card__action"
+                          type="button"
+                          onClick={() => onEditHabit(habit.id)}
+                        >
+                          Add yearly goal
+                        </button>
+                      ) : (
+                        <span className="time-goal-card__subtle">Add yearly goal</span>
+                      )}
+                    </article>
+                  );
+                }
+
+                return (
+                  <article
+                    className="time-goal-card"
+                    key={habit.id}
+                    style={{ '--habit-color': color } as CSSProperties}
+                  >
+                    <div className="time-goal-card__title">
+                      <span className="filter-pill__dot" />
+                      <HabitIconView habit={habit} />
+                      <div>
+                        <h2>{habit.name}</h2>
+                        <p>{year} distance goal</p>
+                      </div>
+                    </div>
+                    {periodContributionLabel ? (
+                      <p className="time-goal-card__subtle">
+                        {periodContributionLabel}: {formatDistance(periodSummary.loggedMeters, unit)}
+                      </p>
+                    ) : null}
+                    <span className="time-goal-card__label">Year total</span>
+                    <div className="time-goal-card__main">
+                      <strong>
+                        {formatDistance(yearSummary.loggedMeters, unit)} / {formatDistance(yearSummary.goalMeters, unit)}
+                      </strong>
+                      <span>{progressPercent}%</span>
+                    </div>
+                    <span
+                      className="time-goal-card__bar"
+                      role="progressbar"
+                      aria-label={`${progressPercent}% of yearly distance goal`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={visualPercent}
+                      aria-valuetext={`${progressPercent}% complete`}
+                    >
+                      <span style={{ width: `${visualPercent}%` }} />
+                    </span>
+                    <div className="time-goal-card__remaining">
+                      {yearSummary.goalReached
+                        ? 'Goal reached'
+                        : `${formatDistance(yearSummary.remainingMeters, unit)} remaining`}
+                    </div>
+                    {defaultSessionLabel ? (
+                      <p className="time-goal-card__subtle">
+                        Approximately {yearSummary.remainingSessions} sessions at {defaultSessionLabel} each
+                      </p>
+                    ) : null}
+                    {yearSummary.unknownDistanceDays > 0 ? (
+                      <p className="time-goal-row__note">
+                        {pluralize(yearSummary.unknownDistanceDays, 'completed day')}{' '}
+                        {yearSummary.unknownDistanceDays === 1 ? 'has' : 'have'} no distance recorded
+                      </p>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </section>
+          ) : null}
+
           {!selectedHabit && allHabitYearGoalStats.length > 0 ? (
             <section className="time-goals time-goals--cards" aria-label="Time goals">
               <div className="time-goals__compact-header">
@@ -1110,6 +1363,67 @@ export const StatisticsView = ({
             </section>
           ) : null}
 
+          {!selectedHabit && allHabitYearDistanceGoalStats.length > 0 ? (
+            <section className="time-goals time-goals--cards" aria-label="Distance goals">
+              <div className="time-goals__compact-header">
+                <h2>Distance goals</h2>
+              </div>
+              <div className="time-goal-cards">
+                {allHabitYearDistanceGoalStats.map(({ habit, color, summary }) => {
+                  const progressPercent = Math.round(summary.progressPercent * 100);
+                  const visualPercent = Math.round(summary.visualProgressPercent * 100);
+                  const unit = habit.distanceUnitPreference ?? 'km';
+                  const defaultSessionLabel =
+                    habit.defaultDistanceMeters && habit.defaultDistanceMeters > 0
+                      ? formatDistance(habit.defaultDistanceMeters, unit)
+                      : null;
+
+                  return (
+                    <button
+                      className="time-goal-card time-goal-card--button"
+                      key={habit.id}
+                      type="button"
+                      style={{ '--habit-color': color } as CSSProperties}
+                      onClick={() => setSelectedStatsId(habit.id)}
+                    >
+                      <span className="time-goal-card__title">
+                        <span className="filter-pill__dot" />
+                        <HabitIconView habit={habit} />
+                        <span>{habit.name}</span>
+                      </span>
+                      <span className="time-goal-card__main">
+                        <strong>
+                          {formatDistance(summary.loggedMeters, unit)} / {formatDistance(summary.goalMeters, unit)}
+                        </strong>
+                        <span>{progressPercent}%</span>
+                      </span>
+                      <span
+                        className="time-goal-card__bar"
+                        aria-hidden="true"
+                      >
+                        <span style={{ width: `${visualPercent}%` }} />
+                      </span>
+                      <span className="time-goal-card__remaining">
+                        {summary.goalReached ? 'Goal reached' : `${formatDistance(summary.remainingMeters, unit)} remaining`}
+                      </span>
+                      {defaultSessionLabel ? (
+                        <span className="time-goal-card__subtle">
+                          Approximately {summary.remainingSessions} sessions at {defaultSessionLabel} each
+                        </span>
+                      ) : null}
+                      {summary.unknownDistanceDays > 0 ? (
+                        <span className="time-goal-row__note">
+                          {pluralize(summary.unknownDistanceDays, 'completed day')}{' '}
+                          {summary.unknownDistanceDays === 1 ? 'has' : 'have'} no distance recorded
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ) : null}
+
           <StatisticsCalendar
             range={range}
             anchorDate={anchorDate}
@@ -1120,6 +1434,7 @@ export const StatisticsView = ({
             today={today}
             onSetCheckIn={onSetCheckIn}
             onEditTime={onEditTime}
+            onEditDistance={onEditDistance}
           />
         </>
     </section>
