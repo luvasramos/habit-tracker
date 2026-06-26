@@ -680,6 +680,38 @@ export const StatisticsView = ({
   return (
     <section className="stats-panel" aria-label="Statistics">
       <div className="stats-top">
+        <div
+          className="stats-selector"
+          aria-label="Statistics habit selector"
+          data-selected-scope={selectedStatsId === allHabitsId ? 'all' : 'habit'}
+        >
+          <button
+            className="filter-pill"
+            type="button"
+            aria-pressed={selectedStatsId === allHabitsId}
+            onClick={() => setSelectedStatsId(allHabitsId)}
+            style={{ '--habit-color': 'var(--soft)' } as CSSProperties}
+          >
+            <span className="filter-pill__dot" />
+            <span title="All habits">All habits</span>
+          </button>
+          {habits.map((habit) => (
+            <button
+              key={habit.id}
+              className="filter-pill"
+              type="button"
+              aria-pressed={selectedStatsId === habit.id}
+              onClick={() => setSelectedStatsId(habit.id)}
+              style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
+              title={habit.name}
+            >
+              <span className="filter-pill__dot" />
+              <HabitIconView habit={habit} />
+              <span>{habit.name}</span>
+            </button>
+          ))}
+        </div>
+
         <div className="stats-toolbar">
           <div className="segmented" aria-label="Statistics range">
             {(['week', 'month', 'year'] as ViewMode[]).map((item) => (
@@ -719,38 +751,6 @@ export const StatisticsView = ({
               Today
             </button>
           </div>
-        </div>
-
-        <div
-          className="stats-selector"
-          aria-label="Statistics habit selector"
-          data-selected-scope={selectedStatsId === allHabitsId ? 'all' : 'habit'}
-        >
-          <button
-            className="filter-pill"
-            type="button"
-            aria-pressed={selectedStatsId === allHabitsId}
-            onClick={() => setSelectedStatsId(allHabitsId)}
-            style={{ '--habit-color': 'var(--soft)' } as CSSProperties}
-          >
-            <span className="filter-pill__dot" />
-            <span title="All habits">All habits</span>
-          </button>
-          {habits.map((habit) => (
-            <button
-              key={habit.id}
-              className="filter-pill"
-              type="button"
-              aria-pressed={selectedStatsId === habit.id}
-              onClick={() => setSelectedStatsId(habit.id)}
-              style={{ '--habit-color': getHabitColorVar(habit.id, habits) } as CSSProperties}
-              title={habit.name}
-            >
-              <span className="filter-pill__dot" />
-              <HabitIconView habit={habit} />
-              <span>{habit.name}</span>
-            </button>
-          ))}
         </div>
       </div>
 

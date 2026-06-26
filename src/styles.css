@@ -3120,8 +3120,8 @@ h2 {
     --date-padding: 5px;
     --date-week-min-height: 112px;
     --date-week-number-size: clamp(32px, 10vw, 48px);
-    --date-month-number-size: clamp(20px, 6vw, 34px);
-    --date-year-number-size: clamp(0.56rem, 2.2vw, 0.68rem);
+    --date-month-number-size: clamp(18px, 5.2vw, 30px);
+    --date-year-number-size: clamp(0.62rem, 2.7vw, 0.78rem);
   }
 
   .week-grid,
@@ -3153,8 +3153,8 @@ h2 {
     --date-padding: 5px;
     --date-week-min-height: 112px;
     --date-week-number-size: clamp(32px, 10vw, 48px);
-    --date-month-number-size: clamp(20px, 6vw, 34px);
-    --date-year-number-size: clamp(0.56rem, 2.2vw, 0.68rem);
+    --date-month-number-size: clamp(18px, 5.2vw, 30px);
+    --date-year-number-size: clamp(0.62rem, 2.7vw, 0.78rem);
   }
 
   .app {
@@ -3430,8 +3430,8 @@ h2 {
     --date-padding: 4px;
     --date-week-min-height: 112px;
     --date-week-number-size: clamp(32px, 10vw, 48px);
-    --date-month-number-size: clamp(20px, 6vw, 34px);
-    --date-year-number-size: clamp(0.55rem, 2.5vw, 0.66rem);
+    --date-month-number-size: clamp(18px, 5.2vw, 30px);
+    --date-year-number-size: clamp(0.62rem, 2.7vw, 0.78rem);
   }
 
   .app {
