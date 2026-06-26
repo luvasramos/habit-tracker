@@ -147,7 +147,7 @@ const TodayRemainingPopover = ({
     >
       <div className="today-popover__header">
         <h2>Today</h2>
-        <span>{habits.length} left</span>
+        <span className="today-popover__badge">{habits.length} left</span>
       </div>
       {habits.length === 0 ? (
         <p className="today-popover__empty">All done for today.</p>
@@ -415,73 +415,75 @@ export const App = () => {
               addButtonRef={addButtonRef}
             />
 
-            {page === 'statistics' ? (
-              <StatisticsView
-                habits={state.habits}
-                checkIns={state.checkIns}
-                selectedHabitId={state.selectedHabitId}
-                onEditHabit={(habitId) => {
-                  navigateToHash(`#/habits/${encodeURIComponent(habitId)}/edit`);
-                }}
-                onSetCheckIn={setCheckIn}
-                onEditTime={openTimeEditForHabit}
-              />
-            ) : state.habits.length === 0 ? (
-              <section className="empty-state">
-                <span className="empty-state__icon" aria-hidden="true">
-                  <Icon name="habits" />
-                </span>
-                <div className="empty-state__copy">
-                  <h2>No habits yet</h2>
-                  <p>Add one small routine to begin.</p>
-                </div>
-              </section>
-            ) : (
-              <>
-                <CalendarControls
-                  view={view}
-                  label={label}
-                  onViewChange={setView}
-                  onPrevious={() => setAnchorDate((date) => movePeriod(view, date, -1))}
-                  onNext={() => setAnchorDate((date) => movePeriod(view, date, 1))}
-                  onToday={() => setAnchorDate(new Date())}
+            <div className="page-transition" key={page} data-page={page}>
+              {page === 'statistics' ? (
+                <StatisticsView
+                  habits={state.habits}
+                  checkIns={state.checkIns}
+                  selectedHabitId={state.selectedHabitId}
+                  onEditHabit={(habitId) => {
+                    navigateToHash(`#/habits/${encodeURIComponent(habitId)}/edit`);
+                  }}
+                  onSetCheckIn={setCheckIn}
+                  onEditTime={openTimeEditForHabit}
                 />
+              ) : state.habits.length === 0 ? (
+                <section className="empty-state">
+                  <span className="empty-state__icon" aria-hidden="true">
+                    <Icon name="habits" />
+                  </span>
+                  <div className="empty-state__copy">
+                    <h2>No habits yet</h2>
+                    <p>Add one small routine to begin.</p>
+                  </div>
+                </section>
+              ) : (
+                <>
+                  <CalendarControls
+                    view={view}
+                    label={label}
+                    onViewChange={setView}
+                    onPrevious={() => setAnchorDate((date) => movePeriod(view, date, -1))}
+                    onNext={() => setAnchorDate((date) => movePeriod(view, date, 1))}
+                    onToday={() => setAnchorDate(new Date())}
+                  />
 
-                {selectedHabit && view === 'week' ? (
-                  <WeekView
-                    habit={selectedHabit}
-                    habits={state.habits}
-                    anchorDate={anchorDate}
-                    checkIns={selectedCheckIns}
-                    allCheckIns={state.checkIns}
-                    onToggle={handleToggle}
-                    onEditTime={openTimeEdit}
-                  />
-                ) : null}
-                {selectedHabit && view === 'month' ? (
-                  <MonthView
-                    habit={selectedHabit}
-                    habits={state.habits}
-                    anchorDate={anchorDate}
-                    checkIns={selectedCheckIns}
-                    allCheckIns={state.checkIns}
-                    onToggle={handleToggle}
-                    onEditTime={openTimeEdit}
-                  />
-                ) : null}
-                {selectedHabit && view === 'year' ? (
-                  <YearView
-                    habit={selectedHabit}
-                    habits={state.habits}
-                    anchorDate={anchorDate}
-                    checkIns={selectedCheckIns}
-                    allCheckIns={state.checkIns}
-                    onToggle={handleToggle}
-                    onEditTime={openTimeEdit}
-                  />
-                ) : null}
-              </>
-            )}
+                  {selectedHabit && view === 'week' ? (
+                    <WeekView
+                      habit={selectedHabit}
+                      habits={state.habits}
+                      anchorDate={anchorDate}
+                      checkIns={selectedCheckIns}
+                      allCheckIns={state.checkIns}
+                      onToggle={handleToggle}
+                      onEditTime={openTimeEdit}
+                    />
+                  ) : null}
+                  {selectedHabit && view === 'month' ? (
+                    <MonthView
+                      habit={selectedHabit}
+                      habits={state.habits}
+                      anchorDate={anchorDate}
+                      checkIns={selectedCheckIns}
+                      allCheckIns={state.checkIns}
+                      onToggle={handleToggle}
+                      onEditTime={openTimeEdit}
+                    />
+                  ) : null}
+                  {selectedHabit && view === 'year' ? (
+                    <YearView
+                      habit={selectedHabit}
+                      habits={state.habits}
+                      anchorDate={anchorDate}
+                      checkIns={selectedCheckIns}
+                      allCheckIns={state.checkIns}
+                      onToggle={handleToggle}
+                      onEditTime={openTimeEdit}
+                    />
+                  ) : null}
+                </>
+              )}
+            </div>
           </>
         )}
       </main>
