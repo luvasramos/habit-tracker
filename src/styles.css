@@ -2909,8 +2909,9 @@ h2 {
 }
 
 .selector-pagination__button {
-  width: var(--control-size);
+  width: 52px;
   min-height: var(--control-size);
+  border-radius: var(--pill-radius);
 }
 
 .catalog-browser {
