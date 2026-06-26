@@ -21,6 +21,7 @@ const renderStats = ({
   checkIns = {},
   allCheckIns,
   selectedHabitId,
+  today = new Date(2026, 5, 25),
   onEditHabit = vi.fn(),
   onSetCheckIn,
   onEditTime,
@@ -30,6 +31,7 @@ const renderStats = ({
   checkIns?: CheckInsByHabit[string];
   allCheckIns?: CheckInsByHabit;
   selectedHabitId?: string | null;
+  today?: Date;
   onEditHabit?: (habitId: string) => void;
   onSetCheckIn?: (
     habitId: string,
@@ -44,6 +46,7 @@ const renderStats = ({
       habits={habits ?? [habit]}
       checkIns={allCheckIns ?? { [habit.id]: checkIns }}
       selectedHabitId={selectedHabitId ?? habit.id}
+      today={today}
       onEditHabit={onEditHabit}
       onSetCheckIn={onSetCheckIn}
       onEditTime={onEditTime}

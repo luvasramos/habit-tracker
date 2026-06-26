@@ -17,7 +17,17 @@ export const LEGACY_STORAGE_KEYS = ['habit-grid:v1'];
 
 type LegacyPersistedState = Omit<PersistedState, 'version'> & { version: 1 };
 type RawHabit = Omit<Habit, 'createdAt'> & { createdAt?: string };
-type RawPersistedState = (Omit<PersistedState, 'habits'> & { habits: RawHabit[] }) | (Omit<LegacyPersistedState, 'habits'> & { habits: RawHabit[] });
+type RawPersistedState =
+  | (Omit<PersistedState, 'habits'> & {
+      appCreatedAt?: string;
+      createdAt?: string;
+      habits: RawHabit[];
+    })
+  | (Omit<LegacyPersistedState, 'habits'> & {
+      appCreatedAt?: string;
+      createdAt?: string;
+      habits: RawHabit[];
+    });
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -65,6 +75,7 @@ const getEarliestDateKey = (checkIns: CheckInsByHabit) => {
 const inferCreatedAt = (
   habit: RawHabit,
   checkIns: CheckInsByHabit,
+  appCreatedAt: string | undefined,
   fallbackDateKey = toLocalDateKey(new Date()),
 ) => {
   if (typeof habit.createdAt === 'string' && habit.createdAt.trim()) {
@@ -73,12 +84,19 @@ const inferCreatedAt = (
 
   return (
     Object.keys(checkIns[habit.id] ?? {}).sort()[0] ??
+    appCreatedAt ??
     getEarliestDateKey(checkIns) ??
     fallbackDateKey
   );
 };
 
 export const sanitizeState = (state: RawPersistedState): HabitState => {
+  const appCreatedAt =
+    typeof state.appCreatedAt === 'string' && state.appCreatedAt.trim()
+      ? state.appCreatedAt
+      : typeof state.createdAt === 'string' && state.createdAt.trim()
+        ? state.createdAt
+        : undefined;
   const normalizedCheckIns = Object.fromEntries(
     Object.entries(state.checkIns).map(([habitId, habitCheckIns]) => [
       habitId,
@@ -93,7 +111,7 @@ export const sanitizeState = (state: RawPersistedState): HabitState => {
   );
   const habits = state.habits.map((habit, index) => ({
     ...habit,
-    createdAt: inferCreatedAt(habit, normalizedCheckIns),
+    createdAt: inferCreatedAt(habit, normalizedCheckIns, appCreatedAt),
     color: isHabitColor(habit.color)
       ? isPresetHabitColor(habit.color)
         ? habit.color

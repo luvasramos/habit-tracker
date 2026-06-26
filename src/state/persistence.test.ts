@@ -143,6 +143,46 @@ describe('persistence', () => {
     expect(loadState(storage).habits[0].createdAt).toBe('2026-05-01');
   });
 
+  it('infers missing habit creation date from persisted app creation date when available', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        appCreatedAt: '2026-04-15',
+        habits: [
+          { id: 'habit-1', name: 'Read' },
+          { id: 'habit-2', name: 'Gym' },
+        ],
+        checkIns: {
+          'habit-1': {},
+          'habit-2': {
+            '2026-05-01': true,
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0].createdAt).toBe('2026-04-15');
+  });
+
+  it('infers missing habit creation date from legacy createdAt app field', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 2,
+        createdAt: '2026-04-20',
+        habits: [{ id: 'habit-1', name: 'Read' }],
+        checkIns: { 'habit-1': {} },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage).habits[0].createdAt).toBe('2026-04-20');
+  });
+
   it('sanitizes invalid habit appearance data', () => {
     const storage = makeStorage();
     storage.setItem(

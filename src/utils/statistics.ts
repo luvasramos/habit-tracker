@@ -16,6 +16,7 @@ import {
 } from './duration';
 
 const localDateKeyPattern = /^\d{4}-\d{2}-\d{2}$/;
+const leadingLocalDateKeyPattern = /^(\d{4}-\d{2}-\d{2})/;
 
 export const getRangeDays = (range: ViewMode, anchorDate: Date) => {
   if (range === 'week') {
@@ -34,6 +35,11 @@ export const getRangeDays = (range: ViewMode, anchorDate: Date) => {
 export const getHabitCreatedDate = (habit: Pick<Habit, 'createdAt'>, fallback = new Date()) => {
   if (localDateKeyPattern.test(habit.createdAt)) {
     return fromLocalDateKey(habit.createdAt);
+  }
+
+  const localDateMatch = habit.createdAt.match(leadingLocalDateKeyPattern);
+  if (localDateMatch) {
+    return fromLocalDateKey(localDateMatch[1]);
   }
 
   const createdAt = new Date(habit.createdAt);

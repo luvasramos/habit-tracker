@@ -22,6 +22,7 @@ type StatisticsViewProps = {
   habits: Habit[];
   checkIns: CheckInsByHabit;
   selectedHabitId: string | null;
+  today?: Date;
   onEditHabit?: (habitId: string) => void;
   onSetCheckIn?: (
     habitId: string,
@@ -460,12 +461,14 @@ export const StatisticsView = ({
   habits,
   checkIns,
   selectedHabitId,
+  today: todayProp,
   onEditHabit,
   onSetCheckIn,
   onEditTime,
 }: StatisticsViewProps) => {
+  const today = todayProp ?? new Date();
   const [range, setRange] = useState<ViewMode>('week');
-  const [anchorDate, setAnchorDate] = useState(() => new Date());
+  const [anchorDate, setAnchorDate] = useState(() => today);
   const [selectedStatsId, setSelectedStatsId] = useState<string>(() =>
     selectedHabitId && habits.some((habit) => habit.id === selectedHabitId)
       ? selectedHabitId
@@ -492,7 +495,6 @@ export const StatisticsView = ({
   const selectedColor = selectedHabit ? getHabitColorVar(selectedHabit.id, habits) : 'var(--soft)';
   const rangeDays = useMemo(() => getRangeDays(range, anchorDate), [range, anchorDate]);
   const yearDays = useMemo(() => getRangeDays('year', anchorDate), [anchorDate]);
-  const today = new Date();
   const allHabitStats = calculateAllHabitsStatistics(selectedHabits, checkIns, rangeDays, today);
   const habitStatById = new Map(
     allHabitStats.habitStatistics.map((stat) => [stat.habit.id, stat]),

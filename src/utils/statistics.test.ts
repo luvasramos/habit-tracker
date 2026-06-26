@@ -29,6 +29,12 @@ describe('statistics utilities', () => {
     expect(toLocalDateKey(created)).toBe('2026-06-25');
   });
 
+  it('uses the local date portion of ISO creation timestamps', () => {
+    const created = getHabitCreatedDate(habit({ createdAt: '2026-01-01T00:00:00.000Z' }), today);
+
+    expect(toLocalDateKey(created)).toBe('2026-01-01');
+  });
+
   it('excludes dates before a habit created midway through a year', () => {
     const rangeDays = getRangeDays('year', today);
 
@@ -101,6 +107,33 @@ describe('statistics utilities', () => {
     );
   });
 
+  it('calculates individual days done and missed without future dates', () => {
+    const fixedToday = new Date(2026, 5, 26);
+    const stats = calculateHabitStatistics(
+      habit({ createdAt: '2026-06-20' }),
+      {
+        '2026-06-19': true,
+        '2026-06-20': true,
+        '2026-06-26': true,
+        '2026-06-27': true,
+      },
+      getRangeDays('month', fixedToday),
+      fixedToday,
+    );
+
+    expect(stats.eligibleDateKeys).toEqual([
+      '2026-06-20',
+      '2026-06-21',
+      '2026-06-22',
+      '2026-06-23',
+      '2026-06-24',
+      '2026-06-25',
+      '2026-06-26',
+    ]);
+    expect(stats.daysDone).toBe(2);
+    expect(stats.daysMissed).toBe(5);
+  });
+
   it('calculates all-habits active days and no-activity days from eligible dates', () => {
     const habits = [
       habit({ id: 'habit-1', createdAt: '2026-06-10' }),
@@ -123,6 +156,53 @@ describe('statistics utilities', () => {
     expect(stats.inactiveDateKeys).toHaveLength(13);
     expect(stats.eligibleDateKeys[0]).toBe('2026-06-10');
     expect(stats.eligibleDateKeys[stats.eligibleDateKeys.length - 1]).toBe('2026-06-25');
+  });
+
+  it('calculates one activity day in a full year range without counting future dates', () => {
+    const fixedToday = new Date(2026, 5, 26);
+    const stats = calculateAllHabitsStatistics(
+      [habit({ createdAt: '2026-01-01' })],
+      { 'habit-1': { '2026-06-26': true } },
+      getRangeDays('year', fixedToday),
+      fixedToday,
+    );
+
+    expect(stats.eligibleDateKeys).toHaveLength(177);
+    expect(stats.activeDateKeys).toEqual(['2026-06-26']);
+    expect(stats.inactiveDateKeys).toHaveLength(176);
+  });
+
+  it('starts All habits eligibility at the earliest included habit creation date', () => {
+    const fixedToday = new Date(2026, 5, 26);
+    const stats = calculateAllHabitsStatistics(
+      [
+        habit({ id: 'habit-1', createdAt: '2026-06-20' }),
+        habit({ id: 'habit-2', createdAt: '2026-06-24' }),
+      ],
+      { 'habit-1': { '2026-06-26': true }, 'habit-2': {} },
+      getRangeDays('year', fixedToday),
+      fixedToday,
+    );
+
+    expect(stats.eligibleDateKeys).toHaveLength(7);
+    expect(stats.eligibleDateKeys[0]).toBe('2026-06-20');
+    expect(stats.eligibleDateKeys[stats.eligibleDateKeys.length - 1]).toBe('2026-06-26');
+    expect(stats.activeDateKeys).toEqual(['2026-06-26']);
+    expect(stats.inactiveDateKeys).toHaveLength(6);
+  });
+
+  it('counts leap-year eligible dates through today', () => {
+    const leapToday = new Date(2024, 1, 29);
+    const stats = calculateHabitStatistics(
+      habit({ createdAt: '2024-02-28' }),
+      { '2024-02-29': true },
+      getRangeDays('month', leapToday),
+      leapToday,
+    );
+
+    expect(stats.eligibleDateKeys).toEqual(['2024-02-28', '2024-02-29']);
+    expect(stats.daysDone).toBe(1);
+    expect(stats.daysMissed).toBe(1);
   });
 
   it('does not treat unknown duration as zero in goal calculations', () => {
