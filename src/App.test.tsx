@@ -381,10 +381,9 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
 
     expect(screen.queryByRole('img', { name: /active day/ })).not.toBeInTheDocument();
-    expect(screen.getAllByText('Days done')).toHaveLength(1);
-    expect(screen.getByText('Days missed')).toBeInTheDocument();
-    expect(screen.getAllByText('Consistency').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/Days done: Eligible days/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Days missed: Eligible elapsed days/)).toBeInTheDocument();
+    expect(screen.getAllByText('Consistency').length).toBeGreaterThan(0);
     expect(screen.queryByText('Completion rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Habit completions')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Show no activity' })).not.toBeInTheDocument();
@@ -394,7 +393,7 @@ describe('Habit Grid app', () => {
     await user.click(screen.getByRole('button', { name: 'Year' }));
     expect(screen.getByLabelText('Yearly activity overview')).toBeInTheDocument();
 
-    expect(screen.getByText('Days missed')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Days missed: Eligible elapsed days/)).toBeInTheDocument();
   });
 
   it('shows a statistics empty state when there is no data', async () => {

@@ -69,10 +69,12 @@ const ConsistencyDonut = ({
   segments,
   centerValue,
   label,
+  description,
 }: {
   segments: DonutSegment[];
   centerValue: string;
   label: string;
+  description: string;
 }) => {
   const slices = segments.filter((segment) => segment.count > 0);
   const total = segments.reduce((sum, segment) => sum + segment.count, 0);
@@ -83,7 +85,7 @@ const ConsistencyDonut = ({
   }
 
   return (
-    <section className="completion-donut" aria-label={label}>
+    <section className="completion-donut" aria-label={description}>
       <div className="completion-donut__chart">
         <svg viewBox="0 0 120 120" role="img" aria-label={`${label} visualization`}>
           <circle className="completion-donut__track" cx="60" cy="60" r="44" pathLength="100" />
@@ -119,6 +121,19 @@ const ConsistencyDonut = ({
           <span>Consistency</span>
         </div>
       </div>
+      <ul className="completion-donut__legend" aria-label={`${label} legend`}>
+        {segments.map((segment) => (
+          <li key={segment.id}>
+            <span
+              className="completion-donut__legend-dot"
+              style={{ '--dot-color': segment.color } as CSSProperties}
+              aria-hidden="true"
+            />
+            <span>{segment.name}</span>
+            <span>{segment.count}</span>
+          </li>
+        ))}
+      </ul>
       <ul className="sr-only" aria-label={`${label} breakdown`}>
         {slices.map((stat) => (
           <li key={stat.id}>
@@ -609,6 +624,7 @@ export const StatisticsView = ({
   const inactiveDays = allHabitStats.inactiveDateKeys.length;
   const eligibleDays = allHabitStats.eligibleDateKeys.length;
   const consistencyLabel = formatPercent(activeDays, eligibleDays);
+  const hasSelectedTimeTracking = selectedHabits.some((habit) => habit.trackingMode === 'duration');
   const selectedDurationSummary = selectedHabit
     ? durationGoalStats.find(({ habit }) => habit.id === selectedHabit.id)?.summary
     : null;
@@ -639,6 +655,18 @@ export const StatisticsView = ({
           ).durationSummary,
         }))
         .filter(({ summary }) => summary.goalMinutes > 0);
+  const visibleDurationGoalStats = selectedHabit
+    ? selectedHabit.trackingMode === 'duration' && selectedDurationSummary && selectedYearDurationSummary
+      ? [
+          {
+            habit: selectedHabit,
+            color: selectedColor,
+            periodSummary: selectedDurationSummary,
+            yearSummary: selectedYearDurationSummary,
+          },
+        ]
+      : []
+    : [];
   const summaryMetrics = selectedHabit
     ? [
         {
@@ -657,6 +685,15 @@ export const StatisticsView = ({
           value: consistencyLabel,
           description: metricDescriptions.consistency,
         },
+        ...(selectedHabit.trackingMode === 'duration' && visibleDurationGoalStats.length === 0
+          ? [
+              {
+                label: 'Time logged',
+                value: formatMinutes(totalDurationMinutes),
+                description: metricDescriptions.timeLogged,
+              },
+            ]
+          : []),
       ]
     : [
         {
@@ -673,8 +710,17 @@ export const StatisticsView = ({
         {
           label: 'Consistency',
           value: consistencyLabel,
-          description: metricDescriptions.consistency,
+          description: 'Percentage of eligible elapsed days with at least one habit completed.',
         },
+        ...(hasSelectedTimeTracking
+          ? [
+              {
+                label: 'Total time logged',
+                value: formatMinutes(totalDurationMinutes),
+                description: metricDescriptions.timeLogged,
+              },
+            ]
+          : []),
       ];
   const donutSegments: DonutSegment[] = selectedHabit
     ? [
@@ -708,18 +754,9 @@ export const StatisticsView = ({
   const donutLabel = selectedHabit
     ? `${selectedHabit.name} consistency`
     : 'All habits consistency';
-  const visibleDurationGoalStats = selectedHabit
-    ? selectedHabit.trackingMode === 'duration' && selectedDurationSummary && selectedYearDurationSummary
-      ? [
-          {
-            habit: selectedHabit,
-            color: selectedColor,
-            periodSummary: selectedDurationSummary,
-            yearSummary: selectedYearDurationSummary,
-          },
-        ]
-      : []
-    : [];
+  const donutDescription = selectedHabit
+    ? `${consistencyLabel.replace('%', ' percent')} consistency. ${selectedHabit.name} completed ${activeDays} ${activeDays === 1 ? 'day' : 'days'} and missed ${inactiveDays} ${inactiveDays === 1 ? 'day' : 'days'}.`
+    : `${consistencyLabel.replace('%', ' percent')} consistency. ${activeDays} active ${activeDays === 1 ? 'day' : 'days'} and ${inactiveDays} ${inactiveDays === 1 ? 'day' : 'days'} with no activity.`;
 
   if (habits.length === 0) {
     return (
@@ -845,6 +882,7 @@ export const StatisticsView = ({
             segments={donutSegments}
             centerValue={consistencyLabel}
             label={donutLabel}
+            description={donutDescription}
           />
         </div>
 

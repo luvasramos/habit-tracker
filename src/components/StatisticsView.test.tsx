@@ -344,7 +344,7 @@ describe('StatisticsView time goal card', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
-    const donut = screen.getByLabelText('All habits consistency');
+    const donut = screen.getByLabelText('25 percent consistency. 1 active day and 3 days with no activity.');
     expect(within(donut).getAllByText('25%')[0]).toBeInTheDocument();
     expect(within(donut).getByText('Consistency')).toBeInTheDocument();
     expect(screen.getByLabelText('Active days: 1 day')).toBeInTheDocument();
@@ -364,7 +364,7 @@ describe('StatisticsView time goal card', () => {
     fireEvent.click(within(timeGoals).getByRole('button', { name: /Painting/ }));
     expect(screen.getByRole('button', { name: 'Painting' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByLabelText('Time goal')).toHaveTextContent('Painting');
-    expect(screen.getByLabelText('Painting consistency')).toBeInTheDocument();
+    expect(screen.getByLabelText('25 percent consistency. Painting completed 1 day and missed 3 days.')).toBeInTheDocument();
     expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('1');
     expect(screen.getByLabelText('Days missed: Eligible elapsed days when the selected habit was not completed.')).toHaveTextContent('3');
   });
