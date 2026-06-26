@@ -3113,13 +3113,45 @@ h2 {
   }
 }
 
+@media (max-width: 767px) {
+  :root {
+    --date-gap: 5px;
+    --date-padding: 5px;
+    --date-week-min-height: 112px;
+    --date-week-number-size: clamp(32px, 10vw, 48px);
+    --date-month-number-size: clamp(20px, 6vw, 34px);
+    --date-year-number-size: clamp(0.56rem, 2.2vw, 0.68rem);
+  }
+
+  .week-grid,
+  .stats-calendar-week {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .week-grid .date-button,
+  .stats-date-cell--week {
+    min-height: var(--date-week-min-height);
+  }
+
+  .week-day-label,
+  .stats-date-cell__weekday {
+    font-size: clamp(12px, 2.4vw, 14px);
+  }
+
+  .week-duration-label,
+  .stats-date-cell__duration {
+    font-size: clamp(12px, 2.2vw, 14px);
+  }
+}
+
 @media (max-width: 640px) {
   :root {
     --date-gap: 5px;
     --date-padding: 5px;
-    --date-week-min-height: 104px;
-    --date-week-number-size: clamp(2rem, 12vw, 3rem);
-    --date-month-number-size: clamp(1.25rem, 5.9vw, 1.9rem);
+    --date-week-min-height: 112px;
+    --date-week-number-size: clamp(32px, 10vw, 48px);
+    --date-month-number-size: clamp(20px, 6vw, 34px);
     --date-year-number-size: clamp(0.56rem, 2.2vw, 0.68rem);
   }
 
@@ -3202,7 +3234,7 @@ h2 {
 
   .week-grid,
   .stats-calendar-week {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -3382,13 +3414,20 @@ h2 {
   }
 }
 
+@media (max-width: 480px) {
+  .week-grid,
+  .stats-calendar-week {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 430px) {
   :root {
     --date-gap: 4px;
     --date-padding: 4px;
-    --date-week-min-height: 100px;
-    --date-week-number-size: clamp(2rem, 13vw, 2.65rem);
-    --date-month-number-size: clamp(1.15rem, 6.2vw, 1.7rem);
+    --date-week-min-height: 112px;
+    --date-week-number-size: clamp(32px, 10vw, 48px);
+    --date-month-number-size: clamp(20px, 6vw, 34px);
     --date-year-number-size: clamp(0.55rem, 2.5vw, 0.66rem);
   }
 
@@ -3476,11 +3515,11 @@ h2 {
   }
 
   .week-day-label {
-    font-size: 0.66rem;
+    font-size: clamp(12px, 3.2vw, 14px);
   }
 
   .week-duration-label {
-    font-size: 0.7rem;
+    font-size: clamp(12px, 3vw, 14px);
     max-width: calc(100% - 6px);
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3696,14 +3735,14 @@ h2 {
 
   .week-grid .date-button,
   .stats-date-cell--week {
-    min-height: 94px;
+    min-height: var(--date-week-min-height);
   }
 
   .calendar-section,
   .stats-calendar-month,
   .year-month-card {
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow-x: visible;
+    overflow-y: visible;
     scrollbar-width: thin;
   }
 
@@ -3711,7 +3750,7 @@ h2 {
   .stats-calendar-month__grid,
   .year-month-card__grid,
   .year-month-card__weekdays {
-    min-width: 332px;
+    min-width: 0;
   }
 }
 
