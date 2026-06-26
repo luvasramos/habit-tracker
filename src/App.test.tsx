@@ -383,6 +383,7 @@ describe('Habit Grid app', () => {
     expect(screen.queryByRole('img', { name: /active day/ })).not.toBeInTheDocument();
     expect(screen.getAllByText('Days done')).toHaveLength(1);
     expect(screen.getByText('Days missed')).toBeInTheDocument();
+    expect(screen.getAllByText('Consistency').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/Days done: Eligible days/)).toBeInTheDocument();
     expect(screen.queryByText('Completion rate')).not.toBeInTheDocument();
     expect(screen.queryByText('Habit completions')).not.toBeInTheDocument();
@@ -587,7 +588,7 @@ describe('Habit Grid app', () => {
     expect(within(compactTimeGoals).queryByText('Piano')).not.toBeInTheDocument();
     expect(within(compactTimeGoals).queryByText('Gym')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Time summary')).not.toBeInTheDocument();
-    expect(screen.getByText('Total time logged')).toBeInTheDocument();
+    expect(screen.getAllByText('Consistency').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Piano' }));
     expect(screen.getByRole('button', { name: 'Piano' })).toHaveAttribute('aria-pressed', 'true');
     const timeSummary = screen.getByLabelText('Time summary');

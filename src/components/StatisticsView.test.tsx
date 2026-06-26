@@ -83,7 +83,7 @@ describe('StatisticsView time goal card', () => {
     renderStats();
 
     expect(screen.getByText('0m / 3h')).toBeInTheDocument();
-    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('Time goal')).getByText('0%')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '0');
   });
 
@@ -316,7 +316,7 @@ describe('StatisticsView time goal card', () => {
     expect(screen.getByText('1 additional completed habit')).toBeInTheDocument();
   });
 
-  it('shows All habits donut and compact time goal cards', () => {
+  it('shows All habits consistency donut and compact time goal cards', () => {
     const habits = [
       makeHabit({ id: 'habit-1', name: 'Japanese', yearlyGoalMinutes: 180 }),
       makeHabit({
@@ -344,13 +344,12 @@ describe('StatisticsView time goal card', () => {
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'All habits' }));
-    const donut = screen.getByLabelText('Habit completion share');
-    expect(within(donut).getByText('3')).toBeInTheDocument();
-    expect(within(donut).getByText('completions')).toBeInTheDocument();
-    expect(screen.getByLabelText('Japanese: 1 completion')).toBeInTheDocument();
-    expect(screen.getByLabelText('Painting: 1 completion')).toBeInTheDocument();
-    expect(screen.getByLabelText('Walking: 1 completion')).toBeInTheDocument();
-    expect(within(donut).queryByText('No activity')).not.toBeInTheDocument();
+    const donut = screen.getByLabelText('All habits consistency');
+    expect(within(donut).getAllByText('25%')[0]).toBeInTheDocument();
+    expect(within(donut).getByText('Consistency')).toBeInTheDocument();
+    expect(screen.getByLabelText('Active days: 1 day')).toBeInTheDocument();
+    expect(screen.getByLabelText('Days with no activity: 3 days')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Japanese: 1 completion')).not.toBeInTheDocument();
 
     const timeGoals = screen.getByLabelText('Time goals');
     expect(timeGoals.querySelector('.time-goal-cards')).not.toBeNull();
@@ -365,7 +364,9 @@ describe('StatisticsView time goal card', () => {
     fireEvent.click(within(timeGoals).getByRole('button', { name: /Painting/ }));
     expect(screen.getByRole('button', { name: 'Painting' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByLabelText('Time goal')).toHaveTextContent('Painting');
-    expect(screen.queryByLabelText('Habit completion share')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Painting consistency')).toBeInTheDocument();
+    expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('1');
+    expect(screen.getByLabelText('Days missed: Eligible elapsed days when the selected habit was not completed.')).toHaveTextContent('3');
   });
 
   it('opens and closes date details while restoring focus to the date cell', () => {
@@ -424,16 +425,16 @@ describe('StatisticsView time goal card', () => {
 
     render(<StatefulStats />);
 
-    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('1');
+    expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('1');
     const missedDay = screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ });
     fireEvent.click(missedDay);
     fireEvent.click(screen.getByRole('button', { name: 'Mark complete' }));
 
-    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('2');
+    expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('2');
     expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese completed, 1h logged/ })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Mark incomplete' }));
-    expect(screen.getByLabelText(/Days done/)).toHaveTextContent('1');
+    expect(screen.getByLabelText('Days done: Eligible days when the selected habit was completed.')).toHaveTextContent('1');
     expect(screen.getByRole('button', { name: /Tuesday, June 23, 2026, Japanese not completed/ })).toBeInTheDocument();
   });
 
