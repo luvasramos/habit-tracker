@@ -3132,6 +3132,7 @@ h2 {
 
   .week-grid .date-button,
   .stats-date-cell--week {
+    aspect-ratio: auto;
     min-height: var(--date-week-min-height);
   }
 
@@ -3251,6 +3252,7 @@ h2 {
 
   .week-grid .date-button,
   .stats-date-cell--week {
+    aspect-ratio: auto;
     min-height: var(--date-week-min-height);
   }
 
@@ -3643,7 +3645,7 @@ h2 {
   }
 
   .selector-pagination__button {
-    flex: 0 0 var(--control-size);
+    flex: 0 0 52px;
   }
 
   .floating-nav {
