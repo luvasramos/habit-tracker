@@ -1,4 +1,5 @@
 import type { CheckInEntry, CheckInsByHabit, Habit, LocalDateKey } from '../state/types';
+import { isValidDistanceMeters } from './distance';
 
 export const isValidDurationMinutes = (value: unknown): value is number =>
   Number.isInteger(value) && typeof value === 'number' && value > 0;
@@ -28,8 +29,15 @@ export const normalizeCheckInEntry = (entry: unknown): CheckInEntry | null => {
   }
 
   const durationMinutes = (entry as { durationMinutes?: unknown }).durationMinutes;
-  return isValidDurationMinutes(durationMinutes)
-    ? { completed: true, durationMinutes }
+  const distanceMeters = (entry as { distanceMeters?: unknown }).distanceMeters;
+  const normalizedEntry: CheckInEntry = {
+    completed: true,
+    ...(isValidDurationMinutes(durationMinutes) ? { durationMinutes } : {}),
+    ...(isValidDistanceMeters(distanceMeters) ? { distanceMeters } : {}),
+  };
+
+  return normalizedEntry.durationMinutes || normalizedEntry.distanceMeters
+    ? normalizedEntry
     : { completed: true };
 };
 

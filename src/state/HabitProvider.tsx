@@ -23,6 +23,7 @@ type HabitContextValue = {
     dateKey: LocalDateKey,
     completed: boolean,
     durationMinutes?: number,
+    distanceMeters?: number,
   ) => void;
   isDuplicateName: (name: string, exceptHabitId?: string) => boolean;
 };
@@ -52,8 +53,15 @@ export const HabitProvider = ({
       deleteHabit: (habitId) => dispatch({ type: 'deleteHabit', habitId }),
       toggleCheckIn: (habitId, dateKey) =>
         dispatch({ type: 'toggleCheckIn', habitId, dateKey }),
-      setCheckIn: (habitId, dateKey, completed, durationMinutes) =>
-        dispatch({ type: 'setCheckIn', habitId, dateKey, completed, durationMinutes }),
+      setCheckIn: (habitId, dateKey, completed, durationMinutes, distanceMeters) =>
+        dispatch({
+          type: 'setCheckIn',
+          habitId,
+          dateKey,
+          completed,
+          durationMinutes,
+          distanceMeters,
+        }),
       isDuplicateName: (name, exceptHabitId) =>
         hasDuplicateHabitName(state.habits, name, exceptHabitId),
     }),

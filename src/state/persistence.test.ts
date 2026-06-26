@@ -50,6 +50,7 @@ describe('persistence', () => {
 
     expect(loadState(storage)).toEqual({
       ...state,
+      version: 3,
       habits: [
         {
           ...state.habits[0],
@@ -58,6 +59,9 @@ describe('persistence', () => {
           trackingMode: 'duration',
           defaultDurationMinutes: 45,
           yearlyGoalMinutes: 9000,
+          defaultDistanceMeters: undefined,
+          yearlyDistanceGoalMeters: undefined,
+          distanceUnitPreference: undefined,
         },
       ],
     });
@@ -76,7 +80,7 @@ describe('persistence', () => {
     );
 
     expect(loadState(storage)).toEqual({
-      version: 2,
+      version: 3,
       habits: [
         {
           id: 'habit-1',
@@ -87,6 +91,9 @@ describe('persistence', () => {
           trackingMode: 'completion',
           defaultDurationMinutes: undefined,
           yearlyGoalMinutes: undefined,
+          defaultDistanceMeters: undefined,
+          yearlyDistanceGoalMeters: undefined,
+          distanceUnitPreference: undefined,
         },
       ],
       checkIns: { 'habit-1': { '2026-06-17': true } },
@@ -268,6 +275,60 @@ describe('persistence', () => {
     );
   });
 
+  it('loads distance habits and check-ins without losing unknown distance state', () => {
+    const storage = makeStorage();
+    storage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        version: 3,
+        habits: [
+          {
+            id: 'habit-1',
+            name: 'Run',
+            createdAt: '2026-01-01',
+            trackingMode: 'distance',
+            defaultDistanceMeters: 5000,
+            yearlyDistanceGoalMeters: 500000,
+            distanceUnitPreference: 'mi',
+          },
+        ],
+        checkIns: {
+          'habit-1': {
+            '2026-06-17': { completed: true, distanceMeters: 5000 },
+            '2026-06-18': { completed: true },
+          },
+        },
+        selectedHabitId: 'habit-1',
+      }),
+    );
+
+    expect(loadState(storage)).toEqual({
+      version: 3,
+      habits: [
+        {
+          id: 'habit-1',
+          name: 'Run',
+          createdAt: '2026-01-01',
+          color: 'neonCream',
+          icon: { type: 'svg', name: 'custom' },
+          trackingMode: 'distance',
+          defaultDurationMinutes: undefined,
+          yearlyGoalMinutes: undefined,
+          defaultDistanceMeters: 5000,
+          yearlyDistanceGoalMeters: 500000,
+          distanceUnitPreference: 'mi',
+        },
+      ],
+      checkIns: {
+        'habit-1': {
+          '2026-06-17': { completed: true, distanceMeters: 5000 },
+          '2026-06-18': { completed: true },
+        },
+      },
+      selectedHabitId: 'habit-1',
+    });
+  });
+
   it('preserves legacy preset habit colors', () => {
     const storage = makeStorage();
     storage.setItem(
@@ -301,7 +362,7 @@ describe('persistence', () => {
     storage.setItem(STORAGE_KEY, '{bad');
     expect(loadState(storage)).toEqual(emptyState());
 
-    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 3 }));
+    storage.setItem(STORAGE_KEY, JSON.stringify({ version: 4 }));
     expect(loadState(storage)).toEqual(emptyState());
   });
 

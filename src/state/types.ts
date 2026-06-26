@@ -95,7 +95,8 @@ export type HabitIcon =
       value: string;
     };
 
-export type HabitTrackingMode = 'completion' | 'duration';
+export type HabitTrackingMode = 'completion' | 'duration' | 'distance';
+export type DistanceUnitPreference = 'km' | 'm' | 'mi';
 
 export type HabitDraft = {
   name: string;
@@ -104,6 +105,9 @@ export type HabitDraft = {
   trackingMode?: HabitTrackingMode;
   defaultDurationMinutes?: number;
   yearlyGoalMinutes?: number;
+  defaultDistanceMeters?: number;
+  yearlyDistanceGoalMeters?: number;
+  distanceUnitPreference?: DistanceUnitPreference;
 };
 
 export type HistoricalDurationMigration = 'keep-empty' | 'apply-default';
@@ -122,18 +126,22 @@ export type Habit = {
   trackingMode?: HabitTrackingMode;
   defaultDurationMinutes?: number;
   yearlyGoalMinutes?: number;
+  defaultDistanceMeters?: number;
+  yearlyDistanceGoalMeters?: number;
+  distanceUnitPreference?: DistanceUnitPreference;
 };
 
 export type CompletedCheckIn = {
   completed: true;
   durationMinutes?: number;
+  distanceMeters?: number;
 };
 
 export type CheckInEntry = true | CompletedCheckIn;
 export type CheckInsByHabit = Record<string, Record<LocalDateKey, CheckInEntry>>;
 
 export type PersistedState = {
-  version: 2;
+  version: 3;
   habits: Habit[];
   checkIns: CheckInsByHabit;
   selectedHabitId: string | null;

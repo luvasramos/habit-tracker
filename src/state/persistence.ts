@@ -8,14 +8,18 @@ import {
   normalizeHabitIcon,
 } from '../utils/habitAppearance';
 import { toLocalDateKey } from '../utils/dates';
+import {
+  isValidDistanceMeters,
+  normalizeDistanceUnitPreference,
+} from '../utils/distance';
 import { isValidDurationMinutes, normalizeCheckInEntry } from '../utils/duration';
 import type { CheckInsByHabit, Habit, HabitState, PersistedState } from './types';
 
-export const CURRENT_SCHEMA_VERSION = 2;
-export const STORAGE_KEY = 'habit-grid:v2';
-export const LEGACY_STORAGE_KEYS = ['habit-grid:v1'];
+export const CURRENT_SCHEMA_VERSION = 3;
+export const STORAGE_KEY = 'habit-grid:v3';
+export const LEGACY_STORAGE_KEYS = ['habit-grid:v2', 'habit-grid:v1'];
 
-type LegacyPersistedState = Omit<PersistedState, 'version'> & { version: 1 };
+type LegacyPersistedState = Omit<PersistedState, 'version'> & { version: 1 | 2 };
 type RawHabit = Omit<Habit, 'createdAt'> & { createdAt?: string };
 type RawPersistedState =
   | (Omit<PersistedState, 'habits'> & {
@@ -39,7 +43,7 @@ const isHabit = (value: unknown): value is RawHabit =>
   (typeof value.createdAt === 'string' || value.createdAt === undefined);
 
 const isHabitTrackingMode = (value: unknown) =>
-  value === 'completion' || value === 'duration';
+  value === 'completion' || value === 'duration' || value === 'distance';
 
 const isCheckIns = (value: unknown): value is CheckInsByHabit => {
   if (!isRecord(value)) {
@@ -59,7 +63,7 @@ export const isPersistedState = (value: unknown): value is RawPersistedState => 
   }
 
   return (
-    (value.version === 1 || value.version === CURRENT_SCHEMA_VERSION) &&
+    (value.version === 1 || value.version === 2 || value.version === CURRENT_SCHEMA_VERSION) &&
     Array.isArray(value.habits) &&
     value.habits.every(isHabit) &&
     isCheckIns(value.checkIns) &&
@@ -109,23 +113,41 @@ export const sanitizeState = (state: RawPersistedState): HabitState => {
       ),
     ]),
   );
-  const habits = state.habits.map((habit, index) => ({
-    ...habit,
-    createdAt: inferCreatedAt(habit, normalizedCheckIns, appCreatedAt),
-    color: isHabitColor(habit.color)
-      ? isPresetHabitColor(habit.color)
-        ? habit.color
-        : normalizeHexColor(habit.color) ?? defaultHabitColor(index)
-      : defaultHabitColor(index),
-    icon: normalizeHabitIcon(habit.icon ?? defaultHabitIcon),
-    trackingMode: isHabitTrackingMode(habit.trackingMode) ? habit.trackingMode : 'completion',
-    defaultDurationMinutes: isValidDurationMinutes(habit.defaultDurationMinutes)
-      ? habit.defaultDurationMinutes
-      : undefined,
-    yearlyGoalMinutes: isValidDurationMinutes(habit.yearlyGoalMinutes)
-      ? habit.yearlyGoalMinutes
-      : undefined,
-  }));
+  const habits = state.habits.map((habit, index) => {
+    const trackingMode = isHabitTrackingMode(habit.trackingMode)
+      ? habit.trackingMode
+      : 'completion';
+
+    return {
+      ...habit,
+      createdAt: inferCreatedAt(habit, normalizedCheckIns, appCreatedAt),
+      color: isHabitColor(habit.color)
+        ? isPresetHabitColor(habit.color)
+          ? habit.color
+          : normalizeHexColor(habit.color) ?? defaultHabitColor(index)
+        : defaultHabitColor(index),
+      icon: normalizeHabitIcon(habit.icon ?? defaultHabitIcon),
+      trackingMode,
+      defaultDurationMinutes: isValidDurationMinutes(habit.defaultDurationMinutes)
+        ? habit.defaultDurationMinutes
+        : undefined,
+      yearlyGoalMinutes: isValidDurationMinutes(habit.yearlyGoalMinutes)
+        ? habit.yearlyGoalMinutes
+        : undefined,
+      defaultDistanceMeters:
+        trackingMode === 'distance' && isValidDistanceMeters(habit.defaultDistanceMeters)
+          ? habit.defaultDistanceMeters
+          : undefined,
+      yearlyDistanceGoalMeters:
+        trackingMode === 'distance' && isValidDistanceMeters(habit.yearlyDistanceGoalMeters)
+          ? habit.yearlyDistanceGoalMeters
+          : undefined,
+      distanceUnitPreference:
+        trackingMode === 'distance'
+          ? normalizeDistanceUnitPreference(habit.distanceUnitPreference)
+          : undefined,
+    };
+  });
   const habitIds = new Set(habits.map((habit) => habit.id));
   const checkIns = Object.fromEntries(
     Object.entries(normalizedCheckIns)

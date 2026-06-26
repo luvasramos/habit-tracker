@@ -13,6 +13,13 @@ const durationDraft = (name: string, defaultDurationMinutes = 60): HabitDraft =>
   trackingMode: 'duration',
   defaultDurationMinutes,
 });
+const distanceDraft = (name: string, defaultDistanceMeters = 5000): HabitDraft => ({
+  ...draft(name),
+  trackingMode: 'distance',
+  defaultDistanceMeters,
+  yearlyDistanceGoalMeters: 500000,
+  distanceUnitPreference: 'km',
+});
 const migratedState = () => ({
   ...emptyState(),
   habits: [
@@ -136,6 +143,46 @@ describe('habitReducer', () => {
     );
   });
 
+  it('adds distance habits without changing completion or duration defaults', () => {
+    vi.spyOn(crypto, 'randomUUID')
+      .mockReturnValueOnce(id('habit-1'))
+      .mockReturnValueOnce(id('habit-2'))
+      .mockReturnValueOnce(id('habit-3'));
+
+    const completion = habitReducer(emptyState(), { type: 'addHabit', habit: draft('Gym') });
+    const duration = habitReducer(completion, {
+      type: 'addHabit',
+      habit: durationDraft('Study Japanese', 60),
+    });
+    const distance = habitReducer(duration, {
+      type: 'addHabit',
+      habit: distanceDraft('Run', 5000),
+    });
+
+    expect(distance.habits[0]).toEqual(
+      expect.objectContaining({
+        name: 'Gym',
+        trackingMode: 'completion',
+      }),
+    );
+    expect(distance.habits[1]).toEqual(
+      expect.objectContaining({
+        name: 'Study Japanese',
+        trackingMode: 'duration',
+        defaultDurationMinutes: 60,
+      }),
+    );
+    expect(distance.habits[2]).toEqual(
+      expect.objectContaining({
+        name: 'Run',
+        trackingMode: 'distance',
+        defaultDistanceMeters: 5000,
+        yearlyDistanceGoalMeters: 500000,
+        distanceUnitPreference: 'km',
+      }),
+    );
+  });
+
   it('stores known duration check-ins and preserves unknown duration check-ins', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
     const added = habitReducer(emptyState(), {
@@ -200,6 +247,77 @@ describe('habitReducer', () => {
     });
 
     expect(checked.checkIns['habit-1']['2026-06-17']).toBe(true);
+  });
+
+  it('automatically logs the default distance when completing a distance habit', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: distanceDraft('Run', 5000),
+    });
+    const checked = habitReducer(added, {
+      type: 'toggleCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+    });
+
+    expect(checked.checkIns['habit-1']['2026-06-17']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
+
+  it('stores known distance check-ins and preserves unknown distance check-ins', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: distanceDraft('Run', 5000),
+    });
+
+    const knownDistance = habitReducer(added, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      distanceMeters: 3000,
+    });
+    const defaultDistance = habitReducer(knownDistance, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-18',
+      completed: true,
+    });
+
+    expect(defaultDistance.checkIns['habit-1']['2026-06-17']).toEqual({
+      completed: true,
+      distanceMeters: 3000,
+    });
+    expect(defaultDistance.checkIns['habit-1']['2026-06-18']).toEqual({
+      completed: true,
+      distanceMeters: 5000,
+    });
+  });
+
+  it('unchecking clears distance for that date', () => {
+    vi.spyOn(crypto, 'randomUUID').mockReturnValue(id('habit-1'));
+    const added = habitReducer(emptyState(), {
+      type: 'addHabit',
+      habit: distanceDraft('Run'),
+    });
+    const checked = habitReducer(added, {
+      type: 'setCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+      completed: true,
+      distanceMeters: 5000,
+    });
+    const unchecked = habitReducer(checked, {
+      type: 'toggleCheckIn',
+      habitId: 'habit-1',
+      dateKey: '2026-06-17',
+    });
+
+    expect(unchecked.checkIns['habit-1']).toEqual({});
   });
 
   it('replaces an existing duration when editing time', () => {

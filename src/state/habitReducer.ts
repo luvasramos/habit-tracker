@@ -1,6 +1,10 @@
 import { defaultHabitColor, defaultHabitIcon } from '../utils/habitAppearance';
 import { toLocalDateKey } from '../utils/dates';
 import {
+  createCompletedDistanceCheckIn,
+  getDefaultDistanceMeters,
+} from '../utils/distance';
+import {
   createCompletedCheckIn,
   getDefaultDurationMinutes,
   getCheckInDurationMinutes,
@@ -21,10 +25,11 @@ export type HabitAction =
       dateKey: LocalDateKey;
       completed: boolean;
       durationMinutes?: number;
+      distanceMeters?: number;
     };
 
 export const emptyState = (): HabitState => ({
-  version: 2,
+  version: 3,
   habits: [],
   checkIns: {},
   selectedHabitId: null,
@@ -69,6 +74,9 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
         trackingMode: action.habit.trackingMode ?? 'completion',
         defaultDurationMinutes: action.habit.defaultDurationMinutes,
         yearlyGoalMinutes: action.habit.yearlyGoalMinutes,
+        defaultDistanceMeters: action.habit.defaultDistanceMeters,
+        yearlyDistanceGoalMeters: action.habit.yearlyDistanceGoalMeters,
+        distanceUnitPreference: action.habit.distanceUnitPreference,
       };
 
       return {
@@ -107,6 +115,18 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
             action.habit,
             'yearlyGoalMinutes',
           );
+          const hasDefaultDistance = Object.prototype.hasOwnProperty.call(
+            action.habit,
+            'defaultDistanceMeters',
+          );
+          const hasYearlyDistanceGoal = Object.prototype.hasOwnProperty.call(
+            action.habit,
+            'yearlyDistanceGoalMeters',
+          );
+          const hasDistanceUnitPreference = Object.prototype.hasOwnProperty.call(
+            action.habit,
+            'distanceUnitPreference',
+          );
           const baseHabit = {
             ...habit,
             name,
@@ -124,11 +144,32 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
                 yearlyGoalMinutes: hasYearlyGoal
                   ? action.habit.yearlyGoalMinutes
                   : habit.yearlyGoalMinutes,
+                defaultDistanceMeters: undefined,
+                yearlyDistanceGoalMeters: undefined,
+                distanceUnitPreference: undefined,
               }
+            : trackingMode === 'distance'
+              ? {
+                  ...baseHabit,
+                  defaultDurationMinutes: undefined,
+                  yearlyGoalMinutes: undefined,
+                  defaultDistanceMeters: hasDefaultDistance
+                    ? action.habit.defaultDistanceMeters
+                    : habit.defaultDistanceMeters,
+                  yearlyDistanceGoalMeters: hasYearlyDistanceGoal
+                    ? action.habit.yearlyDistanceGoalMeters
+                    : habit.yearlyDistanceGoalMeters,
+                  distanceUnitPreference: hasDistanceUnitPreference
+                    ? action.habit.distanceUnitPreference
+                    : habit.distanceUnitPreference ?? 'km',
+                }
             : {
                 ...baseHabit,
                 defaultDurationMinutes: undefined,
                 yearlyGoalMinutes: undefined,
+                defaultDistanceMeters: undefined,
+                yearlyDistanceGoalMeters: undefined,
+                distanceUnitPreference: undefined,
               };
         }),
       };
@@ -202,7 +243,10 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
             ? remaining
             : {
                 ...habitCheckIns,
-                [action.dateKey]: createCompletedCheckIn(getDefaultDurationMinutes(habit)),
+                [action.dateKey]:
+                  habit.trackingMode === 'distance'
+                    ? createCompletedDistanceCheckIn(getDefaultDistanceMeters(habit))
+                    : createCompletedCheckIn(getDefaultDurationMinutes(habit)),
               },
         },
       };
@@ -225,9 +269,14 @@ export const habitReducer = (state: HabitState, action: HabitAction): HabitState
           [action.habitId]: action.completed
             ? {
                 ...habitCheckIns,
-                [action.dateKey]: createCompletedCheckIn(
-                  action.durationMinutes ?? getDefaultDurationMinutes(habit),
-                ),
+                [action.dateKey]:
+                  habit.trackingMode === 'distance'
+                    ? createCompletedDistanceCheckIn(
+                        action.distanceMeters ?? getDefaultDistanceMeters(habit),
+                      )
+                    : createCompletedCheckIn(
+                        action.durationMinutes ?? getDefaultDurationMinutes(habit),
+                      ),
               }
             : remaining,
         },
