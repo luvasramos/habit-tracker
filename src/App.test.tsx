@@ -69,7 +69,7 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getAllByRole('button', { name: 'Add habit' })[0]);
     await user.type(screen.getByLabelText('Name'), 'Reading');
-    await user.click(screen.getByRole('button', { name: 'Use #98FC00' }));
+    await user.click(screen.getByRole('radio', { name: 'Use #98FC00' }));
     await user.click(screen.getByRole('button', { name: 'Custom color' }));
 
     expect(screen.getByLabelText('Custom color panel')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('Habit Grid app', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add habit' }));
     await user.type(screen.getByLabelText('Name'), 'Reading');
-    await user.click(screen.getByRole('button', { name: 'Use #98FC00' }));
+    await user.click(screen.getByRole('radio', { name: 'Use #98FC00' }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
     const state = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}');
@@ -114,9 +114,10 @@ describe('Habit Grid app', () => {
 
     const editor = screen.getByRole('region', { name: 'Add habit' });
     const colorGrid = screen.getByLabelText('Recommended colors');
-    expect(within(colorGrid).getAllByRole('button')).toHaveLength(6);
-    expect(within(colorGrid).getByRole('button', { name: 'Use #98FC00' })).toBeInTheDocument();
-    expect(within(colorGrid).getAllByRole('button').every((button) => button.classList.contains('recommendation-option'))).toBe(true);
+    expect(within(colorGrid).getAllByRole('radio')).toHaveLength(6);
+    expect(within(colorGrid).getByRole('radio', { name: 'Use #98FC00' })).toBeInTheDocument();
+    expect(within(colorGrid).getAllByRole('radio').every((button) => button.classList.contains('recommendation-option'))).toBe(true);
+    expect(within(colorGrid).getByRole('radio', { name: 'Use #98FC00' })).toHaveAttribute('aria-checked');
     expect(screen.queryByRole('button', { name: 'Suggested' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Health' })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Search icons')).toBeInTheDocument();

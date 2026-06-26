@@ -4,6 +4,7 @@ type RecommendationOptionProps = {
   accessibleName: string;
   children: ReactNode;
   isSelected: boolean;
+  selectionRole?: 'radio';
 } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label' | 'aria-pressed' | 'children' | 'type'>;
 
 export const RecommendationOption = ({
@@ -11,6 +12,7 @@ export const RecommendationOption = ({
   children,
   className = '',
   isSelected,
+  selectionRole,
   title,
   ...props
 }: RecommendationOptionProps) => (
@@ -18,7 +20,9 @@ export const RecommendationOption = ({
     className={`selector-card recommendation-option ${className}`.trim()}
     type="button"
     aria-label={accessibleName}
-    aria-pressed={isSelected}
+    aria-checked={selectionRole === 'radio' ? isSelected : undefined}
+    aria-pressed={selectionRole === 'radio' ? undefined : isSelected}
+    role={selectionRole}
     title={title ?? accessibleName}
     {...props}
   >

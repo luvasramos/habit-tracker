@@ -263,6 +263,20 @@ h2 {
     box-shadow 120ms ease;
 }
 
+.button,
+.segmented__button,
+.habit-tab,
+.filter-pill,
+.custom-color-toggle,
+.custom-color-current,
+.recommendation-option,
+.floating-nav__reminder,
+.floating-nav__item,
+.floating-nav__indicator,
+.selector-pagination__button {
+  border-radius: var(--pill-radius);
+}
+
 .button:hover,
 .icon-button:hover,
 .segmented__button:hover,
@@ -345,7 +359,7 @@ h2 {
   width: var(--control-size);
   min-height: var(--control-size);
   padding: 0;
-  border-radius: var(--pill-radius);
+  border-radius: 50%;
 }
 
 .floating-nav {
@@ -2576,14 +2590,16 @@ h2 {
   transform: translateY(1px) scale(0.99);
 }
 
-.selector-card[aria-pressed='true'] {
+.selector-card[aria-pressed='true'],
+.selector-card[aria-checked='true'] {
   border-color: color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 58%, var(--border));
   background: color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 10%, var(--surface-2));
   color: var(--text);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--habit-color, var(--swatch-color, var(--soft))) 28%, transparent);
 }
 
-.selector-card[aria-pressed='true']::after {
+.selector-card[aria-pressed='true']::after,
+.selector-card[aria-checked='true']::after {
   content: "";
   position: absolute;
   top: 8px;
@@ -2612,7 +2628,8 @@ h2 {
   transform: translateY(0) scale(0.98);
 }
 
-.recommendation-option[aria-pressed='true']::after {
+.recommendation-option[aria-pressed='true']::after,
+.recommendation-option[aria-checked='true']::after {
   top: 7px;
   right: 10px;
   width: 4px;

@@ -646,13 +646,18 @@ export const HabitEditorPage = ({
 
           <div className="appearance-group">
             <span className="appearance-label">Color</span>
-            <div className="selector-grid swatch-grid swatch-grid--recommended" aria-label="Recommended colors">
+            <div
+              className="selector-grid swatch-grid swatch-grid--recommended"
+              role="radiogroup"
+              aria-label="Recommended colors"
+            >
               {recommendedColorOptions.map((option) => (
                 <RecommendationOption
                   key={option.name}
                   className="swatch-button"
                   accessibleName={`Use ${option.value}`}
                   isSelected={colorMode === 'preset' && color === option.name}
+                  selectionRole="radio"
                   style={{ '--swatch-color': option.value } as CSSProperties}
                   onClick={() => {
                     setColor(option.name);
