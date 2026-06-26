@@ -53,6 +53,9 @@
   --radius: 8px;
   --space-page: clamp(12px, 2.5vw, 24px);
   --space-shell: clamp(14px, 2.4vw, 22px);
+  --top-title-selector-gap: 12px;
+  --top-selector-controls-gap: 12px;
+  --top-controls-content-gap: 18px;
   --control-size: 44px;
   --pill-height: 44px;
   --pill-height-large: 52px;
@@ -845,9 +848,13 @@ h2 {
 
 .habit-tabs {
   display: grid;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--top-title-selector-gap);
+  margin-bottom: calc(var(--top-selector-controls-gap) + 8px);
   min-width: 0;
+}
+
+.habit-tabs--header-only {
+  margin-bottom: var(--top-title-selector-gap);
 }
 
 .habit-tabs__heading {
@@ -964,9 +971,9 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--top-selector-controls-gap);
   flex-wrap: wrap;
-  margin-bottom: 18px;
+  margin-bottom: var(--top-controls-content-gap);
 }
 
 .segmented {
@@ -1285,13 +1292,13 @@ h2 {
 
 .stats-panel {
   display: grid;
-  gap: 16px;
+  gap: var(--top-controls-content-gap);
   animation: surface-in 180ms ease both;
 }
 
 .stats-top {
   display: grid;
-  gap: 10px;
+  gap: var(--top-selector-controls-gap);
   padding: 2px 0 4px;
 }
 
@@ -1299,7 +1306,7 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
   align-items: center;
-  gap: 12px;
+  gap: var(--top-selector-controls-gap);
 }
 
 .stats-toolbar .segmented {
@@ -3279,6 +3286,10 @@ h2 {
 
   .habit-tabs {
     margin-bottom: 18px;
+  }
+
+  .habit-tabs--header-only {
+    margin-bottom: var(--top-title-selector-gap);
   }
 
   .habit-editor-header {

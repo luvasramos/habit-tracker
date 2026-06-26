@@ -52,7 +52,10 @@ export const HabitTabs = ({
   };
 
   return (
-    <section className="habit-tabs" aria-label="Habits">
+    <section
+      className={`habit-tabs${showHabitList && habits.length > 0 ? '' : ' habit-tabs--header-only'}`}
+      aria-label="Habits"
+    >
       <div className="habit-tabs__heading">
         <h1>Habits</h1>
         <div className="habit-tabs__actions">
