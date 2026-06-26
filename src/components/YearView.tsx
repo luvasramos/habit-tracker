@@ -87,7 +87,7 @@ export const YearView = ({
                     }}
                     onFocus={() => setActiveKey(cell.key)}
                   >
-                    <span className="sr-only">{format(cell.date, 'MMM d')}</span>
+                    <span className="year-day-number">{format(cell.date, 'd')}</span>
                   </DateButton>
                 ) : (
                   <span className="year-month-day is-outside" key={cell.key} aria-hidden="true" />
