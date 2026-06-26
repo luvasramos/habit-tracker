@@ -124,7 +124,7 @@ input:focus-visible {
 
 .app--editor {
   padding-top: clamp(6px, 1.2vw, 12px);
-  padding-bottom: var(--space-page);
+  padding-bottom: calc(28px + env(safe-area-inset-bottom));
 }
 
 .streak-pill {
@@ -495,7 +495,7 @@ h2 {
   display: grid;
   gap: 10px;
   width: min(calc(100vw - 28px), 420px);
-  max-height: min(360px, calc(100vh - 150px));
+  max-height: min(360px, calc(100dvh - 150px));
   overflow: auto;
   padding: 12px;
   border: 1px solid var(--border);
@@ -567,8 +567,8 @@ h2 {
 }
 
 .today-popover__check {
-  width: 38px;
-  min-height: 38px;
+  width: var(--control-size);
+  min-height: var(--control-size);
   flex: 0 0 auto;
   border-radius: 999px;
   color: var(--soft);
@@ -983,7 +983,7 @@ h2 {
 }
 
 .period-label {
-  min-width: 18ch;
+  min-width: clamp(11ch, 24vw, 18ch);
   flex: 0 1 auto;
   min-height: var(--control-size);
   display: grid;
@@ -1260,6 +1260,7 @@ h2 {
   gap: 10px;
   padding: 2px 0 4px;
   background: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(10px);
 }
 
 .stats-toolbar {
@@ -1365,6 +1366,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(var(--metric-count, 3), minmax(0, 1fr));
   gap: 8px;
+  min-width: 0;
 }
 
 .stats-summary-grid[data-count='2'] {
@@ -1378,6 +1380,7 @@ h2 {
 .metric {
   display: grid;
   gap: 4px;
+  min-width: 0;
   min-height: 72px;
   padding: 12px;
   border: 1px solid var(--border);
@@ -1391,8 +1394,10 @@ h2 {
 }
 
 .metric strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 1.35rem;
+  font-size: clamp(1.12rem, 3vw, 1.35rem);
   line-height: 1;
 }
 
@@ -1956,7 +1961,7 @@ h2 {
 
 .stats-date-details-wrap {
   position: sticky;
-  bottom: calc(92px + env(safe-area-inset-bottom));
+  bottom: calc(104px + env(safe-area-inset-bottom));
   z-index: 8;
   width: min(100%, 560px);
   justify-self: end;
@@ -2130,7 +2135,7 @@ h2 {
   aspect-ratio: 1;
   border: 1px solid var(--border);
   border-radius: 3px;
-  background: #151515;
+  background: var(--surface-2);
   opacity: 0.92;
   transition:
     opacity 120ms ease,
@@ -2180,14 +2185,14 @@ h2 {
   aspect-ratio: 1;
   border-color: var(--border);
   border-radius: 3px;
-  background: #151515;
+  background: var(--surface-2);
   opacity: 0.92;
 }
 
 .calendar-year-months .date-button--compact.is-complete {
   border-width: 1px;
   border-color: color-mix(in srgb, var(--habit-color) 82%, var(--border));
-  background: color-mix(in srgb, var(--habit-color) 14%, #151515);
+  background: color-mix(in srgb, var(--habit-color) 14%, var(--surface-2));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--habit-color) 28%, transparent);
 }
 
@@ -2259,6 +2264,7 @@ h2 {
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--surface) 96%, #202020);
+  overflow: clip;
 }
 
 .habit-editor-header {
@@ -2300,7 +2306,7 @@ h2 {
 .habit-editor-form {
   display: grid;
   gap: 16px;
-  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px) clamp(14px, 2.4vw, 22px);
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.4vw, 22px) calc(18px + env(safe-area-inset-bottom));
 }
 
 .habit-editor-actions {
@@ -2713,7 +2719,8 @@ h2 {
 }
 
 .custom-color .react-colorful {
-  width: 100%;
+  width: min(100%, 340px);
+  max-width: 100%;
   height: 180px;
 }
 
@@ -3100,7 +3107,11 @@ h2 {
   }
 
   .app {
-    padding: 12px 12px calc(148px + env(safe-area-inset-bottom));
+    padding: 12px 12px calc(162px + env(safe-area-inset-bottom));
+  }
+
+  .app--editor {
+    padding: 10px 10px calc(24px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -3119,6 +3130,7 @@ h2 {
   .habit-editor-actions {
     align-items: stretch;
     flex-direction: column;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
   }
 
   .habit-editor-actions__left,
@@ -3166,8 +3178,9 @@ h2 {
 
   .period-label {
     flex: 1;
-    min-width: 12ch;
+    min-width: 0;
     font-size: 0.95rem;
+    white-space: nowrap;
   }
 
   .week-grid,
@@ -3252,6 +3265,10 @@ h2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .stats-summary-grid[data-count='3'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .time-goal-cards {
     grid-template-columns: 1fr;
   }
@@ -3265,7 +3282,7 @@ h2 {
   }
 
   .stats-date-details-wrap {
-    bottom: calc(92px + env(safe-area-inset-bottom));
+    bottom: calc(104px + env(safe-area-inset-bottom));
     width: 100%;
     justify-self: stretch;
   }
@@ -3343,6 +3360,8 @@ h2 {
 
   .today-popover {
     bottom: calc(max(10px, env(safe-area-inset-bottom)) + 88px);
+    width: min(calc(100vw - 16px), 420px);
+    max-height: min(340px, calc(100dvh - 132px));
   }
 }
 
@@ -3357,7 +3376,11 @@ h2 {
   }
 
   .app {
-    padding: 10px 8px calc(148px + env(safe-area-inset-bottom));
+    padding: 10px 8px calc(168px + env(safe-area-inset-bottom));
+  }
+
+  .app--editor {
+    padding: 8px 8px calc(18px + env(safe-area-inset-bottom));
   }
 
   .shell {
@@ -3398,6 +3421,18 @@ h2 {
     padding-inline: 10px;
   }
 
+  .period-label {
+    font-size: 0.86rem;
+  }
+
+  .period-controls .button {
+    min-width: 52px;
+  }
+
+  .period-controls .icon-button {
+    flex: 0 0 var(--control-size);
+  }
+
   .week-grid,
   .stats-calendar-week {
     gap: 5px;
@@ -3429,6 +3464,10 @@ h2 {
 
   .week-duration-label {
     font-size: 0.7rem;
+    max-width: calc(100% - 6px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .daily-checkin__topline,
@@ -3437,11 +3476,28 @@ h2 {
   }
 
   .metric {
+    min-height: 64px;
     padding: 10px;
   }
 
   .metric strong {
-    font-size: 1.2rem;
+    font-size: 1.18rem;
+  }
+
+  .stats-summary-grid,
+  .stats-summary-grid[data-count='2'],
+  .stats-summary-grid[data-count='3'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .time-goal-card__main {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .time-goal-card__main strong {
+    font-size: 1.18rem;
   }
 
   .year-months {
@@ -3471,6 +3527,24 @@ h2 {
     padding: 14px;
   }
 
+  .habit-editor-header {
+    gap: 10px;
+    padding-left: 12px;
+    padding-right: 86px;
+  }
+
+  .habit-editor-header h1 {
+    font-size: clamp(1.18rem, 8vw, 1.55rem);
+  }
+
+  .habit-editor-header .muted {
+    font-size: 0.82rem;
+  }
+
+  .habit-editor-form {
+    gap: 14px;
+  }
+
   .selector-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3490,6 +3564,58 @@ h2 {
     max-width: none;
   }
 
+  .custom-color {
+    width: 100%;
+  }
+
+  .custom-color__actions .button {
+    flex: 1;
+  }
+
+  .emoji-picker-shell {
+    max-width: 100%;
+  }
+
+  .full-emoji-picker {
+    height: min(360px, 58vh);
+  }
+
+  .selector-pagination {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .selector-pagination__button {
+    flex: 0 0 var(--control-size);
+  }
+
+  .floating-nav {
+    width: min(calc(100vw - 12px), 440px);
+  }
+
+  .floating-nav .streak-pill,
+  .floating-nav__reminder,
+  .floating-nav__item,
+  .floating-nav__indicator {
+    padding-inline: 6px;
+  }
+
+  .today-popover {
+    width: min(calc(100vw - 12px), 420px);
+  }
+
+  .date-button,
+  .stats-date-cell {
+    overflow: hidden;
+  }
+
+  .stats-date-cell__duration {
+    max-width: calc(100% - 6px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .tracking-settings__fields {
     grid-template-columns: 1fr;
   }
@@ -3506,7 +3632,69 @@ h2 {
 @media (max-width: 390px) {
   .habit-tab,
   .stats-selector .filter-pill {
+    flex-basis: calc(50% - 4px);
+  }
+}
+
+@media (max-width: 340px) {
+  .app {
+    padding-inline: 4px;
+  }
+
+  .shell {
+    padding-inline: 8px;
+  }
+
+  .habit-tab,
+  .stats-selector .filter-pill {
     flex-basis: 100%;
+  }
+
+  .floating-nav {
+    gap: 4px;
+    padding: 4px;
+  }
+
+  .floating-nav__reminder,
+  .floating-nav__item,
+  .floating-nav__indicator,
+  .floating-nav .streak-pill {
+    min-height: 56px;
+    padding-inline: 4px;
+  }
+
+  .floating-nav .streak-pill,
+  .floating-nav__reminder {
+    flex-basis: 48px;
+  }
+
+  .floating-nav__pages {
+    flex: 1 1 auto;
+  }
+
+  .week-grid,
+  .stats-calendar-week {
+    gap: 4px;
+  }
+
+  .week-grid .date-button,
+  .stats-date-cell--week {
+    min-height: 94px;
+  }
+
+  .calendar-section,
+  .stats-calendar-month,
+  .year-month-card {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+  }
+
+  .month-grid,
+  .stats-calendar-month__grid,
+  .year-month-card__grid,
+  .year-month-card__weekdays {
+    min-width: 332px;
   }
 }
 
